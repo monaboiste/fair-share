@@ -1,0 +1,26 @@
+/*
+ * This convention plugin must be applied on the root level as well as in the module's project.
+ * See the wiki of https://github.com/autonomousapps/dependency-analysis-gradle-plugin
+ *
+ * Some issues may be false-positive, extend this configuration if necessary.
+ * Docs: https://github.com/autonomousapps/dependency-analysis-gradle-plugin/wiki/Customizing-plugin-behavior
+ */
+
+plugins {
+    id("com.autonomousapps.dependency-analysis")
+}
+
+/*
+ * Root project task, i. e. `./gradlew :dependencyAnalysis`;
+ * reports location defaults to `${rootDir}/build/reports/dependency-analysis/build-health-report.txt`
+ */
+tasks.register("dependencyAnalysis") {
+    group = "verification"
+    description = project == rootProject
+            ? "Run dependency analysis"
+            : "Run dependency analysis for this project"
+
+    dependsOn(tasks.named(
+            project == rootProject ? "buildHealth" : "projectHealth"
+    ))
+}

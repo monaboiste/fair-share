@@ -1,0 +1,26 @@
+plugins {
+    id("groovy")
+}
+
+dependencies {
+    testImplementation(platform(libs.junit.bom))
+    testRuntimeOnly(libs.junit.platform.launcher)
+
+    testImplementation(libs.groovy)
+    testImplementation(platform(libs.spock.bom))
+    testImplementation(libs.spock.core)
+
+    // Please, do not add too much dependencies here
+    testImplementation(libs.assertj)
+}
+
+tasks.named("compileTestGroovy") {
+    groovyOptions.javaAnnotationProcessing = true // Java annotation processors should process annotations on stub
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+    testLogging {
+        showStandardStreams = true
+    }
+}

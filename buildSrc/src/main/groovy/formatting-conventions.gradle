@@ -1,0 +1,21 @@
+plugins {
+    id("com.diffplug.spotless")
+}
+
+spotless {
+    enforceCheck = true
+}
+
+tasks.register("formatCheck") {
+    group = "verification"
+    description = "Check for format violations"
+
+    dependsOn(tasks.named("spotlessCheck"))
+}
+
+tasks.register("format") {
+    group = "quality"
+    description = "Apply formatting"
+
+    dependsOn(tasks.named("spotlessApply"))
+}

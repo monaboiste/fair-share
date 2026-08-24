@@ -1,0 +1,41 @@
+plugins {
+    id("formatting-conventions")
+}
+
+def rumdlConfig = rootProject.layout.projectDirectory.file("buildSrc/rumdl.toml")
+
+def formatMarkdown = tasks.register("formatMarkdown", Exec) {
+    group = "quality"
+    description = "Format Markdown files"
+
+    workingDir(rootProject.projectDir)
+
+    commandLine(
+            "rumdl",
+            "fmt",
+            "--config", rumdlConfig.asFile.absolutePath,
+            "."
+    )
+}
+
+def formatMarkdownCheck = tasks.register("formatMarkdownCheck", Exec) {
+    group = "verification"
+    description = "Check Markdown files"
+
+    workingDir(rootProject.projectDir)
+
+    commandLine(
+            "rumdl",
+            "check",
+            "--config", rumdlConfig.asFile.absolutePath,
+            "."
+    )
+}
+
+tasks.named("format") {
+    dependsOn(formatMarkdown)
+}
+
+tasks.named("formatCheck") {
+    dependsOn(formatMarkdownCheck)
+}

@@ -1,0 +1,13 @@
+plugins {
+    id("formatting-conventions")
+}
+
+spotless {
+    groovy {
+        target("src/*/groovy/**/*.groovy")
+
+        leadingTabsToSpaces(4)
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}

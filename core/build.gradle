@@ -1,0 +1,17 @@
+plugins {
+    id("java-application-conventions")
+    id("logging-conventions")
+
+    id("groovy-testing-conventions")
+
+    id("java-quality-conventions")
+    id("groovy-quality-conventions")
+    id("dependency-analysis-conventions")
+}
+
+description = "Fair Share - A group expense tracking and netting app " +
+        "that minimizes the number of payments needed to settle up."
+
+application {
+    mainClass = "com.github.monaboiste.fairshare.Main"
+}

@@ -1,22 +1,16 @@
 plugins {
-    id "java"
+    id("idea")
+    id("dependency-analysis-conventions")
+    id("markdown-quality-conventions")
 }
 
-group = "com.github.monaboiste"
-version = "0.1.0"
-description = "Fair Share - A group expense tracking and netting app " +
-        "that minimizes the number of payments needed to settle up."
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation platform("org.junit:junit-bom:6.0.0")
-    testImplementation "org.junit.jupiter:junit-jupiter"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-}
-
-test {
-    useJUnitPlatform()
+idea {
+    module {
+        /*
+         * Set the flags to `true` if Intellij encounters a problem with downloading the sources.
+         * Beware, when set, the sources from ALL dependencies will be downloaded.
+         */
+        downloadJavadoc = false
+        downloadSources = false
+    }
 }

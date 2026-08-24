@@ -1,0 +1,22 @@
+plugins {
+    id("java")
+}
+
+group = providers.gradleProperty("projectGroup").get()
+version = providers.gradleProperty("projectVersion").get()
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs
+            << "-Xlint:unchecked"
+            << "-Xlint:deprecation"
+}
+
+dependencies {
+    compileOnly(libs.annotations)
+}
