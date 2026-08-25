@@ -5,6 +5,8 @@
 - Keep shared Gradle configuration in convention plugins under `buildSrc`.
 - Declare dependency versions and aliases in `gradle/libs.versions.toml`.
 - Run `./gradlew format` before finishing a change.
+- Use conventional commits (`feat`, `fix`, `docs`, `chore`) with scopes. Prefer lowercase imperative subjects ≤50 chars
+  and 72-char bodies.
 
 ## Agent skills
 
