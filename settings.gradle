@@ -11,4 +11,12 @@ dependencyResolutionManagement {
 
 rootProject.name = "fair-share"
 
-include("core")
+include(
+        "app",
+        "core:common",
+        "core:quantity",
+        "core:product",
+        "core:pricing",
+        "core:rules",
+        "core:graphs"
+)

@@ -1,0 +1,10 @@
+plugins {
+    id("library-module-conventions")
+}
+
+dependencies {
+    implementation(project(":core:common"))
+    implementation(project(":core:quantity"))
+    implementation(project(":core:pricing"))
+    implementation(project(":core:graphs"))
+}
