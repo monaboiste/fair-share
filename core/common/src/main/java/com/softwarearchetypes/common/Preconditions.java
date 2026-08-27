@@ -19,4 +19,8 @@ public final class Preconditions {
     public static void checkNotNull(Object value, String errorMessage) {
         checkArgument(value != null, errorMessage);
     }
+
+    public static void checkNotBlank(String value, String errorMessage) {
+        checkArgument(value != null && !value.isBlank(), errorMessage);
+    }
 }

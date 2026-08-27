@@ -1,0 +1,63 @@
+package com.softwarearchetypes.quantity;
+
+import static com.softwarearchetypes.common.Preconditions.checkNotBlank;
+
+import org.jspecify.annotations.NonNull;
+
+/** Unit of measurement for quantities. Examples: kg, l, pcs, m3, m2, hours, etc. */
+public record Unit(String symbol, String name) {
+
+    public Unit {
+        checkNotBlank(symbol, "Unit symbol cannot be null or blank");
+        checkNotBlank(name, "Unit name cannot be null or blank");
+    }
+
+    public static Unit of(String symbol, String name) {
+        return new Unit(symbol, name);
+    }
+
+    public static Unit pieces() {
+        return new Unit("pcs", "pieces");
+    }
+
+    public static Unit kilograms() {
+        return new Unit("kg", "kilograms");
+    }
+
+    public static Unit liters() {
+        return new Unit("l", "liters");
+    }
+
+    public static Unit meters() {
+        return new Unit("m", "meters");
+    }
+
+    public static Unit squareMeters() {
+        return new Unit("m²", "square meters");
+    }
+
+    public static Unit cubicMeters() {
+        return new Unit("m³", "cubic meters");
+    }
+
+    public static Unit hours() {
+        return new Unit("h", "hours");
+    }
+
+    public static Unit minutes() {
+        return new Unit("min", "minutes");
+    }
+
+    public static Unit packages() {
+        return new Unit("pkg", "packages");
+    }
+
+    public static Unit accounts() {
+        return new Unit("acc", "accounts");
+    }
+
+    @Override
+    @NonNull public String toString() {
+        return symbol;
+    }
+}

@@ -2,6 +2,8 @@
 
 # Core
 java = "25"
+money-api = "1.1"
+moneta = "1.4.5"
 
 # Development
 jspecify = "1.0.1"
@@ -44,3 +46,6 @@ assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 
 spotless-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 dependency-analysis-plugin = { module = "com.autonomousapps:dependency-analysis-gradle-plugin", version.ref = "dependency-analysis" }
+
+money-api = { module = "javax.money:money-api", version.ref = "money-api" }
+moneta-core = { module = "org.javamoney.moneta:moneta-core", version.ref = "moneta" }
