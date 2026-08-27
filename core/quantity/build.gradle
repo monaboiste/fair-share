@@ -4,4 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":core:common"))
+
+    api(libs.money.api)
+    implementation(libs.moneta.core)
 }
