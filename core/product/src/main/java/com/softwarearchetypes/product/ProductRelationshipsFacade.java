@@ -1,0 +1,73 @@
+package com.softwarearchetypes.product;
+
+import com.softwarearchetypes.common.Result;
+import com.softwarearchetypes.product.ProductRelationshipCommands.DefineRelationship;
+import com.softwarearchetypes.product.ProductRelationshipCommands.RemoveRelationship;
+import java.util.Locale;
+
+public class ProductRelationshipsFacade {
+
+    private final ProductRelationshipFactory factory;
+    private final ProductRelationshipRepository repository;
+    private final ProductTypeRepository productTypeRepository;
+
+    ProductRelationshipsFacade(
+            ProductRelationshipFactory factory,
+            ProductRelationshipRepository repository,
+            ProductTypeRepository productTypeRepository) {
+        this.factory = factory;
+        this.repository = repository;
+        this.productTypeRepository = productTypeRepository;
+    }
+
+    /** Creates a facade backed by an in-memory relationship repository. */
+    public static ProductRelationshipsFacade create(ProductTypeRepository productTypeRepository) {
+        return new ProductRelationshipsFacade(
+                new ProductRelationshipFactory(ProductRelationshipId::random),
+                new InMemoryProductRelationshipRepository(),
+                productTypeRepository);
+    }
+
+    /** Defines a new relationship between two products. */
+    public Result<String, ProductRelationshipId> handle(DefineRelationship command) {
+        try {
+            var from = parseProductIdentifier(command.fromProductId());
+            var to = parseProductIdentifier(command.toProductId());
+            var type = parseRelationshipType(command.relationshipType());
+
+            if (productTypeRepository.findById(from).isEmpty()) {
+                return Result.failure("PRODUCT_NOT_FOUND: " + from.toString());
+            }
+            if (productTypeRepository.findById(to).isEmpty()) {
+                return Result.failure("PRODUCT_NOT_FOUND: " + to.toString());
+            }
+
+            return factory.defineFor(from, to, type)
+                    .peekSuccess(repository::save)
+                    .map(ProductRelationship::id);
+
+        } catch (Exception e) {
+            return Result.failure(e.getMessage());
+        }
+    }
+
+    /** Removes an existing relationship. */
+    public Result<String, ProductRelationshipId> handle(RemoveRelationship command) {
+        try {
+            var relationshipId = ProductRelationshipId.of(command.relationshipId());
+            repository.delete(relationshipId);
+            return Result.success(relationshipId);
+
+        } catch (Exception e) {
+            return Result.failure(e.getMessage());
+        }
+    }
+
+    private ProductIdentifier parseProductIdentifier(String value) {
+        return UuidProductIdentifier.of(value);
+    }
+
+    private ProductRelationshipType parseRelationshipType(String type) {
+        return ProductRelationshipType.valueOf(type.toUpperCase(Locale.ROOT));
+    }
+}

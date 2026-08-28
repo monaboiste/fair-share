@@ -146,7 +146,7 @@ public class Money implements Comparable<Money> {
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         return value.getCurrency().getCurrencyCode() + " "
                 + value.getNumberStripped().toPlainString();
     }
