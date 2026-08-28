@@ -1,8 +1,5 @@
 package com.softwarearchetypes.quantity;
 
-import static com.softwarearchetypes.common.Preconditions.checkArgument;
-import static com.softwarearchetypes.common.Preconditions.checkNotNull;
-
 import java.math.BigDecimal;
 import org.jspecify.annotations.NonNull;
 
@@ -10,9 +7,15 @@ import org.jspecify.annotations.NonNull;
 public record Quantity(BigDecimal amount, Unit unit) implements Comparable<Quantity> {
 
     public Quantity {
-        checkNotNull(amount, "Amount cannot be null");
-        checkNotNull(unit, "Unit cannot be null");
-        checkArgument(amount.compareTo(BigDecimal.ZERO) >= 0, "Amount cannot be negative");
+        if (amount == null) {
+            throw new IllegalArgumentException("Amount cannot be null");
+        }
+        if (unit == null) {
+            throw new IllegalArgumentException("Unit cannot be null");
+        }
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Amount cannot be negative");
+        }
 
         amount = amount.stripTrailingZeros();
     }
@@ -30,16 +33,18 @@ public record Quantity(BigDecimal amount, Unit unit) implements Comparable<Quant
     }
 
     public Quantity add(Quantity other) {
-        checkArgument(
-                unit.equals(other.unit),
-                String.format("Cannot add quantities with different units: %s and %s", unit, other.unit));
+        if (!unit.equals(other.unit)) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot add quantities with different units: %s and %s", unit, other.unit));
+        }
         return new Quantity(amount.add(other.amount), unit);
     }
 
     public Quantity subtract(Quantity other) {
-        checkArgument(
-                unit.equals(other.unit),
-                String.format("Cannot subtract quantities with different units: %s and %s", unit, other.unit));
+        if (!unit.equals(other.unit)) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot subtract quantities with different units: %s and %s", unit, other.unit));
+        }
         return new Quantity(amount.subtract(other.amount), unit);
     }
 
@@ -50,10 +55,13 @@ public record Quantity(BigDecimal amount, Unit unit) implements Comparable<Quant
 
     @Override
     public int compareTo(@NonNull Quantity other) {
-        checkNotNull(other, "Cannot compare to null Quantity");
-        checkArgument(
-                unit.equals(other.unit),
-                String.format("Cannot compare quantities with different units: %s and %s", unit, other.unit));
+        if (other == null) {
+            throw new IllegalArgumentException("Cannot compare to null Quantity");
+        }
+        if (!unit.equals(other.unit)) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot compare quantities with different units: %s and %s", unit, other.unit));
+        }
         return amount.compareTo(other.amount);
     }
 }

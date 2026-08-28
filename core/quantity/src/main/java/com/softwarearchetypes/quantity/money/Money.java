@@ -1,6 +1,5 @@
 package com.softwarearchetypes.quantity.money;
 
-import static com.softwarearchetypes.common.Preconditions.checkNotNull;
 import static java.math.RoundingMode.HALF_UP;
 
 import java.math.BigDecimal;
@@ -127,7 +126,9 @@ public class Money implements Comparable<Money> {
 
     @Override
     public int compareTo(@NonNull Money other) {
-        checkNotNull(other, "Cannot compare to null Money");
+        if (other == null) {
+            throw new IllegalArgumentException("Cannot compare to null Money");
+        }
         if (!value.getCurrency().equals(other.value.getCurrency())) {
             throw new MonetaryException(
                     "Currency mismatch: %s/%s".formatted(value.getCurrency(), other.value.getCurrency()));

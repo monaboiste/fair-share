@@ -1,7 +1,5 @@
 package com.softwarearchetypes.common;
 
-import static com.softwarearchetypes.common.Preconditions.checkNotNull;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -62,8 +60,12 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
 
     default <L, R> Result<L, R> biMap(
             Function<? super S, ? extends R> successMapper, Function<? super F, ? extends L> failureMapper) {
-        checkNotNull(successMapper, "successMapper cannot be null");
-        checkNotNull(failureMapper, "failureMapper cannot be null");
+        if (successMapper == null) {
+            throw new IllegalArgumentException("successMapper cannot be null");
+        }
+        if (failureMapper == null) {
+            throw new IllegalArgumentException("failureMapper cannot be null");
+        }
         if (success()) {
             return new Success<>(successMapper.apply(getSuccess()));
         } else {
@@ -72,7 +74,9 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <R> Result<F, R> map(Function<? super S, ? extends R> mapper) {
-        checkNotNull(mapper, "mapper cannot be null");
+        if (mapper == null) {
+            throw new IllegalArgumentException("mapper cannot be null");
+        }
         if (success()) {
             return new Success<>(mapper.apply(getSuccess()));
         } else {
@@ -81,7 +85,9 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <L> Result<L, S> mapFailure(Function<? super F, ? extends L> mapper) {
-        checkNotNull(mapper, "mapper cannot be null");
+        if (mapper == null) {
+            throw new IllegalArgumentException("mapper cannot be null");
+        }
         if (success()) {
             return new Success<>(getSuccess());
         } else {
@@ -90,8 +96,12 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default Result<F, S> peek(Consumer<? super S> successConsumer, Consumer<? super F> failureConsumer) {
-        checkNotNull(successConsumer, "successConsumer cannot be null");
-        checkNotNull(failureConsumer, "failureConsumer cannot be null");
+        if (successConsumer == null) {
+            throw new IllegalArgumentException("successConsumer cannot be null");
+        }
+        if (failureConsumer == null) {
+            throw new IllegalArgumentException("failureConsumer cannot be null");
+        }
         if (success()) {
             successConsumer.accept(getSuccess());
         } else {
@@ -101,18 +111,26 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default Result<F, S> peekSuccess(Consumer<? super S> successConsumer) {
-        checkNotNull(successConsumer, "successConsumer cannot be null");
+        if (successConsumer == null) {
+            throw new IllegalArgumentException("successConsumer cannot be null");
+        }
         return peek(successConsumer, it -> {});
     }
 
     default Result<F, S> peekFailure(Consumer<? super F> failureConsumer) {
-        checkNotNull(failureConsumer, "failureConsumer cannot be null");
+        if (failureConsumer == null) {
+            throw new IllegalArgumentException("failureConsumer cannot be null");
+        }
         return peek(it -> {}, failureConsumer);
     }
 
     default <R> R ifSuccessOrElse(Function<S, R> successMapping, Function<F, R> failureMapping) {
-        checkNotNull(successMapping, "successMapping cannot be null");
-        checkNotNull(failureMapping, "failureMapping cannot be null");
+        if (successMapping == null) {
+            throw new IllegalArgumentException("successMapping cannot be null");
+        }
+        if (failureMapping == null) {
+            throw new IllegalArgumentException("failureMapping cannot be null");
+        }
         if (success()) {
             return successMapping.apply(getSuccess());
         } else {
@@ -121,7 +139,9 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <R> Result<F, R> flatMap(Function<S, Result<F, R>> mapping) {
-        checkNotNull(mapping, "mapping cannot be null");
+        if (mapping == null) {
+            throw new IllegalArgumentException("mapping cannot be null");
+        }
         if (success()) {
             return mapping.apply(getSuccess());
         } else {
@@ -132,8 +152,12 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <U> U fold(Function<? super F, ? extends U> leftMapper, Function<? super S, ? extends U> rightMapper) {
-        checkNotNull(leftMapper, "leftMapper cannot be null");
-        checkNotNull(rightMapper, "rightMapper cannot be null");
+        if (leftMapper == null) {
+            throw new IllegalArgumentException("leftMapper cannot be null");
+        }
+        if (rightMapper == null) {
+            throw new IllegalArgumentException("rightMapper cannot be null");
+        }
         if (success()) {
             return rightMapper.apply(getSuccess());
         } else {
@@ -143,9 +167,15 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
 
     default <F2, S2> Result<F2, S2> combine(
             Result<F, S> secondResult, BiFunction<F, F, F2> failureCombiner, BiFunction<S, S, S2> successCombiner) {
-        checkNotNull(secondResult, "secondResult cannot be null");
-        checkNotNull(failureCombiner, "failureCombiner cannot be null");
-        checkNotNull(successCombiner, "successCombiner cannot be null");
+        if (secondResult == null) {
+            throw new IllegalArgumentException("secondResult cannot be null");
+        }
+        if (failureCombiner == null) {
+            throw new IllegalArgumentException("failureCombiner cannot be null");
+        }
+        if (successCombiner == null) {
+            throw new IllegalArgumentException("successCombiner cannot be null");
+        }
         if (success() && secondResult.success()) {
             return new Success<>(successCombiner.apply(getSuccess(), secondResult.getSuccess()));
         } else {
@@ -213,7 +243,9 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
          * @return CompositeResult with accumulated values or failure
          */
         public CompositeResult<F, S> accumulate(Result<F, S> newResult) {
-            checkNotNull(newResult, "newResult cannot be null");
+            if (newResult == null) {
+                throw new IllegalArgumentException("newResult cannot be null");
+            }
             if (result.failure()) {
                 return this;
             }
@@ -275,7 +307,9 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
          * @return CompositeSetResult with accumulated values or failure
          */
         public CompositeSetResult<F, S> accumulate(Result<F, S> newResult) {
-            checkNotNull(newResult, "newResult cannot be null");
+            if (newResult == null) {
+                throw new IllegalArgumentException("newResult cannot be null");
+            }
             if (result.failure()) {
                 return this;
             }

@@ -1,15 +1,17 @@
 package com.softwarearchetypes.quantity;
 
-import static com.softwarearchetypes.common.Preconditions.checkNotBlank;
-
 import org.jspecify.annotations.NonNull;
 
 /** Unit of measurement for quantities. Examples: kg, l, pcs, m3, m2, hours, etc. */
 public record Unit(String symbol, String name) {
 
     public Unit {
-        checkNotBlank(symbol, "Unit symbol cannot be null or blank");
-        checkNotBlank(name, "Unit name cannot be null or blank");
+        if (symbol == null || symbol.isBlank()) {
+            throw new IllegalArgumentException("Unit symbol cannot be null or blank");
+        }
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Unit name cannot be null or blank");
+        }
     }
 
     public static Unit of(String symbol, String name) {
