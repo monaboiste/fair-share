@@ -10,7 +10,7 @@ class CatalogEntrySpec extends Specification {
             ProductName.of("Product"),
             ProductDescription.of("Description"))
 
-    def "should build and copy a catalog entry"() {
+    def "build and copy a catalog entry"() {
         given:
         CatalogEntryId id = CatalogEntryId.generate()
         ApplicabilityConstraint salesConstraint = ApplicabilityConstraint.equalsTo("channel", "web")
@@ -42,7 +42,7 @@ class CatalogEntrySpec extends Specification {
         entry.toString().contains("Offer")
     }
 
-    def "should compare entries by identifier"() {
+    def "compare entries by identifier"() {
         given:
         CatalogEntryId id = CatalogEntryId.generate()
 
@@ -53,7 +53,7 @@ class CatalogEntrySpec extends Specification {
         !entry(id, "First").equals("not an entry")
     }
 
-    def "should reject an entry with missing #field"() {
+    def "reject an entry with missing #field"() {
         given:
         CatalogEntry.Builder builder = CatalogEntry.builder()
                 .id(CatalogEntryId.generate())

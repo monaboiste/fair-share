@@ -62,6 +62,8 @@ class TelecomPackageScenarioSpec extends Specification {
         "budget"    | "basic"    | "accepted" | true
         "mid-range" | "standard" | "accepted" | true
         "flagship"  | "premium"  | "accepted" | true
+        "mid-range" | "premium"  | "accepted" | true
+        "budget"    | "premium"  | "accepted" | true
         "flagship"  | "basic"    | "rejected" | false
         "flagship"  | "standard" | "rejected" | false
     }

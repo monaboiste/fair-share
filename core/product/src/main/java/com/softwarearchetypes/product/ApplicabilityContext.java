@@ -6,12 +6,10 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** Immutable parameters used to evaluate applicability constraints. */
-public class ApplicabilityContext {
+public record ApplicabilityContext(Map<String, String> parameters) {
 
-    private final Map<String, String> parameters;
-
-    private ApplicabilityContext(Map<String, String> parameters) {
-        this.parameters = Map.copyOf(parameters);
+    public ApplicabilityContext {
+        parameters = Map.copyOf(parameters != null ? parameters : Map.of());
     }
 
     public static ApplicabilityContext empty() {
@@ -19,7 +17,7 @@ public class ApplicabilityContext {
     }
 
     public static ApplicabilityContext of(@Nullable Map<String, String> parameters) {
-        return new ApplicabilityContext(parameters != null ? parameters : Map.of());
+        return new ApplicabilityContext(parameters);
     }
 
     public Optional<String> get(String key) {

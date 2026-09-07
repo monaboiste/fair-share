@@ -127,6 +127,56 @@ class LogisticsTransportScenarioSpec extends Specification {
         notificationSelected << [true, false]
     }
 
+    def "#transport transport with partner insurance is accepted"() {
+        given:
+        ProductType selectedTransport = transport == "domestic"
+                ? catalog.domesticExpress()
+                : catalog.internationalExpress()
+        List<SelectedProduct> selection = selectedProducts(
+                selectedTransport,
+                catalog.partnerInsurance(),
+                catalog.trackingPackage())
+
+        when:
+        PackageValidationResult result = catalog.transportPremium().validateSelection(selection)
+
+        then:
+        result.isValid()
+
+        where:
+        transport << ["domestic", "international"]
+    }
+
+    def "notification package accepts #channelName notification"() {
+        given:
+        Map<String, ProductType> channels = [
+                "sms"    : catalog.smsNotification(),
+                "email"  : catalog.emailNotification(),
+                "webhook": catalog.webhookNotification()
+        ]
+        List<SelectedProduct> selection = selectedProducts(channels[channelName])
+
+        when:
+        PackageValidationResult result = catalog.notificationPackage().validateSelection(selection)
+
+        then:
+        result.isValid()
+
+        where:
+        channelName << ["sms", "email", "webhook"]
+    }
+
+    def "tracking package accepts active monitoring"() {
+        given:
+        List<SelectedProduct> selection = selectedProducts(catalog.activeMonitoring())
+
+        when:
+        PackageValidationResult result = catalog.trackingPackage().validateSelection(selection)
+
+        then:
+        result.isValid()
+    }
+
     private static List<SelectedProduct> selectedProducts(Product... products) {
         return products.collect { product -> new SelectedProduct(product.id(), 1) }
     }

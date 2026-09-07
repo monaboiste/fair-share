@@ -6,7 +6,7 @@ import spock.lang.Specification
 
 class ProductRelationshipFactorySpec extends Specification {
 
-    def "should define relationship when policy allows it"() {
+    def "define relationship when policy allows it"() {
         given:
         ProductRelationshipDefiningPolicy policy = { from, to, type -> true }
         ProductRelationshipId relationshipId = ProductRelationshipId.random()
@@ -24,7 +24,7 @@ class ProductRelationshipFactorySpec extends Specification {
         result.getSuccess() == new ProductRelationship(relationshipId, from, to, type)
     }
 
-    def "should reject relationship when policy rejects it"() {
+    def "reject relationship when policy rejects it"() {
         given:
         ProductRelationshipDefiningPolicy policy = { from, to, type -> false }
         Supplier<ProductRelationshipId> idSupplier = Mock()
@@ -42,7 +42,7 @@ class ProductRelationshipFactorySpec extends Specification {
         0 * idSupplier.get()
     }
 
-    def "should use default policy when policy is null"() {
+    def "use default policy when policy is null"() {
         given:
         ProductRelationshipId relationshipId = ProductRelationshipId.random()
         ProductRelationshipFactory factory = new ProductRelationshipFactory(null, { relationshipId })
@@ -58,7 +58,7 @@ class ProductRelationshipFactorySpec extends Specification {
         result.getSuccess().id() == relationshipId
     }
 
-    def "should use default ID supplier when ID supplier is null"() {
+    def "use default ID supplier when ID supplier is null"() {
         given:
         ProductRelationshipDefiningPolicy policy = { from, to, type -> true }
         ProductRelationshipFactory factory = new ProductRelationshipFactory(policy, null)
@@ -74,7 +74,7 @@ class ProductRelationshipFactorySpec extends Specification {
         result.getSuccess().id() != null
     }
 
-    def "should use supplied IDs"() {
+    def "use supplied IDs"() {
         given:
         ProductRelationshipId firstId = ProductRelationshipId.random()
         ProductRelationshipId secondId = ProductRelationshipId.random()
