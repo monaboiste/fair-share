@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.dependency.analysis.plugin)
     implementation(libs.spotless.plugin)
+    implementation(libs.errorprone.plugin)
+    implementation(libs.dependency.analysis.plugin)
 }

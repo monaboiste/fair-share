@@ -1,5 +1,6 @@
 plugins {
     id("formatting-conventions")
+    id("net.ltgt.errorprone")
 }
 
 spotless {
@@ -11,5 +12,15 @@ spotless {
         forbidModuleImports()
         palantirJavaFormat().formatJavadoc(true)
         formatAnnotations()
+    }
+}
+
+dependencies {
+    errorprone(libs.errorprone.core)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone {
+        disableWarningsInGeneratedCode = true
     }
 }
