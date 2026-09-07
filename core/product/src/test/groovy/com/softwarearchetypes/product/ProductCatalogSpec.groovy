@@ -10,6 +10,8 @@ import com.softwarearchetypes.product.ProductQueries.FindByMetadataCriteria
 import com.softwarearchetypes.product.ProductQueries.FindCatalogEntryCriteria
 import com.softwarearchetypes.product.ProductQueries.SearchCatalogCriteria
 import com.softwarearchetypes.product.ProductViews.CatalogEntryView
+import com.softwarearchetypes.quantity.Unit
+
 import java.time.LocalDate
 import spock.lang.Specification
 
@@ -272,7 +274,7 @@ class ProductCatalogSpec extends Specification {
                         UuidProductIdentifier.random(),
                         ProductName.of("Phone"),
                         ProductDescription.of("Configurable phone"),
-                        com.softwarearchetypes.quantity.Unit.pieces(),
+                        Unit.pieces(),
                         ProductTrackingStrategy.IDENTICAL
                 )
                 .withMandatoryFeature(color)

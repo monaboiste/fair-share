@@ -1,5 +1,6 @@
 package com.softwarearchetypes.product
 
+import com.softwarearchetypes.quantity.Unit
 import spock.lang.Specification
 
 class ProductMetadataSpec extends Specification {
@@ -90,7 +91,7 @@ class ProductMetadataSpec extends Specification {
                         UuidProductIdentifier.random(),
                         ProductName.of("Pumpkin Spice Latte"),
                         ProductDescription.of("Seasonal coffee"),
-                        com.softwarearchetypes.quantity.Unit.pieces(),
+                        Unit.pieces(),
                         ProductTrackingStrategy.IDENTICAL
                 )
                 .withMetadata("category", "coffee")
