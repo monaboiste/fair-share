@@ -43,10 +43,6 @@ public class Money implements Comparable<Money> {
         return lhs.compareTo(rhs) <= 0 ? rhs : lhs;
     }
 
-    public static Money abs(Money from) {
-        return from.abs();
-    }
-
     public Money add(Money toAdd) {
         return new Money(value.add(toAdd.value));
     }
@@ -126,9 +122,6 @@ public class Money implements Comparable<Money> {
 
     @Override
     public int compareTo(@NonNull Money other) {
-        if (other == null) {
-            throw new IllegalArgumentException("Cannot compare to null Money");
-        }
         if (!value.getCurrency().equals(other.value.getCurrency())) {
             throw new MonetaryException(
                     "Currency mismatch: %s/%s".formatted(value.getCurrency(), other.value.getCurrency()));
@@ -141,10 +134,9 @@ public class Money implements Comparable<Money> {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof Money other)) {
             return false;
         }
-        Money other = (Money) o;
         return Objects.equals(value, other.value);
     }
 

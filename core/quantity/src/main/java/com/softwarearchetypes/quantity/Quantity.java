@@ -55,9 +55,6 @@ public record Quantity(BigDecimal amount, Unit unit) implements Comparable<Quant
 
     @Override
     public int compareTo(@NonNull Quantity other) {
-        if (other == null) {
-            throw new IllegalArgumentException("Cannot compare to null Quantity");
-        }
         if (!unit.equals(other.unit)) {
             throw new IllegalArgumentException(
                     String.format("Cannot compare quantities with different units: %s and %s", unit, other.unit));

@@ -210,14 +210,6 @@ class QuantitySpec extends Specification {
         exception.message.contains("different units")
     }
 
-    def "rejects comparing to null"() {
-        when:
-        Quantity.of(100, Unit.kilograms()).compareTo(null)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "equal quantities ignore BigDecimal scale"() {
         expect:
         Quantity.of(new BigDecimal("1"), Unit.kilograms()) ==

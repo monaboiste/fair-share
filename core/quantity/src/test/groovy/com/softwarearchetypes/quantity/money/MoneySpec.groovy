@@ -42,18 +42,17 @@ class MoneySpec extends Specification {
         result.isNegative()
     }
 
-    def "returns absolute value using #description method"() {
+    def "returns absolute value"() {
         when:
-        def result = operation(Money.of(amount, "PLN"))
+        def result = Money.of(amount, "PLN").abs()
 
         then:
-        result.value().equals(new BigDecimal(expected))
+        result.value() == new BigDecimal(expected)
         !result.isNegative()
 
         where:
-        description | amount | expected | operation
-        "instance"  | -100   | "100"    | { Money value -> value.abs() }
-        "static"    | -75    | "75"     | { Money value -> Money.abs(value) }
+        amount | expected
+        -100   | "100"
     }
 
     def "divides and returns quotient and remainder"() {
@@ -62,7 +61,7 @@ class MoneySpec extends Specification {
 
         then:
         result.length == 2
-        result[0].value().equals(new BigDecimal("33"))
+        result[0].value() == new BigDecimal("33")
         result[1].value() == BigDecimal.ONE
     }
 
@@ -112,7 +111,7 @@ class MoneySpec extends Specification {
 
         then:
         result.present
-        result.get().value().equals(new BigDecimal("25"))
+        result.get().value() == new BigDecimal("25")
     }
 
     def "returns empty minimum for an empty set"() {
