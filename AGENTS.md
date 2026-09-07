@@ -1,6 +1,8 @@
 # Repository conventions
 
-- Write production code in Java and tests in Groovy with Spock.
+- Use the Java version from [.sdkmanrc](.sdkmanrc). Configure `JAVA_HOME` from `~/.sdkman/candidates/java/<version>`
+  before running Gradle.
+- Write tests in Groovy with Spock.
 - Name tests `*Spec`; extend `Specification` directly; use Spock conditions and `thrown(...)`, not assertion wrappers or
   JUnit assertions.
 - Ask before using AssertJ.
@@ -10,7 +12,7 @@
 - Use double-quoted strings and four-space indentation in Groovy and Gradle Groovy DSL files.
 - Keep shared Gradle configuration in convention plugins under `buildSrc`.
 - Declare dependency versions and aliases in `gradle/libs.versions.toml`.
-- Run `./gradlew format` before finishing a change.
+- Run `./gradlew format compileJava` before finishing a change.
 - Use conventional commits (`feat`, `fix`, `docs`, `chore`) with scopes. Prefer lowercase imperative subjects ≤50 chars
   and 72-char bodies.
 
