@@ -1,9 +1,11 @@
 package com.softwarearchetypes.product.scenarios
 
 import com.softwarearchetypes.common.Result
+import com.softwarearchetypes.product.ProductIdentifier
 import com.softwarearchetypes.product.ProductRelationshipCommands.DefineRelationship
 import com.softwarearchetypes.product.ProductRelationshipCommands.RemoveRelationship
 import com.softwarearchetypes.product.ProductRelationshipId
+import com.softwarearchetypes.product.ProductRelationshipType
 import com.softwarearchetypes.product.ProductRelationshipsFacade
 import com.softwarearchetypes.product.ProductType
 import com.softwarearchetypes.product.fixture.ProductRelationshipsFixture
@@ -94,7 +96,7 @@ class ProductRelationshipsScenarioSpec extends Specification {
                 products.iphone15(), products.samsungS24(), "SUBSTITUTED_BY").getSuccess()
 
         when:
-        Result<String, ProductRelationshipId> removal = facade.handle(new RemoveRelationship(relationshipId.value()))
+        Result<String, ProductRelationshipId> removal = facade.handle(new RemoveRelationship(relationshipId))
 
         then:
         removal.success()
@@ -103,9 +105,9 @@ class ProductRelationshipsScenarioSpec extends Specification {
     def "relationship requires both products to exist"() {
         when:
         Result<String, ProductRelationshipId> result = facade.handle(new DefineRelationship(
-                UUID.randomUUID().toString(),
-                products.iphone15().id().toString(),
-                "UPGRADABLE_TO"))
+                ProductIdentifier.uuid(),
+                products.iphone15().id(),
+                ProductRelationshipType.UPGRADABLE_TO))
 
         then:
         result.failure()
@@ -141,6 +143,6 @@ class ProductRelationshipsScenarioSpec extends Specification {
     }
 
     private Result<String, ProductRelationshipId> relate(ProductType from, ProductType to, String type) {
-        return facade.handle(new DefineRelationship(from.id().toString(), to.id().toString(), type))
+        return facade.handle(new DefineRelationship(from.id(), to.id(), ProductRelationshipType.valueOf(type)))
     }
 }

@@ -9,7 +9,7 @@ class ProductRelationshipFactorySpec extends Specification {
     def "define relationship when policy allows it"() {
         given:
         ProductRelationshipDefiningPolicy policy = { from, to, type -> true }
-        ProductRelationshipId relationshipId = ProductRelationshipId.random()
+        ProductRelationshipId relationshipId = ProductRelationshipId.newOne()
         ProductRelationshipFactory factory = new ProductRelationshipFactory(policy, { relationshipId })
         ProductIdentifier from = ProductIdentifier.of("from")
         ProductIdentifier to = ProductIdentifier.of("to")
@@ -44,7 +44,7 @@ class ProductRelationshipFactorySpec extends Specification {
 
     def "use default policy when policy is null"() {
         given:
-        ProductRelationshipId relationshipId = ProductRelationshipId.random()
+        ProductRelationshipId relationshipId = ProductRelationshipId.newOne()
         ProductRelationshipFactory factory = new ProductRelationshipFactory(null, { relationshipId })
         ProductIdentifier from = ProductIdentifier.of("from")
         ProductIdentifier to = ProductIdentifier.of("to")
@@ -76,8 +76,8 @@ class ProductRelationshipFactorySpec extends Specification {
 
     def "use supplied IDs"() {
         given:
-        ProductRelationshipId firstId = ProductRelationshipId.random()
-        ProductRelationshipId secondId = ProductRelationshipId.random()
+        ProductRelationshipId firstId = ProductRelationshipId.newOne()
+        ProductRelationshipId secondId = ProductRelationshipId.newOne()
         List<ProductRelationshipId> suppliedIds = [firstId, secondId]
         ProductRelationshipFactory factory = new ProductRelationshipFactory({ suppliedIds.remove(0) })
         ProductIdentifier from = ProductIdentifier.of("from")

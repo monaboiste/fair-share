@@ -14,7 +14,7 @@ record ProductConfiguration(
         InMemoryProductRelationshipRepository productRelationshipRepository =
                 new InMemoryProductRelationshipRepository();
         ProductRelationshipFactory productRelationshipFactory =
-                new ProductRelationshipFactory(ProductRelationshipId::random);
+                new ProductRelationshipFactory(ProductRelationshipId::newOne);
         ProductRelationshipsFacade productRelationshipsFacade = new ProductRelationshipsFacade(
                 productRelationshipFactory, productRelationshipRepository, productTypeRepository);
 

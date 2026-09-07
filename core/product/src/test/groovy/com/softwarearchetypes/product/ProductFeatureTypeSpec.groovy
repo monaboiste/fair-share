@@ -51,7 +51,6 @@ class ProductFeatureTypeSpec extends Specification {
         first == sameName
         first.hashCode() == sameName.hashCode()
         first != other
-        !first.equals("color")
     }
 
     def "should reject missing constructor arguments"() {

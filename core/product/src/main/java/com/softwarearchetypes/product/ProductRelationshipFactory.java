@@ -14,7 +14,7 @@ public class ProductRelationshipFactory {
     public ProductRelationshipFactory(
             @Nullable ProductRelationshipDefiningPolicy policy, @Nullable Supplier<ProductRelationshipId> idSupplier) {
         this.policy = policy != null ? policy : DEFAULT_POLICY;
-        this.idSupplier = idSupplier != null ? idSupplier : ProductRelationshipId::random;
+        this.idSupplier = idSupplier != null ? idSupplier : ProductRelationshipId::newOne;
     }
 
     public ProductRelationshipFactory(@Nullable Supplier<ProductRelationshipId> idSupplier) {

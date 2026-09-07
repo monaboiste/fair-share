@@ -10,7 +10,7 @@ class ProductRelationshipsQueriesSpec extends Specification {
 
     def "should find relationship by ID"() {
         given:
-        ProductRelationshipId relationshipId = ProductRelationshipId.random()
+        ProductRelationshipId relationshipId = ProductRelationshipId.newOne()
         ProductRelationship relationship = relationship(relationshipId)
         repository.findBy(relationshipId) >> Optional.of(relationship)
 
@@ -24,7 +24,7 @@ class ProductRelationshipsQueriesSpec extends Specification {
     def "should find all relations from product without type"() {
         given:
         ProductIdentifier productIdentifier = ProductIdentifier.of("product")
-        List<ProductRelationship> relationships = [relationship(ProductRelationshipId.random())]
+        List<ProductRelationship> relationships = [relationship(ProductRelationshipId.newOne())]
         repository.findAllRelationsFrom(productIdentifier) >> relationships
 
         when:
@@ -38,7 +38,7 @@ class ProductRelationshipsQueriesSpec extends Specification {
         given:
         ProductIdentifier productIdentifier = ProductIdentifier.of("product")
         ProductRelationshipType type = ProductRelationshipType.COMPLEMENTED_BY
-        List<ProductRelationship> relationships = [relationship(ProductRelationshipId.random())]
+        List<ProductRelationship> relationships = [relationship(ProductRelationshipId.newOne())]
         repository.findAllRelationsFrom(productIdentifier, type) >> relationships
 
         when:
@@ -53,8 +53,8 @@ class ProductRelationshipsQueriesSpec extends Specification {
         ProductIdentifier firstProduct = ProductIdentifier.of("first")
         ProductIdentifier secondProduct = ProductIdentifier.of("second")
         ProductRelationshipType type = ProductRelationshipType.COMPLEMENTED_BY
-        ProductRelationship firstRelationship = relationship(ProductRelationshipId.random())
-        ProductRelationship secondRelationship = relationship(ProductRelationshipId.random())
+        ProductRelationship firstRelationship = relationship(ProductRelationshipId.newOne())
+        ProductRelationship secondRelationship = relationship(ProductRelationshipId.newOne())
         repository.findAllRelationsFrom(firstProduct, type) >> [firstRelationship]
         repository.findAllRelationsFrom(secondProduct, type) >> [secondRelationship]
 
@@ -68,7 +68,7 @@ class ProductRelationshipsQueriesSpec extends Specification {
     def "should find matching relationships"() {
         given:
         Predicate<ProductRelationship> predicate = Mock()
-        List<ProductRelationship> relationships = [relationship(ProductRelationshipId.random())]
+        List<ProductRelationship> relationships = [relationship(ProductRelationshipId.newOne())]
         repository.findMatching(predicate) >> relationships
 
         when:

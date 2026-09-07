@@ -273,7 +273,7 @@ class PackageInstanceSpec extends Specification {
                 ))
                 .build()
         SelectedInstance mouseSelection = packageInstance.selection().stream()
-                                            .filter(s -> s.product().id().equals(mouse.id()))
+                                            .filter(s -> s.product().id() == mouse.id())
                                             .findFirst()
                                             .orElseThrow()
 

@@ -3,7 +3,6 @@ package com.softwarearchetypes.product;
 import com.softwarearchetypes.common.Result;
 import com.softwarearchetypes.product.ProductRelationshipCommands.DefineRelationship;
 import com.softwarearchetypes.product.ProductRelationshipCommands.RemoveRelationship;
-import java.util.Locale;
 
 public class ProductRelationshipsFacade {
 
@@ -23,7 +22,7 @@ public class ProductRelationshipsFacade {
     /** Creates a facade backed by an in-memory relationship repository. */
     public static ProductRelationshipsFacade create(ProductTypeRepository productTypeRepository) {
         return new ProductRelationshipsFacade(
-                new ProductRelationshipFactory(ProductRelationshipId::random),
+                new ProductRelationshipFactory(ProductRelationshipId::newOne),
                 new InMemoryProductRelationshipRepository(),
                 productTypeRepository);
     }
@@ -31,9 +30,9 @@ public class ProductRelationshipsFacade {
     /** Defines a new relationship between two products. */
     public Result<String, ProductRelationshipId> handle(DefineRelationship command) {
         try {
-            var from = parseProductIdentifier(command.fromProductId());
-            var to = parseProductIdentifier(command.toProductId());
-            var type = parseRelationshipType(command.relationshipType());
+            var from = command.fromProductId();
+            var to = command.toProductId();
+            var type = command.relationshipType();
 
             if (productTypeRepository.findById(from).isEmpty()) {
                 return Result.failure("PRODUCT_NOT_FOUND: " + from.toString());
@@ -54,20 +53,12 @@ public class ProductRelationshipsFacade {
     /** Removes an existing relationship. */
     public Result<String, ProductRelationshipId> handle(RemoveRelationship command) {
         try {
-            var relationshipId = ProductRelationshipId.of(command.relationshipId());
+            var relationshipId = command.relationshipId();
             repository.delete(relationshipId);
             return Result.success(relationshipId);
 
         } catch (Exception e) {
             return Result.failure(e.getMessage());
         }
-    }
-
-    private ProductIdentifier parseProductIdentifier(String value) {
-        return UuidProductIdentifier.of(value);
-    }
-
-    private ProductRelationshipType parseRelationshipType(String type) {
-        return ProductRelationshipType.valueOf(type.toUpperCase(Locale.ROOT));
     }
 }

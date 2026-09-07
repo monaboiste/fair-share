@@ -172,7 +172,7 @@ class ProductCatalogSpec extends Specification {
 
         then:
         1 == withBrand.size()
-        withBrand.stream().anyMatch({ e -> e.displayName().equals("Laptop with brand") })
+        withBrand.stream().anyMatch({ e -> e.displayName() == "Laptop with brand" })
     }
 
     def "should find #expectedName by #searchText text"() {

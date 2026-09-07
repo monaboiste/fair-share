@@ -1,7 +1,5 @@
 package com.softwarearchetypes.product;
 
-import java.util.UUID;
-
 /** Commands accepted by {@link ProductRelationshipsFacade}. */
 public final class ProductRelationshipCommands {
 
@@ -12,24 +10,25 @@ public final class ProductRelationshipCommands {
      *
      * @param fromProductId source product identifier
      * @param toProductId target product identifier
-     * @param relationshipType {@link ProductRelationshipType} name
+     * @param relationshipType type of the relationship
      */
-    public record DefineRelationship(String fromProductId, String toProductId, String relationshipType) {
+    public record DefineRelationship(
+            ProductIdentifier fromProductId, ProductIdentifier toProductId, ProductRelationshipType relationshipType) {
         public DefineRelationship {
-            if (fromProductId == null || fromProductId.isBlank()) {
+            if (fromProductId == null) {
                 throw new IllegalArgumentException("From product ID must be defined");
             }
-            if (toProductId == null || toProductId.isBlank()) {
+            if (toProductId == null) {
                 throw new IllegalArgumentException("To product ID must be defined");
             }
-            if (relationshipType == null || relationshipType.isBlank()) {
+            if (relationshipType == null) {
                 throw new IllegalArgumentException("Relationship type must be defined");
             }
         }
     }
 
     /** Removes a product relationship. */
-    public record RemoveRelationship(UUID relationshipId) {
+    public record RemoveRelationship(ProductRelationshipId relationshipId) {
         public RemoveRelationship {
             if (relationshipId == null) {
                 throw new IllegalArgumentException("Relationship ID must be defined");

@@ -234,7 +234,7 @@ class ValiditySpec extends Specification {
             )
 
             when:
-            boolean equal = validity1.equals(validity2)
+            boolean equal = validity1 == validity2
 
             then:
             !equal

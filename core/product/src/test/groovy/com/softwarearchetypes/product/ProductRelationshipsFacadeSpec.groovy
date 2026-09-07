@@ -9,7 +9,7 @@ import spock.lang.Specification
 class ProductRelationshipsFacadeSpec extends Specification {
 
     private final InMemoryProductTypeRepository productTypeRepository = new InMemoryProductTypeRepository()
-    private final ProductRelationshipFactory factory = new ProductRelationshipFactory(ProductRelationshipId::random)
+    private final ProductRelationshipFactory factory = new ProductRelationshipFactory(ProductRelationshipId::newOne)
     private final InMemoryProductRelationshipRepository relationshipRepository = new InMemoryProductRelationshipRepository()
     private final ProductRelationshipsFacade facade = new ProductRelationshipsFacade(factory, relationshipRepository, productTypeRepository)
     private final ProductRelationshipsQueries queries = new ProductRelationshipsQueries(relationshipRepository)
@@ -22,9 +22,9 @@ class ProductRelationshipsFacadeSpec extends Specification {
         when:
         Result<String, ProductRelationshipId> result = facade.handle(
                 new DefineRelationship(
-                        nonExistingFrom.toString(),
-                        existingTo.identifier().toString(),
-                        "UPGRADABLE_TO"
+                        nonExistingFrom,
+                        existingTo.identifier(),
+                        ProductRelationshipType.UPGRADABLE_TO
                 )
         )
 
@@ -41,9 +41,9 @@ class ProductRelationshipsFacadeSpec extends Specification {
         when:
         Result<String, ProductRelationshipId> result = facade.handle(
                 new DefineRelationship(
-                        existingFrom.identifier().toString(),
-                        nonExistingTo.toString(),
-                        "UPGRADABLE_TO"
+                        existingFrom.identifier(),
+                        nonExistingTo,
+                        ProductRelationshipType.UPGRADABLE_TO
                 )
         )
 
@@ -60,9 +60,9 @@ class ProductRelationshipsFacadeSpec extends Specification {
         when:
         Result<String, ProductRelationshipId> result = facade.handle(
                 new DefineRelationship(
-                        smallCoffee.identifier().toString(),
-                        largeCoffee.identifier().toString(),
-                        "UPGRADABLE_TO"
+                        smallCoffee.identifier(),
+                        largeCoffee.identifier(),
+                        ProductRelationshipType.UPGRADABLE_TO
                 )
         )
 
@@ -79,22 +79,46 @@ class ProductRelationshipsFacadeSpec extends Specification {
         relationship.type() == ProductRelationshipType.UPGRADABLE_TO
     }
 
-    def "should remove relationship between products"() {
+    def "should remove the correct relationship"() {
         given:
         ProductType smallCoffee = thereIsProduct()
         ProductType largeCoffee = thereIsProduct()
         ProductRelationshipId relationshipId = facade.handle(
                         new DefineRelationship(
-                                smallCoffee.identifier().toString(),
-                                largeCoffee.identifier().toString(),
-                                "UPGRADABLE_TO"
+                                smallCoffee.identifier(),
+                                largeCoffee.identifier(),
+                                ProductRelationshipType.UPGRADABLE_TO
                         )
                 )
                 .getSuccess()
 
         when:
         Result<String, ProductRelationshipId> result = facade.handle(
-                new RemoveRelationship(relationshipId.value())
+                new RemoveRelationship(relationshipId)
+        )
+
+        then:
+        result.success()
+        result.getSuccess() == relationshipId
+        queries.findBy(relationshipId).isEmpty()
+    }
+
+    def "should remove relationship between products"() {
+        given:
+        ProductType smallCoffee = thereIsProduct()
+        ProductType largeCoffee = thereIsProduct()
+        ProductRelationshipId relationshipId = facade.handle(
+                        new DefineRelationship(
+                                smallCoffee.identifier(),
+                                largeCoffee.identifier(),
+                                ProductRelationshipType.UPGRADABLE_TO
+                        )
+                )
+                .getSuccess()
+
+        when:
+        Result<String, ProductRelationshipId> result = facade.handle(
+                new RemoveRelationship(relationshipId)
         )
 
         then:
@@ -108,14 +132,14 @@ class ProductRelationshipsFacadeSpec extends Specification {
         ProductType fries = thereIsProduct()
         ProductType coke = thereIsProduct()
         facade.handle(new DefineRelationship(
-                burger.identifier().toString(),
-                fries.identifier().toString(),
-                "COMPLEMENTED_BY"
+                burger.identifier(),
+                fries.identifier(),
+                ProductRelationshipType.COMPLEMENTED_BY
         ))
         facade.handle(new DefineRelationship(
-                burger.identifier().toString(),
-                coke.identifier().toString(),
-                "COMPLEMENTED_BY"
+                burger.identifier(),
+                coke.identifier(),
+                ProductRelationshipType.COMPLEMENTED_BY
         ))
 
         when:
@@ -123,7 +147,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
 
         then:
         relations.size() == 2
-        relations.stream().allMatch(rel -> rel.from().equals(burger.identifier()))
+        relations.stream().allMatch(rel -> rel.from() == burger.identifier())
         relations.stream().allMatch(rel -> rel.type() == ProductRelationshipType.COMPLEMENTED_BY)
     }
 

@@ -28,7 +28,7 @@ class ProductFacadeSpec extends Specification {
 
     def "should define simple product type and find it"() {
         given:
-        String productId = UUID.randomUUID().toString()
+        String productId = ProductIdentifier.uuid().toString()
 
         when:
         Result<String, ProductIdentifier> result = facade.handle(new DefineProductType(
@@ -57,7 +57,7 @@ class ProductFacadeSpec extends Specification {
 
     def "should define product type with mandatory features and find it"() {
         given:
-        String productId = UUID.randomUUID().toString()
+        String productId = ProductIdentifier.uuid().toString()
 
         when:
         Result<String, ProductIdentifier> result = facade.handle(new DefineProductType(
@@ -89,7 +89,7 @@ class ProductFacadeSpec extends Specification {
 
     def "should define product type with optional features and find it"() {
         given:
-        String productId = UUID.randomUUID().toString()
+        String productId = ProductIdentifier.uuid().toString()
 
         when:
         Result<String, ProductIdentifier> result = facade.handle(new DefineProductType(
@@ -119,7 +119,7 @@ class ProductFacadeSpec extends Specification {
 
     def "should define product type with all constraint types"() {
         given:
-        String productId = UUID.randomUUID().toString()
+        String productId = ProductIdentifier.uuid().toString()
 
         when:
         Result<String, ProductIdentifier> result = facade.handle(new DefineProductType(
@@ -190,7 +190,7 @@ class ProductFacadeSpec extends Specification {
 
     def "should return empty for non existent product"() {
         when:
-        boolean found = facade.findBy(new FindProductTypeCriteria(UUID.randomUUID().toString())).isPresent()
+        boolean found = facade.findBy(new FindProductTypeCriteria(ProductIdentifier.uuid().toString())).isPresent()
 
         then:
         !found
@@ -198,7 +198,7 @@ class ProductFacadeSpec extends Specification {
 
     def "should return correct feature type views"() {
         given:
-        String productId = UUID.randomUUID().toString()
+        String productId = ProductIdentifier.uuid().toString()
         facade.handle(new DefineProductType(
                 "UUID",
                 productId,
@@ -219,7 +219,7 @@ class ProductFacadeSpec extends Specification {
         1 == view.optionalFeatures().size()
 
         FeatureTypeView feature = (mandatory ? view.mandatoryFeatures() : view.optionalFeatures()).stream()
-                .filter({ candidate -> candidate.name().equals(featureName) })
+                .filter({ candidate -> candidate.name() == featureName })
                 .findFirst()
                 .orElseThrow()
         valueType == feature.valueType()
@@ -308,7 +308,7 @@ class ProductFacadeSpec extends Specification {
         when:
         new DefineProductType(
                 "UUID",
-                UUID.randomUUID().toString(),
+                ProductIdentifier.uuid().toString(),
                 "",
                 "Description",
                 "pcs",
@@ -325,7 +325,7 @@ class ProductFacadeSpec extends Specification {
     private void thereIsProductType(String name, String trackingStrategy) {
         facade.handle(new DefineProductType(
                 "UUID",
-                UUID.randomUUID().toString(),
+                ProductIdentifier.uuid().toString(),
                 name,
                 "Description of " + name,
                 "pcs",

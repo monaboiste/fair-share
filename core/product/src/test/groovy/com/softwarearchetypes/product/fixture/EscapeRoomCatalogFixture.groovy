@@ -3,7 +3,6 @@ package com.softwarearchetypes.product.fixture
 import static com.softwarearchetypes.product.ApplicabilityConstraint.and
 import static com.softwarearchetypes.product.ApplicabilityConstraint.equalsTo
 import static com.softwarearchetypes.product.ApplicabilityConstraint.greaterThan
-import static com.softwarearchetypes.product.ApplicabilityConstraint.in
 import static com.softwarearchetypes.product.ApplicabilityConstraint.not
 
 import com.softwarearchetypes.product.ApplicabilityConstraint
@@ -163,7 +162,7 @@ final class EscapeRoomCatalogFixture {
     }
 
     static List<ProductRelationship> relationships() {
-        def factory = new ProductRelationshipFactory(new NoSelfRelationshipPolicy(), { ProductRelationshipId.random() })
+        def factory = new ProductRelationshipFactory(new NoSelfRelationshipPolicy(), { ProductRelationshipId.newOne() })
 
         List.of(
                 define(factory, ID_EGYPTIAN_TOMB, ID_MAD_SCIENTIST_LAB, ProductRelationshipType.UPGRADABLE_TO),
@@ -239,7 +238,7 @@ final class EscapeRoomCatalogFixture {
 
         @Override
         boolean canDefineFor(ProductIdentifier from, ProductIdentifier to, ProductRelationshipType type) {
-            !from.equals(to)
+            from != to
         }
     }
 }

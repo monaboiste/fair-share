@@ -4,11 +4,11 @@ import java.util.UUID;
 
 public record ProductRelationshipId(UUID value) {
 
-    public static ProductRelationshipId of(UUID value) {
-        return new ProductRelationshipId(value);
+    public static ProductRelationshipId of(String value) {
+        return new ProductRelationshipId(UUID.fromString(value));
     }
 
-    public static ProductRelationshipId random() {
+    public static ProductRelationshipId newOne() {
         return new ProductRelationshipId(UUID.randomUUID());
     }
 
