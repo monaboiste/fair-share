@@ -1,6 +1,12 @@
 # Repository conventions
 
 - Write production code in Java and tests in Groovy with Spock.
+- Name tests `*Spec`; extend `Specification` directly; use Spock conditions and `thrown(...)`, not assertion wrappers or
+  JUnit assertions.
+- Ask before using AssertJ.
+- Use `given` for setup, `when` for behavior, and `then` for assertions; reserve `expect` for single-phase expressions.
+- Parameterize repeated input cases with Spock `where` blocks; name results by meaning.
+- Keep tests comment-free; put necessary context in Spock block labels.
 - Use double-quoted strings and four-space indentation in Groovy and Gradle Groovy DSL files.
 - Keep shared Gradle configuration in convention plugins under `buildSrc`.
 - Declare dependency versions and aliases in `gradle/libs.versions.toml`.
