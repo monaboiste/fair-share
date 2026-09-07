@@ -14,7 +14,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
     private final ProductRelationshipsFacade facade = new ProductRelationshipsFacade(factory, relationshipRepository, productTypeRepository)
     private final ProductRelationshipsQueries queries = new ProductRelationshipsQueries(relationshipRepository)
 
-    def "should fail to define relationship when from product does not exist"() {
+    def "fail to define relationship when from product does not exist"() {
         given:
         ProductIdentifier nonExistingFrom = UuidProductIdentifier.random()
         ProductType existingTo = thereIsProduct()
@@ -33,7 +33,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
         result.getFailure().contains("PRODUCT_NOT_FOUND")
     }
 
-    def "should fail to define relationship when to product does not exist"() {
+    def "fail to define relationship when to product does not exist"() {
         given:
         ProductType existingFrom = thereIsProduct()
         ProductIdentifier nonExistingTo = UuidProductIdentifier.random()
@@ -52,7 +52,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
         result.getFailure().contains("PRODUCT_NOT_FOUND")
     }
 
-    def "should define relationship between products"() {
+    def "define relationship between products"() {
         given:
         ProductType smallCoffee = thereIsProduct()
         ProductType largeCoffee = thereIsProduct()
@@ -79,7 +79,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
         relationship.type() == ProductRelationshipType.UPGRADABLE_TO
     }
 
-    def "should remove the correct relationship"() {
+    def "remove the correct relationship"() {
         given:
         ProductType smallCoffee = thereIsProduct()
         ProductType largeCoffee = thereIsProduct()
@@ -103,7 +103,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
         queries.findBy(relationshipId).isEmpty()
     }
 
-    def "should remove relationship between products"() {
+    def "remove relationship between products"() {
         given:
         ProductType smallCoffee = thereIsProduct()
         ProductType largeCoffee = thereIsProduct()
@@ -126,7 +126,7 @@ class ProductRelationshipsFacadeSpec extends Specification {
         queries.findBy(relationshipId).isEmpty()
     }
 
-    def "should find all relations from product"() {
+    def "find all relations from product"() {
         given:
         ProductType burger = thereIsProduct()
         ProductType fries = thereIsProduct()
