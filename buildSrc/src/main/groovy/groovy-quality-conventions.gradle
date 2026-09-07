@@ -6,8 +6,17 @@ spotless {
     groovy {
         target("src/*/groovy/**/*.groovy")
 
+        importOrder()
         leadingTabsToSpaces(4)
         trimTrailingWhitespace()
+        removeSemicolons()
         endWithNewline()
+
+        custom("forbid wildcard imports") { source ->
+            if (source =~ /(?m)^\s*import\s+(?:static\s+)?[\w.]+\.\*\s*;?\s*$/) {
+                throw new GradleException("Wildcard imports are forbidden")
+            }
+            source
+        }
     }
 }

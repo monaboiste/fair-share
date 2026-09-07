@@ -1,11 +1,9 @@
 package com.softwarearchetypes.quantity.money
 
-import spock.lang.Unroll
-
-import javax.money.MonetaryException
 import java.math.RoundingMode
-
+import javax.money.MonetaryException
 import spock.lang.Specification
+import spock.lang.Unroll
 
 class MoneySpec extends Specification {
 
