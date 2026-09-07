@@ -2,8 +2,8 @@ plugins {
     id("java")
 }
 
-group = providers.gradleProperty("projectGroup").get()
-version = providers.gradleProperty("projectVersion").get()
+group = providers.gradleProperty("project.group").get()
+version = providers.gradleProperty("project.version").get()
 
 java {
     toolchain {
