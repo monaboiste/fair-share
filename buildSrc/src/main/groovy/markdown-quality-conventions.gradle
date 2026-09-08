@@ -2,6 +2,10 @@ plugins {
     id("formatting-conventions")
 }
 
+if (project != rootProject) {
+    throw new GradleException("'markdown-quality-conventions' must only be applied to the root project")
+}
+
 def rumdlConfig = rootProject.layout.projectDirectory.file("buildSrc/rumdl.toml")
 
 def formatMarkdown = tasks.register("formatMarkdown", Exec) {
