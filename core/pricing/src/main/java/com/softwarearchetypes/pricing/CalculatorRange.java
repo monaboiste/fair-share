@@ -53,8 +53,6 @@ interface CalculatorRange {
      */
     String describe();
 
-    // Factory methods for convenient range creation
-
     static NumericRange numeric(BigDecimal min, BigDecimal max, CalculatorId calculatorId) {
         return new NumericRange(min, max, calculatorId);
     }
@@ -105,10 +103,6 @@ record DateRange(LocalDate from, LocalDate to, CalculatorId calculatorId) implem
 
         DateRange o = (DateRange) other;
 
-        // Two date ranges [a_from, a_to) and [b_from, b_to) do NOT overlap when:
-        // - a_to <= b_from  (A is completely before B)
-        // - b_to <= a_from  (B is completely before A)
-        // They overlap when: negation of the above
         return !(to.compareTo(o.from) <= 0) && !(o.to.compareTo(from) <= 0);
     }
 
@@ -160,10 +154,6 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
 
         NumericRange o = (NumericRange) other;
 
-        // Two ranges [a_min, a_max) and [b_min, b_max) do NOT overlap when:
-        // - a_max <= b_min  (A is completely before B)
-        // - b_max <= a_min  (B is completely before A)
-        // They overlap when: negation of the above
         return !(max.compareTo(o.min) <= 0) && !(o.max.compareTo(min) <= 0);
     }
 
@@ -197,11 +187,8 @@ record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implem
         LocalTime time = (LocalTime) value;
 
         if (from.isBefore(to)) {
-            // Normal range: e.g., 08:00-18:00
             return !time.isBefore(from) && time.isBefore(to);
         } else {
-            // Range crossing midnight: e.g., 22:00-06:00
-            // Means: [22:00, 24:00) OR [00:00, 06:00)
             return !time.isBefore(from) || time.isBefore(to);
         }
     }
@@ -224,29 +211,19 @@ record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implem
         boolean otherNormal = o.from.isBefore(o.to);
 
         if (thisNormal && otherNormal) {
-            // Both are normal ranges - standard interval overlap logic
             return !(to.compareTo(o.from) <= 0) && !(o.to.compareTo(from) <= 0);
         }
 
         if (!thisNormal && otherNormal) {
-            // This crosses midnight, other is normal
-            // this = [from, 24:00) + [00:00, to)
-            // Gap in this: [to, from)
-            // They DON'T overlap if other fits entirely in the gap
             boolean otherInGap = o.from.compareTo(to) >= 0 && o.to.compareTo(from) <= 0;
             return !otherInGap;
         }
 
         if (thisNormal && !otherNormal) {
-            // Other crosses midnight, this is normal
-            // Symmetric to the previous case
             boolean thisInGap = from.compareTo(o.to) >= 0 && to.compareTo(o.from) <= 0;
             return !thisInGap;
         }
 
-        // Both cross midnight
-        // Both ranges contain midnight, so they always overlap
-        // (unless one ends exactly when the other starts, but with exclusive end that's still overlap)
         return true;
     }
 

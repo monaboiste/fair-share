@@ -43,7 +43,7 @@ record CompositeComponentVersion(
         Objects.requireNonNull(definedAt, "definedAt cannot be null");
     }
 
-    /** Backward-compatible constructor — composite always applicable (no business condition). */
+    /** Backward-compatible constructor - composite always applicable (no business condition). */
     public CompositeComponentVersion(
             List<Component> children,
             Map<ComponentId, Map<String, ParameterValue>> dependencies,
@@ -59,8 +59,6 @@ record CompositeComponentVersion(
     public boolean isApplicableFor(PricingContext context) {
         return validity.isValidAt(context.timestamp()) && applicabilityConstraint.isSatisfiedBy(context);
     }
-
-    // ---- factory helpers ----
 
     /** Create version with explicit applicability constraint. */
     public static CompositeComponentVersion of(

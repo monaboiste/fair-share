@@ -1,13 +1,13 @@
 package com.softwarearchetypes.pricing.scenarios
 
 import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThanOrEqualTo
-import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.pricing.ApplicabilityConstraint
 import com.softwarearchetypes.pricing.CalculatorRange
 import com.softwarearchetypes.pricing.CalculatorType
 import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.ParameterValue
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingConfiguration
 import com.softwarearchetypes.pricing.PricingFacade
@@ -23,13 +23,13 @@ import java.util.List
 import java.util.Map
 import spock.lang.Specification
 
-
 class LogisticsShipmentScenarioSpec extends Specification {
 
     static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
     static final Clock clock = fixed(NOW, ZoneId.systemDefault())
 
     private PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+
     def setup() {
         LocalDateTime januaryFirst = LocalDateTime.of(2025, 1, 1, 0, 0)
         LocalDateTime aprilFirst = LocalDateTime.of(2025, 4, 1, 0, 0)
@@ -122,13 +122,13 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "vat-rate",
                 Map.of(),
                 Validity.from(januaryFirst))
+        Map<String, Map<String, ParameterValue>> nettoDependencies = Map.of(
+                "fuel-component", Map.of("baseAmount", new ValueOf("base-component")),
+                "adr-component", Map.of("baseAmount", new ValueOf("base-component")),
+                "oversized-component", Map.of("baseAmount", new ValueOf("base-component")),
+                "time-window-component", Map.of("baseAmount", new ValueOf("base-component")))
         facade.createCompositeComponent(
-                "netto",
-                Map.of(
-                        "fuel-component", Map.of("baseAmount", new ValueOf("base-component")),
-                        "adr-component", Map.of("baseAmount", new ValueOf("base-component")),
-                        "oversized-component", Map.of("baseAmount", new ValueOf("base-component")),
-                        "time-window-component", Map.of("baseAmount", new ValueOf("base-component"))),
+                "netto", nettoDependencies,
                 Validity.from(januaryFirst),
                 "base-component",
                 "fuel-component",
@@ -138,14 +138,17 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-component",
                 "insurance-component")
 
+        Map<String, Map<String, ParameterValue>> totalDependencies = Map.of(
+                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
         facade.createCompositeComponent(
-                "total-cost",
-                Map.of("vat-component", Map.of("baseAmount", new ValueOf("netto"))),
+                "total-cost", totalDependencies,
                 Validity.from(januaryFirst),
                 "netto",
                 "vat-component")
     }
+
     def "standard 3 kg shipment includes fuel surcharge and VAT"() {
+
         given:
         Parameters params = Parameters.of(
                 "weight",         BigDecimal.valueOf(3),
@@ -154,30 +157,33 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
                 "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
         and:
         Money result = facade.calculateComponent("total-cost", params)
-        assert result == Money.of(new BigDecimal("30.47"), "PLN")
+
+        expect:
+
+        result == Money.of(new BigDecimal("30.47"), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
-        assertThat(breakdown)
-                .hasName("total-cost")
-                .hasTotal(Money.of(new BigDecimal("30.47"), "PLN"))
-                .hasChildrenCount(2)
+        breakdown.name() == "total-cost"
+        breakdown.total() == Money.of(new BigDecimal("30.47"), "PLN")
+        breakdown.children().size() == 2
 
-        assertThat(breakdown)
-                .child("netto")
-                .hasTotal(Money.of(new BigDecimal("24.77"), "PLN"))
-                .hasChildrenCount(7)
+        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("24.77"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().size() == 7
 
-        assertThat(breakdown).child("netto").child("base-component")
-                .hasTotal(Money.of(new BigDecimal("23.70"), "PLN")).hasNoChildren()
-        assertThat(breakdown).child("netto").child("fuel-component")
-                .hasTotal(Money.of(new BigDecimal("1.07"), "PLN")).hasNoChildren()
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.total() == Money.of(new BigDecimal("23.70"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.children().isEmpty()
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.total() == Money.of(new BigDecimal("1.07"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.children().isEmpty()
 
-        assertThat(breakdown).child("vat-component")
-                .hasTotal(Money.of(new BigDecimal("5.70"), "PLN")).hasNoChildren()
+        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("5.70"), "PLN")
+        breakdown.children().find { it.name() == "vat-component" }.children().isEmpty()
     }
+
     def "12 kg hazmat shipment with COD and insurance adds all applicable surcharges"() {
+
         given:
         Parameters params = Parameters.of(
                 "weight",         BigDecimal.valueOf(12),
@@ -186,36 +192,33 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.valueOf(800), "PLN"),
                 "insured-value",  Money.of(BigDecimal.valueOf(1500), "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
         and:
         Money result = facade.calculateComponent("total-cost", params)
-        assert result == Money.of(new BigDecimal("161.55"), "PLN")
+
+        expect:
+
+        result == Money.of(new BigDecimal("161.55"), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
-        assertThat(breakdown)
-                .hasName("total-cost")
-                .hasTotal(Money.of(new BigDecimal("161.55"), "PLN"))
-                .hasChildrenCount(2)
+        breakdown.name() == "total-cost"
+        breakdown.total() == Money.of(new BigDecimal("161.55"), "PLN")
+        breakdown.children().size() == 2
 
-        assertThat(breakdown)
-                .child("netto")
-                .hasTotal(Money.of(new BigDecimal("131.34"), "PLN"))
-                .hasChildrenCount(7)
+        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("131.34"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().size() == 7
 
-        assertThat(breakdown).child("netto").child("base-component")
-                .hasTotal(Money.of(new BigDecimal("73.20"), "PLN"))
-        assertThat(breakdown).child("netto").child("fuel-component")
-                .hasTotal(Money.of(new BigDecimal("3.29"), "PLN"))
-        assertThat(breakdown).child("netto").child("adr-component")
-                .hasTotal(Money.of(new BigDecimal("36.60"), "PLN"))
-        assertThat(breakdown).child("netto").child("cod-component")
-                .hasTotal(Money.of(new BigDecimal("16.00"), "PLN"))
-        assertThat(breakdown).child("netto").child("insurance-component")
-                .hasTotal(Money.of(new BigDecimal("2.25"), "PLN"))
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.total() == Money.of(new BigDecimal("73.20"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.total() == Money.of(new BigDecimal("3.29"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "adr-component" }.total() == Money.of(new BigDecimal("36.60"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cod-component" }.total() == Money.of(new BigDecimal("16.00"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "insurance-component" }.total() == Money.of(new BigDecimal("2.25"), "PLN")
 
-        assertThat(breakdown).child("vat-component")
-                .hasTotal(Money.of(new BigDecimal("30.21"), "PLN"))
+        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("30.21"), "PLN")
     }
+
     def "45 kg oversized shipment with time-window delivery applies both surcharges"() {
+
         given:
         Parameters params = Parameters.of(
                 "weight",         BigDecimal.valueOf(45),
@@ -224,34 +227,32 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
                 "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
         and:
         Money result = facade.calculateComponent("total-cost", params)
-        assert result == Money.of(new BigDecimal("473.46"), "PLN")
+
+        expect:
+
+        result == Money.of(new BigDecimal("473.46"), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
-        assertThat(breakdown)
-                .hasName("total-cost")
-                .hasTotal(Money.of(new BigDecimal("473.46"), "PLN"))
-                .hasChildrenCount(2)
+        breakdown.name() == "total-cost"
+        breakdown.total() == Money.of(new BigDecimal("473.46"), "PLN")
+        breakdown.children().size() == 2
 
-        assertThat(breakdown)
-                .child("netto")
-                .hasTotal(Money.of(new BigDecimal("384.93"), "PLN"))
-                .hasChildrenCount(7)
+        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("384.93"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().size() == 7
 
-        assertThat(breakdown).child("netto").child("base-component")
-                .hasTotal(Money.of(new BigDecimal("234.00"), "PLN"))
-        assertThat(breakdown).child("netto").child("fuel-component")
-                .hasTotal(Money.of(new BigDecimal("10.53"), "PLN"))
-        assertThat(breakdown).child("netto").child("oversized-component")
-                .hasTotal(Money.of(new BigDecimal("81.90"), "PLN"))
-        assertThat(breakdown).child("netto").child("time-window-component")
-                .hasTotal(Money.of(new BigDecimal("58.50"), "PLN"))
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.total() == Money.of(new BigDecimal("234.00"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.total() == Money.of(new BigDecimal("10.53"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "oversized-component" }.total() == Money.of(new BigDecimal("81.90"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "time-window-component" }.total() == Money.of(new BigDecimal("58.50"), "PLN")
 
-        assertThat(breakdown).child("vat-component")
-                .hasTotal(Money.of(new BigDecimal("88.53"), "PLN"))
+        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("88.53"), "PLN")
     }
+
     def "fuel surcharge rate changes from 4.5% to 5.0% on 1 April 2025"() {
+
         given:
         Parameters jan = Parameters.of(
                 "weight",         BigDecimal.valueOf(3),
@@ -268,8 +269,10 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
                 "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 4, 15, 10, 0))
-        and:
-        assert facade.calculateComponent("total-cost", jan) == Money.of(new BigDecimal("30.47"), "PLN")
-        assert facade.calculateComponent("total-cost", apr) == Money.of(new BigDecimal("30.61"), "PLN")
+
+        expect:
+
+        facade.calculateComponent("total-cost", jan) == Money.of(new BigDecimal("30.47"), "PLN")
+        facade.calculateComponent("total-cost", apr) == Money.of(new BigDecimal("30.61"), "PLN")
     }
 }

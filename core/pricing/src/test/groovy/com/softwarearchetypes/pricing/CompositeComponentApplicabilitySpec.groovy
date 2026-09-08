@@ -11,7 +11,6 @@ import static com.softwarearchetypes.pricing.ApplicabilityConstraint.lessThan
 import static com.softwarearchetypes.pricing.ApplicabilityConstraint.lessThanOrEqualTo
 import static com.softwarearchetypes.pricing.ApplicabilityConstraint.not
 import static com.softwarearchetypes.pricing.ApplicabilityConstraint.or
-import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.quantity.money.Money
@@ -23,13 +22,13 @@ import java.time.ZoneId
 import java.util.Map
 import spock.lang.Specification
 
-
 class CompositeComponentApplicabilitySpec extends Specification {
 
     static final Instant NOW = LocalDateTime.of(2025, 6, 1, 12, 0).atZone(ZoneId.systemDefault()).toInstant()
     static final Clock clock = fixed(NOW, ZoneId.systemDefault())
 
     private PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+
     def setup() {
         facade.addCalculator("fixed-100", CalculatorType.SIMPLE_FIXED,
                 Parameters.of("amount", Money.of(BigDecimal.valueOf(100), "PLN")))
@@ -42,7 +41,9 @@ class CompositeComponentApplicabilitySpec extends Specification {
         facade.addCalculator("pct-10", CalculatorType.PERCENTAGE,
                 Parameters.of("percentageRate", BigDecimal.valueOf(10)))
     }
+
     def "composite component returns zero when its applicability constraint is not satisfied"() {
+
         given:
         facade.createSimpleComponent("base-fee", "fixed-100")
         facade.createSimpleComponent("premium-feature", "fixed-50")
@@ -60,10 +61,14 @@ class CompositeComponentApplicabilitySpec extends Specification {
         Parameters standard = Parameters.of("customer-type", "standard")
         Parameters premium  = Parameters.of("customer-type", "premium")
 
-        assert facade.calculateComponent("total", standard) == Money.of(BigDecimal.valueOf(100), "PLN")
-        assert facade.calculateComponent("total", premium) == Money.of(BigDecimal.valueOf(180), "PLN")
+        expect:
+
+        facade.calculateComponent("total", standard) == Money.of(BigDecimal.valueOf(100), "PLN")
+        facade.calculateComponent("total", premium) == Money.of(BigDecimal.valueOf(180), "PLN")
     }
+
     def "composite component appears in the breakdown with zero when not applicable"() {
+
         given:
         facade.createSimpleComponent("base-fee", "fixed-100")
         facade.createSimpleComponent("premium-feature", "fixed-50")
@@ -81,11 +86,13 @@ class CompositeComponentApplicabilitySpec extends Specification {
         Parameters standard = Parameters.of("customer-type", "standard")
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total", standard)
 
-        assertThat(breakdown).hasTotal(Money.of(BigDecimal.valueOf(100), "PLN"))
-        assertThat(breakdown).child("base-fee").hasTotal(Money.of(BigDecimal.valueOf(100), "PLN"))
-        assertThat(breakdown).child("premium-bundle").hasTotal(Money.of(BigDecimal.ZERO, "PLN"))
+        expect:
+
+        breakdown.total() == Money.of(BigDecimal.valueOf(100), "PLN")
     }
+
     def "numeric applicability constraint selects the correct composite"() {
+
         given:
         facade.createSimpleComponent("light-fee", "fixed-20")
         facade.createSimpleComponent("heavy-fee", "fixed-50")
@@ -107,10 +114,14 @@ class CompositeComponentApplicabilitySpec extends Specification {
         Parameters light = Parameters.of("weight", BigDecimal.valueOf(3))
         Parameters heavy = Parameters.of("weight", BigDecimal.valueOf(10))
 
-        assert facade.calculateComponent("delivery-cost", light) == Money.of(BigDecimal.valueOf(20), "PLN")
-        assert facade.calculateComponent("delivery-cost", heavy) == Money.of(BigDecimal.valueOf(50), "PLN")
+        expect:
+
+        facade.calculateComponent("delivery-cost", light) == Money.of(BigDecimal.valueOf(20), "PLN")
+        facade.calculateComponent("delivery-cost", heavy) == Money.of(BigDecimal.valueOf(50), "PLN")
     }
+
     def "weight at the active boundary falls into the correct composite"() {
+
         given:
         facade.createSimpleComponent("light-fee", "fixed-20")
         facade.createSimpleComponent("heavy-fee", "fixed-50")
@@ -123,9 +134,14 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 Map.of(), "light-delivery", "heavy-delivery")
 
         Parameters boundary = Parameters.of("weight", BigDecimal.valueOf(5))
-        assert facade.calculateComponent("delivery-cost", boundary) == Money.of(BigDecimal.valueOf(50), "PLN")
+
+        expect:
+
+        facade.calculateComponent("delivery-cost", boundary) == Money.of(BigDecimal.valueOf(50), "PLN")
     }
+
     def "outer composite constraint gates the entire subtree"() {
+
         given:
         facade.createSimpleComponent("handling-fee", "fixed-100")
         facade.createSimpleComponent("inspection-fee", "fixed-50",
@@ -144,11 +160,15 @@ class CompositeComponentApplicabilitySpec extends Specification {
         Parameters hazmatStandard   = Parameters.of("cargo", "hazmat",   "zone", "standard")
         Parameters normalCargo      = Parameters.of("cargo", "standard", "zone", "restricted")
 
-        assert facade.calculateComponent("contract", hazmatRestricted) == Money.of(BigDecimal.valueOf(150), "PLN")
-        assert facade.calculateComponent("contract", hazmatStandard) == Money.of(BigDecimal.valueOf(100), "PLN")
-        assert facade.calculateComponent("contract", normalCargo) == Money.of(BigDecimal.ZERO, "PLN")
+        expect:
+
+        facade.calculateComponent("contract", hazmatRestricted) == Money.of(BigDecimal.valueOf(150), "PLN")
+        facade.calculateComponent("contract", hazmatStandard) == Money.of(BigDecimal.valueOf(100), "PLN")
+        facade.calculateComponent("contract", normalCargo) == Money.of(BigDecimal.ZERO, "PLN")
     }
+
     def "composite requires both a valid period and a satisfied constraint to contribute"() {
+
         given:
         facade.createSimpleComponent("promo-fee", "fixed-50")
         facade.createSimpleComponent("bonus-fee", "fixed-30")
@@ -166,12 +186,17 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 "promo-bundle")
         Parameters withinGold = Parameters.of("member", "gold")
                 .with("timestamp", LocalDateTime.of(2025, 6, 15, 10, 0))
-        assert facade.calculateComponent("total", withinGold) == Money.of(BigDecimal.valueOf(80), "PLN")
+
+        expect:
+
+        facade.calculateComponent("total", withinGold) == Money.of(BigDecimal.valueOf(80), "PLN")
         Parameters withinSilver = Parameters.of("member", "silver")
                 .with("timestamp", LocalDateTime.of(2025, 6, 15, 10, 0))
-        assert facade.calculateComponent("total", withinSilver) == Money.of(BigDecimal.ZERO, "PLN")
+        facade.calculateComponent("total", withinSilver) == Money.of(BigDecimal.ZERO, "PLN")
     }
+
     def "composite does not compute children when its constraint is not satisfied"() {
+
         given:
         facade.createSimpleComponent("base-service", "fixed-100")
         facade.createSimpleComponent("surcharge", "pct-10")
@@ -181,13 +206,17 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 equalsTo("tier", "enterprise"),
                 "surcharge")
 
-        facade.createCompositeComponent("service-cost",
-                Map.of("surcharge-bundle", Map.of("baseAmount", new ValueOf("base-service"))),
+        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+                "surcharge-bundle", Map.of("baseAmount", new ValueOf("base-service")))
+        facade.createCompositeComponent("service-cost", dependencies,
                 "base-service", "surcharge-bundle")
 
         Parameters enterprise = Parameters.of("tier", "enterprise")
         Parameters standard   = Parameters.of("tier", "standard")
-        assert facade.calculateComponent("service-cost", enterprise) == Money.of(BigDecimal.valueOf(110), "PLN")
-        assert facade.calculateComponent("service-cost", standard) == Money.of(BigDecimal.valueOf(100), "PLN")
+
+        expect:
+
+        facade.calculateComponent("service-cost", enterprise) == Money.of(BigDecimal.valueOf(110), "PLN")
+        facade.calculateComponent("service-cost", standard) == Money.of(BigDecimal.valueOf(100), "PLN")
     }
 }

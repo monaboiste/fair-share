@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Unified context for pricing decisions — wraps both the time dimension (validity) and the business dimension
+ * Unified context for pricing decisions - wraps both the time dimension (validity) and the business dimension
  * (applicability constraints).
  *
  * <p>Used in {@link SimpleComponentVersion#isApplicableFor(PricingContext)} to determine whether a component version
@@ -50,8 +50,6 @@ public class PricingContext {
             } else if (value instanceof Number n) {
                 attributes.put(key, n.toString());
             }
-            // Money, Interpretation, LocalDateTime etc. are intentionally omitted —
-            // they are not meaningful for string-based constraint evaluation.
         }
 
         return new PricingContext(attributes, timestamp);

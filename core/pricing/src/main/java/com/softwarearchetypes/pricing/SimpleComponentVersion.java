@@ -6,15 +6,15 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Version of a SimpleComponent — represents calculator configuration valid during a time period and applicable under
+ * Version of a SimpleComponent - represents calculator configuration valid during a time period and applicable under
  * specific business conditions.
  *
  * <p>Three orthogonal axes of a pricing component version:
  *
  * <ul>
- *   <li><b>Calculator</b> — how do we calculate? (the math)
- *   <li><b>Validity</b> — when does it apply? (time)
- *   <li><b>Applicability</b> — for whom / under what conditions? (business rules)
+ *   <li><b>Calculator</b> - how do we calculate? (the math)
+ *   <li><b>Validity</b> - when does it apply? (time)
+ *   <li><b>Applicability</b> - for whom / under what conditions? (business rules)
  * </ul>
  *
  * <p>A version fires if and only if BOTH conditions hold:
@@ -36,7 +36,7 @@ import java.util.Objects;
  *   )
  * </pre>
  *
- * Interpretation: "From May, charge per minute — but only for B2C customers and only when the session exceeds 10
+ * Interpretation: "From May, charge per minute - but only for B2C customers and only when the session exceeds 10
  * minutes."
  */
 record SimpleComponentVersion(
@@ -53,7 +53,7 @@ record SimpleComponentVersion(
         Objects.requireNonNull(applicabilityConstraint, "applicabilityConstraint cannot be null");
     }
 
-    /** Backward-compatible constructor — component always applicable (no business condition). */
+    /** Backward-compatible constructor - component always applicable (no business condition). */
     public SimpleComponentVersion(
             Calculator calculator, Map<String, String> parameterMappings, Validity validity, LocalDateTime definedAt) {
         this(calculator, parameterMappings, ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
@@ -66,8 +66,6 @@ record SimpleComponentVersion(
     public boolean isApplicableFor(PricingContext context) {
         return validity.isValidAt(context.timestamp()) && applicabilityConstraint.isSatisfiedBy(context);
     }
-
-    // ---- factory helpers ----
 
     /** Create a version with explicit applicability constraint. */
     public static SimpleComponentVersion of(

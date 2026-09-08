@@ -7,7 +7,7 @@ import java.util.List;
  * Breakdown showing individual component contributions to total price. Forms a tree structure mirroring the component
  * hierarchy.
  */
-record ComponentBreakdown(String name, Money contribution, List<ComponentBreakdown> children) {
+public record ComponentBreakdown(String name, Money contribution, List<ComponentBreakdown> children) {
 
     public ComponentBreakdown {
         children = List.copyOf(children);
@@ -37,11 +37,11 @@ record ComponentBreakdown(String name, Money contribution, List<ComponentBreakdo
         sb.append(indent).append(name).append(": ").append(contribution);
 
         if (!children.isEmpty()) {
-            sb.append("\n");
+            sb.append("%n".formatted());
             for (int i = 0; i < children.size(); i++) {
                 sb.append(children.get(i).formatWithIndent(level + 1));
                 if (i < children.size() - 1) {
-                    sb.append("\n");
+                    sb.append("%n".formatted());
                 }
             }
         }

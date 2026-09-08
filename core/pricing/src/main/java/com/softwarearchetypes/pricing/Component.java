@@ -157,8 +157,6 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
 
     @Override
     public Interpretation interpretation() {
-        // All versions should have same interpretation (not enforced, but recommended)
-        // Return interpretation of first version as representative
         return versions.get(0).calculator().interpretation();
     }
 
@@ -204,7 +202,6 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
 
         Parameters transformed = Parameters.empty();
 
-        // Apply mappings
         for (Map.Entry<String, String> entry : parameterMappings.entrySet()) {
             String componentParam = entry.getKey();
             String calculatorParam = entry.getValue();
@@ -214,7 +211,6 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
             }
         }
 
-        // Copy unmapped parameters
         for (String key : original.keys()) {
             if (!transformed.contains(key) && !parameterMappings.containsKey(key)) {
                 transformed = transformed.with(key, original.get(key));
@@ -312,7 +308,6 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
      */
     public static CompositeComponent of(
             String name, Map<String, Map<String, ParameterValue>> nameDependencies, List<Component> children) {
-        // Convert name-based dependencies to id-based for CompositeComponentVersion
         Map<ComponentId, Map<String, ParameterValue>> idDependencies = new HashMap<>();
 
         for (Map.Entry<String, Map<String, ParameterValue>> entry : nameDependencies.entrySet()) {
@@ -325,7 +320,6 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             idDependencies.put(child.id(), entry.getValue());
         }
 
-        // Create version with converted dependencies
         CompositeComponentVersion version = new CompositeComponentVersion(
                 children, idDependencies, Validity.always(), LocalDateTime.now(Clock.systemDefaultZone()));
 
@@ -361,7 +355,6 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
 
     @Override
     public Interpretation interpretation() {
-        // CompositeComponent always returns TOTAL - it sums children converted to TOTAL
         return Interpretation.TOTAL;
     }
 
@@ -378,18 +371,15 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
-        // Build component results map for parameter enrichment
         Map<Component, Money> componentResults = new HashMap<>();
         for (Component child : version.children()) {
             componentResults.put(child, null);
         }
 
-        // Calculate each child with target interpretation and sum
         Money total = null;
         for (Component child : version.children()) {
             Parameters enrichedParams = enrichParameters(child, parameters, componentResults, version.dependencies());
 
-            // Delegate to child - it will handle conversion if needed
             Money childResult = child.calculate(enrichedParams, targetInterpretation);
 
             componentResults.put(child, childResult);
@@ -412,7 +402,6 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
-        // Initialize map with all components mapped to null
         Map<Component, Money> componentResults = new HashMap<>();
         for (Component child : version.children()) {
             componentResults.put(child, null);
@@ -424,14 +413,11 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
         for (Component child : version.children()) {
             Parameters enrichedParams = enrichParameters(child, parameters, componentResults, version.dependencies());
 
-            // Get child breakdown with target interpretation
             ComponentBreakdown childBreakdown = child.calculateBreakdown(enrichedParams, targetInterpretation);
 
-            // Store result in component results map (for ValueOf references)
             componentResults.put(child, childBreakdown.total());
             childBreakdowns.add(childBreakdown);
 
-            // Sum using target interpretation
             total = (total == null) ? childBreakdown.total() : total.add(childBreakdown.total());
         }
 

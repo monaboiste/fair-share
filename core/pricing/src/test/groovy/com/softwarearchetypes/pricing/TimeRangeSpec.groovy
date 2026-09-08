@@ -3,63 +3,77 @@ package com.softwarearchetypes.pricing
 import java.time.LocalTime
 import spock.lang.Specification
 
-
-
 class TimeRangeSpec extends Specification {
-    def "should support local time values"() {
+
+    def "supports local time values"() {
+
         given:
         TimeRange range = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert range.supports(LocalTime.of(12, 0))
-        assert !(range.supports("12:00"))
-        assert !(range.supports(12))
+
+        expect:
+
+        range.supports(LocalTime.of(12, 0))
+        !(range.supports("12:00"))
+        !(range.supports(12))
     }
-    def "should contain time in normal range"() {
+
+    def "contains time in normal range"() {
         TimeRange range = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        given:
-        assert range.contains(LocalTime.of(8, 0))
-        assert range.contains(LocalTime.of(12, 0))
-        assert range.contains(LocalTime.of(17, 59))
-        assert !(range.contains(LocalTime.of(18, 0)))
-        assert !(range.contains(LocalTime.of(7, 59)))
-        assert !(range.contains(LocalTime.of(18, 1)))
+
+        expect:        expect:
+
+        range.contains(LocalTime.of(8, 0))
+        range.contains(LocalTime.of(12, 0))
+        range.contains(LocalTime.of(17, 59))
+        !(range.contains(LocalTime.of(18, 0)))
+        !(range.contains(LocalTime.of(7, 59)))
+        !(range.contains(LocalTime.of(18, 1)))
     }
-    def "should contain time in range crossing midnight"() {
+
+    def "contains time in range crossing midnight"() {
         TimeRange range = CalculatorRange.time(
             LocalTime.of(22, 0),
             LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
-        given:
-        assert range.contains(LocalTime.of(22, 0))
-        assert range.contains(LocalTime.of(23, 30))
-        assert range.contains(LocalTime.of(0, 0))
-        assert range.contains(LocalTime.of(3, 0))
-        assert range.contains(LocalTime.of(5, 59))
-        assert !(range.contains(LocalTime.of(6, 0)))
-        assert !(range.contains(LocalTime.of(12, 0)))
-        assert !(range.contains(LocalTime.of(18, 0)))
+
+        expect:        expect:
+
+        range.contains(LocalTime.of(22, 0))
+        range.contains(LocalTime.of(23, 30))
+        range.contains(LocalTime.of(0, 0))
+        range.contains(LocalTime.of(3, 0))
+        range.contains(LocalTime.of(5, 59))
+        !(range.contains(LocalTime.of(6, 0)))
+        !(range.contains(LocalTime.of(12, 0)))
+        !(range.contains(LocalTime.of(18, 0)))
     }
-    def "should not contain time of wrong type"() {
+
+    def "does not contain time of wrong type"() {
+
         given:
         TimeRange range = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert !(range.contains("12:00"))
-        assert !(range.contains(12))
+
+        expect:
+
+        !(range.contains("12:00"))
+        !(range.contains(12))
     }
-    def "should detect overlap when both ranges normal and overlap"() {
+
+    def "detects overlap when both ranges normal and overlap"() {
+
         given:
         TimeRange range1 = CalculatorRange.time(
             LocalTime.of(8, 0),
@@ -71,11 +85,15 @@ class TimeRangeSpec extends Specification {
             LocalTime.of(20, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert range1.overlaps(range2)
-        assert range2.overlaps(range1)
+
+        expect:
+
+        range1.overlaps(range2)
+        range2.overlaps(range1)
     }
-    def "should not detect overlap when both ranges normal and adjacent"() {
+
+    def "does not detect overlap when both ranges normal and adjacent"() {
+
         given:
         TimeRange range1 = CalculatorRange.time(
             LocalTime.of(8, 0),
@@ -87,11 +105,15 @@ class TimeRangeSpec extends Specification {
             LocalTime.of(22, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert !(range1.overlaps(range2))
-        assert !(range2.overlaps(range1))
+
+        expect:
+
+        !(range1.overlaps(range2))
+        !(range2.overlaps(range1))
     }
-    def "should not detect overlap when one crosses midnight and other fits in gap"() {
+
+    def "does not detect overlap when one crosses midnight and other fits in gap"() {
+
         given:
         TimeRange night = CalculatorRange.time(
             LocalTime.of(22, 0),
@@ -103,11 +125,15 @@ class TimeRangeSpec extends Specification {
             LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert !(night.overlaps(day))
-        assert !(day.overlaps(night))
+
+        expect:
+
+        !(night.overlaps(day))
+        !(day.overlaps(night))
     }
-    def "should detect overlap when one crosses midnight and other overlaps"() {
+
+    def "detects overlap when one crosses midnight and other overlaps"() {
+
         given:
         TimeRange night = CalculatorRange.time(
             LocalTime.of(22, 0),
@@ -119,11 +145,15 @@ class TimeRangeSpec extends Specification {
             LocalTime.of(23, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert night.overlaps(lateEvening)
-        assert lateEvening.overlaps(night)
+
+        expect:
+
+        night.overlaps(lateEvening)
+        lateEvening.overlaps(night)
     }
-    def "should detect overlap when both cross midnight"() {
+
+    def "detects overlap when both cross midnight"() {
+
         given:
         TimeRange night1 = CalculatorRange.time(
             LocalTime.of(22, 0),
@@ -135,11 +165,15 @@ class TimeRangeSpec extends Specification {
             LocalTime.of(8, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert night1.overlaps(night2)
-        assert night2.overlaps(night1)
+
+        expect:
+
+        night1.overlaps(night2)
+        night2.overlaps(night1)
     }
-    def "should be compatible with other time ranges"() {
+
+    def "is compatible with other time ranges"() {
+
         given:
         TimeRange range1 = CalculatorRange.time(
             LocalTime.of(8, 0),
@@ -151,10 +185,14 @@ class TimeRangeSpec extends Specification {
             LocalTime.of(22, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert range1.isCompatibleWith(range2)
+
+        expect:
+
+        range1.isCompatibleWith(range2)
     }
-    def "should not be compatible with numeric range"() {
+
+    def "is not compatible with numeric range"() {
+
         given:
         TimeRange timeRange = CalculatorRange.time(
             LocalTime.of(8, 0),
@@ -166,10 +204,14 @@ class TimeRangeSpec extends Specification {
             java.math.BigDecimal.TEN,
                 CalculatorId.generate()
         )
-        and:
-        assert !(timeRange.isCompatibleWith(numericRange))
+
+        expect:
+
+        !(timeRange.isCompatibleWith(numericRange))
     }
-    def "should throw when checking overlap with incompatible range"() {
+
+    def "throws when checking overlap with incompatible range"() {
+
         given:
         TimeRange timeRange = CalculatorRange.time(
             LocalTime.of(8, 0),
@@ -181,6 +223,7 @@ class TimeRangeSpec extends Specification {
             java.math.BigDecimal.TEN,
                 CalculatorId.generate()
         )
+
         when:
         timeRange.overlaps(numericRange)
 

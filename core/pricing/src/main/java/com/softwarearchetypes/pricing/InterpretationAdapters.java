@@ -6,9 +6,7 @@ package com.softwarearchetypes.pricing;
  */
 class InterpretationAdapters {
 
-    private InterpretationAdapters() {
-        // Utility class - no instantiation
-    }
+    private InterpretationAdapters() {}
 
     /**
      * Wraps calculator with the appropriate adapter to convert from its interpretation to target interpretation. If the

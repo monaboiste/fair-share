@@ -74,7 +74,6 @@ public class Parameters {
             return (Money) value;
         }
         if (value instanceof String) {
-            // Parse format: "PLN 1999.00" or "EUR 199.50"
             String str = (String) value;
             String[] parts = str.trim().split("\\s+");
             if (parts.length != 2) {
@@ -94,7 +93,6 @@ public class Parameters {
             return (LocalDate) value;
         }
         if (value instanceof String) {
-            // Parse ISO format: "2024-06-01"
             return LocalDate.parse((String) value);
         }
         throw new IllegalArgumentException("Cannot convert " + value + " to LocalDate");
@@ -106,7 +104,6 @@ public class Parameters {
             return (LocalDateTime) value;
         }
         if (value instanceof String) {
-            // Parse ISO format: "2024-06-01T10:15:30"
             return LocalDateTime.parse((String) value);
         }
         throw new IllegalArgumentException("Cannot convert " + value + " to LocalDateTime");

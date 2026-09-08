@@ -5,10 +5,10 @@ import java.math.BigDecimal
 import java.util.Map
 import spock.lang.Specification
 
-
 class CompositeCalculatorSpec extends Specification {
 
     private CalculatorRepository repository
+
     def setup() {
         repository = new InMemoryCalculatorsRepository()
         repository.save(new SimpleFixedCalculator("fixed-100", Money.of(100, "PLN")))
@@ -25,7 +25,9 @@ class CompositeCalculatorSpec extends Specification {
             new BigDecimal("75"), Money.of(700, "PLN")
         )))
     }
-    def "should delegate to first range calculator"() {
+
+    def "delegates to first range calculator"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -43,12 +45,17 @@ class CompositeCalculatorSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("5")))
+
         and:
         Money result = calculator.calculate(params)
-        and:
-        assert new BigDecimal("100.00").compareTo(result.value()) == 0
+
+        expect:
+
+        new BigDecimal("100.00").compareTo(result.value()) == 0
     }
-    def "should delegate to second range calculator"() {
+
+    def "delegates to second range calculator"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -66,11 +73,17 @@ class CompositeCalculatorSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("15")))
+
         and:
         Money result = calculator.calculate(params)
-        assert new BigDecimal("210.00").compareTo(result.value()) == 0
+
+        expect:
+
+        new BigDecimal("210.00").compareTo(result.value()) == 0
     }
-    def "should delegate to third range calculator"() {
+
+    def "delegates to third range calculator"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -88,11 +101,17 @@ class CompositeCalculatorSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("75")))
+
         and:
         Money result = calculator.calculate(params)
-        assert new BigDecimal("700.00").compareTo(result.value()) == 0
+
+        expect:
+
+        new BigDecimal("700.00").compareTo(result.value()) == 0
     }
-    def "should handle range boundaries correctly"() {
+
+    def "handles range boundaries correctly"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -106,16 +125,23 @@ class CompositeCalculatorSpec extends Specification {
         CompositeFunctionCalculator calculator = new CompositeFunctionCalculator(
             "piecewise-pricing", ranges, repository
         )
+
         and:
         Parameters params10 = new Parameters(Map.of("quantity", new BigDecimal("10")))
         Money result10 = calculator.calculate(params10)
-        assert new BigDecimal("210.00").compareTo(result10.value()) == 0
+
+        expect:
+
+        new BigDecimal("210.00").compareTo(result10.value()) == 0
+
         and:
         Parameters params9 = new Parameters(Map.of("quantity", new BigDecimal("9")))
         Money result9 = calculator.calculate(params9)
-        assert new BigDecimal("100.00").compareTo(result9.value()) == 0
+        new BigDecimal("100.00").compareTo(result9.value()) == 0
     }
-    def "should throw when value outside all ranges"() {
+
+    def "throws when value outside all ranges"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -139,7 +165,9 @@ class CompositeCalculatorSpec extends Specification {
         def ex = thrown(IllegalArgumentException)
         ex.message.contains("No matching range")
     }
-    def "should throw when referenced calculator not found"() {
+
+    def "throws when referenced calculator not found"() {
+
         given:
         CalculatorId nonExistentId = CalculatorId.generate()
 
@@ -147,6 +175,7 @@ class CompositeCalculatorSpec extends Specification {
             "quantity",
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), nonExistentId)
         )
+
         when:
         new CompositeFunctionCalculator("piecewise-pricing", ranges, repository)
 
@@ -154,7 +183,9 @@ class CompositeCalculatorSpec extends Specification {
         def ex = thrown(IllegalArgumentException)
         ex.message.contains("not found")
     }
-    def "should throw when parameter missing"() {
+
+    def "throws when parameter missing"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
 
@@ -175,7 +206,9 @@ class CompositeCalculatorSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
-    def "should return correct type"() {
+
+    def "returns correct type"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
 
@@ -187,10 +220,14 @@ class CompositeCalculatorSpec extends Specification {
         CompositeFunctionCalculator calculator = new CompositeFunctionCalculator(
             "piecewise-pricing", ranges, repository
         )
-        and:
-        assert calculator.getType() == CalculatorType.COMPOSITE
+
+        expect:
+
+        calculator.getType() == CalculatorType.COMPOSITE
     }
-    def "should provide description"() {
+
+    def "provides description"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -204,13 +241,18 @@ class CompositeCalculatorSpec extends Specification {
         CompositeFunctionCalculator calculator = new CompositeFunctionCalculator(
             "piecewise-pricing", ranges, repository
         )
+
         and:
         String description = calculator.describe()
-        and:
-        assert description.contains("Composite function calculator")
-        assert description.contains("quantity")
+
+        expect:
+
+        description.contains("Composite function calculator")
+        description.contains("quantity")
     }
-    def "should fail during construction when calculator not found"() {
+
+    def "fails during construction when calculator not found"() {
+
         given:
         CalculatorId nonExistentId = CalculatorId.generate()
 
@@ -218,6 +260,7 @@ class CompositeCalculatorSpec extends Specification {
             "quantity",
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), nonExistentId)
         )
+
         when:
         new CompositeFunctionCalculator("composite", ranges, repository)
 
@@ -225,7 +268,9 @@ class CompositeCalculatorSpec extends Specification {
         def ex = thrown(IllegalArgumentException)
         ex.message.contains("not found in repository")
     }
-    def "should fail when component calculators have different interpretations"() {
+
+    def "fails when component calculators have different interpretations"() {
+
         given:
         repository.save(new SimpleFixedCalculator("total-calc", Money.of(100, "PLN"), Interpretation.TOTAL))
         repository.save(new SimpleFixedCalculator("unit-calc", Money.of(10, "PLN"), Interpretation.UNIT))
@@ -238,6 +283,7 @@ class CompositeCalculatorSpec extends Specification {
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), totalId),
             CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), unitId)
         )
+
         when:
         new CompositeFunctionCalculator("composite", ranges, repository)
 
@@ -247,7 +293,9 @@ class CompositeCalculatorSpec extends Specification {
         ex.message.contains("TOTAL")
         ex.message.contains("UNIT")
     }
-    def "should return shared interpretation of component calculators"() {
+
+    def "returns shared interpretation of component calculators"() {
+
         given:
         repository.save(new SimpleFixedCalculator("unit-1", Money.of(10, "PLN"), Interpretation.UNIT))
         repository.save(new SimpleFixedCalculator("unit-2", Money.of(8, "PLN"), Interpretation.UNIT))
@@ -264,10 +312,14 @@ class CompositeCalculatorSpec extends Specification {
         CompositeFunctionCalculator calculator = new CompositeFunctionCalculator(
             "composite", ranges, repository
         )
-        and:
-        assert calculator.interpretation() == Interpretation.UNIT
+
+        expect:
+
+        calculator.interpretation() == Interpretation.UNIT
     }
-    def "should allow composite with all total price calculators"() {
+
+    def "allows composite with all total price calculators"() {
+
         given:
         CalculatorId fixedId = repository.findByName("fixed-100").get().getId()
         CalculatorId stepId = repository.findByName("step-calc").get().getId()
@@ -277,12 +329,15 @@ class CompositeCalculatorSpec extends Specification {
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), fixedId),
             CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), stepId)
         )
+
         and:
         CompositeFunctionCalculator calculator = new CompositeFunctionCalculator(
             "composite", ranges, repository
         )
-        and:
-        assert calculator.interpretation() == Interpretation.TOTAL
-        assert calculator != null
+
+        expect:
+
+        calculator.interpretation() == Interpretation.TOTAL
+        calculator != null
     }
 }

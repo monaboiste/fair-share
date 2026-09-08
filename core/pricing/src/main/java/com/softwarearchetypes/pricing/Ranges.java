@@ -13,7 +13,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
         if (rangeSelector == null || rangeSelector.isBlank()) {
             throw new IllegalArgumentException("Range selector cannot be null or blank");
         }
-        ranges = List.copyOf(ranges); // defensive copy - immutable
+        ranges = List.copyOf(ranges);
         validate(ranges);
     }
 
@@ -40,7 +40,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
     /** Validates that all ranges are compatible (same type). */
     private void validateCompatibility(List<CalculatorRange> ranges) {
         if (ranges.size() < 2) {
-            return; // single range - always compatible with itself
+            return;
         }
 
         CalculatorRange first = ranges.get(0);
@@ -96,7 +96,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
 
     /** Returns all ranges as a list. */
     public List<CalculatorRange> toList() {
-        return ranges; // already immutable from defensive copy
+        return ranges;
     }
 
     @Override

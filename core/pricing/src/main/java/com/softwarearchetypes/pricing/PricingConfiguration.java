@@ -97,7 +97,6 @@ class InMemoryComponentRepository implements ComponentRepository {
 
     @Override
     public void save(Component component) {
-        // Replace component with same ID (for updates)
         components.put(component.id(), component);
     }
 
@@ -106,12 +105,12 @@ class InMemoryComponentRepository implements ComponentRepository {
         return components.values().stream()
                 .filter(c -> c.name().equals(name))
                 .findFirst()
-                .map(this::refreshComponent); // Odśwież przed zwróceniem
+                .map(this::refreshComponent);
     }
 
     @Override
     public Optional<Component> findById(ComponentId id) {
-        return Optional.ofNullable(components.get(id)).map(this::refreshComponent); // Odśwież przed zwróceniem
+        return Optional.ofNullable(components.get(id)).map(this::refreshComponent);
     }
 
     @Override
@@ -134,10 +133,9 @@ class InMemoryComponentRepository implements ComponentRepository {
      */
     private Component refreshComponent(Component component) {
         if (!(component instanceof CompositeComponent composite)) {
-            return component; // SimpleComponent - nie wymaga odświeżenia
+            return component;
         }
 
-        // Odśwież wszystkie wersje pobierając świeże dzieci
         java.util.List<CompositeComponentVersion> refreshedVersions =
                 composite.versions().stream().map(this::refreshVersion).toList();
 
@@ -146,9 +144,8 @@ class InMemoryComponentRepository implements ComponentRepository {
 
     /** Odświeża wersję composite pobierając świeże referencje do dzieci po ID. */
     private CompositeComponentVersion refreshVersion(CompositeComponentVersion version) {
-        // Pobierz świeże dzieci po ich ID (bez odświeżania, żeby uniknąć rekurencji)
         java.util.List<Component> freshChildren = version.children().stream()
-                .map(child -> components.get(child.id())) // Bezpośrednio z mapy, bez refresh
+                .map(child -> components.get(child.id()))
                 .filter(java.util.Objects::nonNull)
                 .toList();
 

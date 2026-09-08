@@ -3,48 +3,60 @@ package com.softwarearchetypes.pricing
 import java.math.BigDecimal
 import spock.lang.Specification
 
-
-
 class NumericRangeSpec extends Specification {
-    def "should support big decimal values"() {
+
+    def "supports big decimal values"() {
+
         given:
         NumericRange range = CalculatorRange.numeric(
             new BigDecimal("0"),
             new BigDecimal("10"),
             CalculatorId.generate()
         )
-        and:
-        assert range.supports(new BigDecimal("5"))
-        assert !(range.supports(5))
-        assert !(range.supports("5"))
-        assert !(range.supports(5.0d))
+
+        expect:
+
+        range.supports(new BigDecimal("5"))
+        !(range.supports(5))
+        !(range.supports("5"))
+        !(range.supports(5.0d))
     }
-    def "should contain value in range"() {
+
+    def "contains value in range"() {
+
         given:
         NumericRange range = CalculatorRange.numeric(
             new BigDecimal("10"),
             new BigDecimal("20"),
             CalculatorId.generate()
         )
-        and:
-        assert range.contains(new BigDecimal("10"))
-        assert range.contains(new BigDecimal("15"))
-        assert !(range.contains(new BigDecimal("20")))
-        assert !(range.contains(new BigDecimal("5")))
-        assert !(range.contains(new BigDecimal("25")))
+
+        expect:
+
+        range.contains(new BigDecimal("10"))
+        range.contains(new BigDecimal("15"))
+        !(range.contains(new BigDecimal("20")))
+        !(range.contains(new BigDecimal("5")))
+        !(range.contains(new BigDecimal("25")))
     }
-    def "should not contain value of wrong type"() {
+
+    def "does not contain value of wrong type"() {
+
         given:
         NumericRange range = CalculatorRange.numeric(
             new BigDecimal("0"),
             new BigDecimal("10"),
             CalculatorId.generate()
         )
-        and:
-        assert !(range.contains("5"))
-        assert !(range.contains(5))
+
+        expect:
+
+        !(range.contains("5"))
+        !(range.contains(5))
     }
-    def "should throw when min greater than max"() {
+
+    def "throws when min greater than max"() {
+
         when:
         CalculatorRange.numeric(
             new BigDecimal("20"),
@@ -55,7 +67,9 @@ class NumericRangeSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
-    def "should throw when min equals max"() {
+
+    def "throws when min equals max"() {
+
         when:
         CalculatorRange.numeric(
             new BigDecimal("10"),
@@ -66,7 +80,9 @@ class NumericRangeSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
-    def "should detect overlap when ranges overlap"() {
+
+    def "detects overlap when ranges overlap"() {
+
         given:
         NumericRange range1 = CalculatorRange.numeric(
             new BigDecimal("0"),
@@ -78,11 +94,15 @@ class NumericRangeSpec extends Specification {
             new BigDecimal("15"),
             CalculatorId.generate()
         )
-        and:
-        assert range1.overlaps(range2)
-        assert range2.overlaps(range1)
+
+        expect:
+
+        range1.overlaps(range2)
+        range2.overlaps(range1)
     }
-    def "should not detect overlap when ranges adjacent"() {
+
+    def "does not detect overlap when ranges adjacent"() {
+
         given:
         NumericRange range1 = CalculatorRange.numeric(
             new BigDecimal("0"),
@@ -94,11 +114,15 @@ class NumericRangeSpec extends Specification {
             new BigDecimal("20"),
             CalculatorId.generate()
         )
-        and:
-        assert !(range1.overlaps(range2))
-        assert !(range2.overlaps(range1))
+
+        expect:
+
+        !(range1.overlaps(range2))
+        !(range2.overlaps(range1))
     }
-    def "should detect overlap when one range contains another"() {
+
+    def "detects overlap when one range contains another"() {
+
         given:
         NumericRange larger = CalculatorRange.numeric(
             new BigDecimal("0"),
@@ -110,11 +134,15 @@ class NumericRangeSpec extends Specification {
             new BigDecimal("30"),
             CalculatorId.generate()
         )
-        and:
-        assert larger.overlaps(smaller)
-        assert smaller.overlaps(larger)
+
+        expect:
+
+        larger.overlaps(smaller)
+        smaller.overlaps(larger)
     }
-    def "should be compatible with other numeric ranges"() {
+
+    def "is compatible with other numeric ranges"() {
+
         given:
         NumericRange range1 = CalculatorRange.numeric(
             new BigDecimal("0"),
@@ -126,7 +154,9 @@ class NumericRangeSpec extends Specification {
             new BigDecimal("30"),
             CalculatorId.generate()
         )
-        and:
-        assert range1.isCompatibleWith(range2)
+
+        expect:
+
+        range1.isCompatibleWith(range2)
     }
 }

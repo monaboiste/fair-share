@@ -14,9 +14,10 @@ import java.util.List
 import java.util.Map
 import spock.lang.Specification
 
-
 class SimulationSpec extends Specification {
+
     def "step function calculator can be simulated over a quantity range"() {
+
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "volume-discount",
@@ -30,25 +31,29 @@ class SimulationSpec extends Specification {
         }
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
-        and:
-        assert results != null
-        assert results.size() == 7
-        assert new BigDecimal("100.00").compareTo(
+
+        expect:
+
+        results != null
+        results.size() == 7
+        new BigDecimal("100.00").compareTo(
             results.get(Parameters.of("quantity", BigDecimal.ZERO)).value()) == 0
-        assert new BigDecimal("100.00").compareTo(
+        new BigDecimal("100.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("5"))).value()) == 0
-        assert new BigDecimal("105.00").compareTo(
+        new BigDecimal("105.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("10"))).value()) == 0
-        assert new BigDecimal("105.00").compareTo(
+        new BigDecimal("105.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("15"))).value()) == 0
-        assert new BigDecimal("110.00").compareTo(
+        new BigDecimal("110.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("20"))).value()) == 0
-        assert new BigDecimal("110.00").compareTo(
+        new BigDecimal("110.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("25"))).value()) == 0
-        assert new BigDecimal("115.00").compareTo(
+        new BigDecimal("115.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("30"))).value()) == 0
     }
+
     def "daily increment calculator can be simulated over a date range"() {
+
         given:
         LocalDate startDate = LocalDate.of(2024, 6, 1)
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
@@ -63,28 +68,32 @@ class SimulationSpec extends Specification {
         }
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
-        and:
-        assert results != null
-        assert results.size() == 8
 
-        assert new BigDecimal("1999.00").compareTo(
+        expect:
+
+        results != null
+        results.size() == 8
+
+        new BigDecimal("1999.00").compareTo(
             results.get(Parameters.of("date", startDate)).value()) == 0
-        assert new BigDecimal("2199.00").compareTo(
+        new BigDecimal("2199.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(2))).value()) == 0
-        assert new BigDecimal("2399.00").compareTo(
+        new BigDecimal("2399.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(4))).value()) == 0
-        assert new BigDecimal("2599.00").compareTo(
+        new BigDecimal("2599.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(6))).value()) == 0
-        assert new BigDecimal("2799.00").compareTo(
+        new BigDecimal("2799.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(8))).value()) == 0
-        assert new BigDecimal("2999.00").compareTo(
+        new BigDecimal("2999.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(10))).value()) == 0
-        assert new BigDecimal("3199.00").compareTo(
+        new BigDecimal("3199.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(12))).value()) == 0
-        assert new BigDecimal("3399.00").compareTo(
+        new BigDecimal("3399.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(14))).value()) == 0
     }
+
     def "continuous linear time calculator can be simulated"() {
+
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -103,23 +112,28 @@ class SimulationSpec extends Specification {
             Parameters.of("time", startTime.plusDays(10).plusHours(12)),
             Parameters.of("time", endTime)
         )
+
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
-        and:
-        assert results != null
-        assert results.size() == 5
-        assert new BigDecimal("1999.00").compareTo(
+
+        expect:
+
+        results != null
+        results.size() == 5
+        new BigDecimal("1999.00").compareTo(
             results.get(Parameters.of("time", startTime)).value()) == 0
-        assert new BigDecimal("2699.00").compareTo(
+        new BigDecimal("2699.00").compareTo(
             results.get(Parameters.of("time", startTime.plusDays(7))).value()) == 0
-        assert new BigDecimal("3399.00").compareTo(
+        new BigDecimal("3399.00").compareTo(
             results.get(Parameters.of("time", endTime)).value()) == 0
         Money at25Percent = results.get(Parameters.of("time", startTime.plusDays(3).plusHours(12)))
-        assert new BigDecimal("2349").compareTo(at25Percent.value().setScale(0, java.math.RoundingMode.HALF_UP)) == 0
+        new BigDecimal("2349").compareTo(at25Percent.value().setScale(0, java.math.RoundingMode.HALF_UP)) == 0
         Money at75Percent = results.get(Parameters.of("time", startTime.plusDays(10).plusHours(12)))
-        assert new BigDecimal("3049").compareTo(at75Percent.value().setScale(0, java.math.RoundingMode.HALF_UP)) == 0
+        new BigDecimal("3049").compareTo(at75Percent.value().setScale(0, java.math.RoundingMode.HALF_UP)) == 0
     }
+
     def "simple fixed calculator always returns the same price when simulated"() {
+
         given:
         SimpleFixedCalculator calculator = new SimpleFixedCalculator(
             "flat-fee",
@@ -131,17 +145,22 @@ class SimulationSpec extends Specification {
             Parameters.of("quantity", new BigDecimal("100")),
             Parameters.of("anything", "value")
         )
+
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
-        and:
-        assert results != null
-        assert results.size() == 4
+
+        expect:
+
+        results != null
+        results.size() == 4
 
         results.values().each { price ->
-            assert new BigDecimal("50.00").compareTo(price.value()) == 0
+            new BigDecimal("50.00").compareTo(price.value()) == 0
         }
     }
+
     def "discrete points calculator can be simulated over its defined points"() {
+
         given:
         Map<BigDecimal, Money> pricePoints = Map.of(
             new BigDecimal("5"), Money.of(100, "PLN"),
@@ -158,20 +177,25 @@ class SimulationSpec extends Specification {
             Parameters.of("quantity", new BigDecimal("10")),
             Parameters.of("quantity", new BigDecimal("20"))
         )
+
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
-        and:
-        assert results != null
-        assert results.size() == 3
 
-        assert new BigDecimal("100.00").compareTo(
+        expect:
+
+        results != null
+        results.size() == 3
+
+        new BigDecimal("100.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("5"))).value()) == 0
-        assert new BigDecimal("180.00").compareTo(
+        new BigDecimal("180.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("10"))).value()) == 0
-        assert new BigDecimal("350.00").compareTo(
+        new BigDecimal("350.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("20"))).value()) == 0
     }
+
     def "composite calculator can be simulated"() {
+
         given:
         Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
         Clock clock = fixed(NOW, ZoneId.systemDefault())
@@ -217,25 +241,30 @@ class SimulationSpec extends Specification {
             Parameters.of("monthlyIncome", new BigDecimal("4000")),
             Parameters.of("monthlyIncome", new BigDecimal("10000"))
         )
+
         and:
         Map<Parameters, Money> results = composite.simulate(points)
-        and:
-        assert results != null
-        assert results.size() == 6
-        assert new BigDecimal("20.00").compareTo(
+
+        expect:
+
+        results != null
+        results.size() == 6
+        new BigDecimal("20.00").compareTo(
             results.get(Parameters.of("monthlyIncome", BigDecimal.ZERO)).value()) == 0
-        assert new BigDecimal("20.00").compareTo(
+        new BigDecimal("20.00").compareTo(
             results.get(Parameters.of("monthlyIncome", new BigDecimal("500"))).value()) == 0
-        assert new BigDecimal("10.00").compareTo(
+        new BigDecimal("10.00").compareTo(
             results.get(Parameters.of("monthlyIncome", new BigDecimal("1000"))).value()) == 0
-        assert new BigDecimal("10.00").compareTo(
+        new BigDecimal("10.00").compareTo(
             results.get(Parameters.of("monthlyIncome", new BigDecimal("2500"))).value()) == 0
-        assert BigDecimal.ZERO.compareTo(
+        BigDecimal.ZERO.compareTo(
             results.get(Parameters.of("monthlyIncome", new BigDecimal("4000"))).value()) == 0
-        assert BigDecimal.ZERO.compareTo(
+        BigDecimal.ZERO.compareTo(
             results.get(Parameters.of("monthlyIncome", new BigDecimal("10000"))).value()) == 0
     }
+
     def "simulation results preserve input order"() {
+
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "test",
@@ -249,24 +278,33 @@ class SimulationSpec extends Specification {
             Parameters.of("quantity", new BigDecimal("20")),
             Parameters.of("quantity", BigDecimal.ZERO)
         )
+
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
         List<Parameters> resultKeys = new ArrayList<>(results.keySet())
-        assert resultKeys.get(0) == points.get(0)
-        assert resultKeys.get(1) == points.get(1)
-        assert resultKeys.get(2) == points.get(2)
-        assert resultKeys.get(3) == points.get(3)
+
+        expect:
+
+        resultKeys.get(0) == points.get(0)
+        resultKeys.get(1) == points.get(1)
+        resultKeys.get(2) == points.get(2)
+        resultKeys.get(3) == points.get(3)
     }
+
     def "simulating with an empty list returns an empty result"() {
+
         given:
         SimpleFixedCalculator calculator = new SimpleFixedCalculator(
             "test",
             Money.of(100, "PLN")
         )
+
         and:
         Map<Parameters, Money> results = calculator.simulate(List.of())
-        and:
-        assert results != null
-        assert results.size() == 0
+
+        expect:
+
+        results != null
+        results.size() == 0
     }
 }

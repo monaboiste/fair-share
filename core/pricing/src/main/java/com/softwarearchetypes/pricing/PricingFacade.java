@@ -89,7 +89,7 @@ public class PricingFacade {
      * <ul>
      *   <li>MARGINAL → MARGINAL: identity
      *   <li>UNIT → MARGINAL: valid for a constant unit price
-     *   <li>TOTAL → MARGINAL: derivative — marginal(n) = total(n) − total(n−1)
+     *   <li>TOTAL → MARGINAL: derivative - marginal(n) = total(n) − total(n−1)
      * </ul>
      */
     public Money calculateMarginal(String calculatorName, Parameters parameters) {

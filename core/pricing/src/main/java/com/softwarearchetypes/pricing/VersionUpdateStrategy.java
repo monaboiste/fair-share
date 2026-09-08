@@ -9,7 +9,7 @@ import java.util.List;
 public enum VersionUpdateStrategy {
 
     /**
-     * Reject if identical validity period exists. Allows overlapping periods - resolution uses youngest validFrom
+     * Reject if an identical validity period exists. Allows overlapping periods - resolution uses the youngest validFrom
      * (latest wins).
      *
      * <p>Example: OK to have [2024-01-01, ∞) and [2024-02-01, 2024-03-01) NOT OK to have two versions with [2024-01-01,
@@ -57,11 +57,11 @@ public enum VersionUpdateStrategy {
     /**
      * No validation - allows duplicates and overlaps.
      *
-     * <p>Use with caution - when multiple versions match a point in time, resolution uses youngest validFrom (latest
-     * added wins).
+     * <p>Use with caution - when multiple versions match a point in time, resolution uses the youngest validFrom
+     * (latest added wins).
      *
      * <p>Useful for advanced scenarios like: - A/B testing with multiple concurrent pricing strategies - Gradual
-     * rollouts where latest version takes precedence - Import/migration scenarios where cleanup happens later
+     * rollouts where the latest version takes precedence - Import/migration scenarios where cleanup happens later
      */
     ALLOW_ALL {
         @Override

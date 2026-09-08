@@ -4,47 +4,58 @@ import java.time.LocalDate
 import java.time.LocalTime
 import spock.lang.Specification
 
-
-
 class DateRangeSpec extends Specification {
-    def "should support local date values"() {
+
+    def "supports local date values"() {
+
         given:
         DateRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
         )
-        and:
-        assert range.supports(LocalDate.of(2024, 7, 15))
-        assert !(range.supports("2024-07-15"))
-        assert !(range.supports(2024))
+
+        expect:
+
+        range.supports(LocalDate.of(2024, 7, 15))
+        !(range.supports("2024-07-15"))
+        !(range.supports(2024))
     }
-    def "should contain date in range"() {
+
+    def "contains date in range"() {
         DateRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
         )
-        given:
-        assert range.contains(LocalDate.of(2024, 6, 1))
-        assert range.contains(LocalDate.of(2024, 7, 15))
-        assert range.contains(LocalDate.of(2024, 8, 31))
-        assert !(range.contains(LocalDate.of(2024, 9, 1)))
-        assert !(range.contains(LocalDate.of(2024, 5, 31)))
-        assert !(range.contains(LocalDate.of(2024, 9, 2)))
+
+        expect:        expect:
+
+        range.contains(LocalDate.of(2024, 6, 1))
+        range.contains(LocalDate.of(2024, 7, 15))
+        range.contains(LocalDate.of(2024, 8, 31))
+        !(range.contains(LocalDate.of(2024, 9, 1)))
+        !(range.contains(LocalDate.of(2024, 5, 31)))
+        !(range.contains(LocalDate.of(2024, 9, 2)))
     }
-    def "should not contain date of wrong type"() {
+
+    def "does not contain date of wrong type"() {
+
         given:
         DateRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
         )
-        and:
-        assert !(range.contains("2024-07-15"))
-        assert !(range.contains(2024))
+
+        expect:
+
+        !(range.contains("2024-07-15"))
+        !(range.contains(2024))
     }
-    def "should throw when from not before to"() {
+
+    def "throws when from not before to"() {
+
         when:
         CalculatorRange.date(
                 LocalDate.of(2024, 9, 1),
@@ -55,7 +66,9 @@ class DateRangeSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
-    def "should throw when from equals to"() {
+
+    def "throws when from equals to"() {
+
         when:
         CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -66,7 +79,9 @@ class DateRangeSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
-    def "should detect overlap when ranges overlap"() {
+
+    def "detects overlap when ranges overlap"() {
+
         given:
         DateRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -78,11 +93,15 @@ class DateRangeSpec extends Specification {
                 LocalDate.of(2024, 10, 1),
                 CalculatorId.generate()
         )
-        and:
-        assert summer.overlaps(lateSummer)
-        assert lateSummer.overlaps(summer)
+
+        expect:
+
+        summer.overlaps(lateSummer)
+        lateSummer.overlaps(summer)
     }
-    def "should not detect overlap when ranges adjacent"() {
+
+    def "does not detect overlap when ranges adjacent"() {
+
         given:
         DateRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -94,11 +113,15 @@ class DateRangeSpec extends Specification {
                 LocalDate.of(2024, 12, 1),
                 CalculatorId.generate()
         )
-        and:
-        assert !(summer.overlaps(fall))
-        assert !(fall.overlaps(summer))
+
+        expect:
+
+        !(summer.overlaps(fall))
+        !(fall.overlaps(summer))
     }
-    def "should detect overlap when one range contains another"() {
+
+    def "detects overlap when one range contains another"() {
+
         given:
         DateRange year = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
@@ -110,11 +133,15 @@ class DateRangeSpec extends Specification {
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
         )
-        and:
-        assert year.overlaps(summer)
-        assert summer.overlaps(year)
+
+        expect:
+
+        year.overlaps(summer)
+        summer.overlaps(year)
     }
-    def "should be compatible with other date ranges"() {
+
+    def "is compatible with other date ranges"() {
+
         given:
         DateRange range1 = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
@@ -126,10 +153,14 @@ class DateRangeSpec extends Specification {
                 LocalDate.of(2024, 12, 1),
                 CalculatorId.generate()
         )
-        and:
-        assert range1.isCompatibleWith(range2)
+
+        expect:
+
+        range1.isCompatibleWith(range2)
     }
-    def "should not be compatible with time range"() {
+
+    def "is not compatible with time range"() {
+
         given:
         DateRange dateRange = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
@@ -141,7 +172,9 @@ class DateRangeSpec extends Specification {
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        and:
-        assert !(dateRange.isCompatibleWith(timeRange))
+
+        expect:
+
+        !(dateRange.isCompatibleWith(timeRange))
     }
 }

@@ -37,8 +37,6 @@ public sealed interface ApplicabilityConstraint
 
     boolean isSatisfiedBy(PricingContext context);
 
-    // ---- factory methods ----
-
     static ApplicabilityConstraint alwaysTrue() {
         return new AlwaysTrueConstraint();
     }
@@ -131,7 +129,7 @@ record GreaterThanConstraint(String parameterName, BigDecimal threshold) impleme
                 .map(value -> {
                     try {
                         return new BigDecimal(value).compareTo(threshold) > 0;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
@@ -146,7 +144,7 @@ record GreaterThanOrEqualConstraint(String parameterName, BigDecimal threshold) 
                 .map(value -> {
                     try {
                         return new BigDecimal(value).compareTo(threshold) >= 0;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
@@ -161,7 +159,7 @@ record LessThanConstraint(String parameterName, BigDecimal threshold) implements
                 .map(value -> {
                     try {
                         return new BigDecimal(value).compareTo(threshold) < 0;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
@@ -176,7 +174,7 @@ record LessThanOrEqualConstraint(String parameterName, BigDecimal threshold) imp
                 .map(value -> {
                     try {
                         return new BigDecimal(value).compareTo(threshold) <= 0;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
@@ -192,7 +190,7 @@ record BetweenConstraint(String parameterName, BigDecimal min, BigDecimal max) i
                     try {
                         BigDecimal numValue = new BigDecimal(value);
                         return numValue.compareTo(min) >= 0 && numValue.compareTo(max) <= 0;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })

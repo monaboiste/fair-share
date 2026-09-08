@@ -56,7 +56,6 @@ public record Validity(LocalDateTime validFrom, LocalDateTime validTo) {
     }
 
     public boolean overlaps(Validity other) {
-        // Two periods overlap if one starts before the other ends
         return this.validFrom.isBefore(other.validTo) && other.validFrom.isBefore(this.validTo);
     }
 }

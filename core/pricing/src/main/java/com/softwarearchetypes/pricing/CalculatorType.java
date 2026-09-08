@@ -40,7 +40,6 @@ public enum CalculatorType {
             Set.of("percentageRate"),
             Set.of("baseAmount")),
 
-    // Price Adapters - convert between price interpretations
     UNIT_TO_TOTAL_ADAPTER(
             "unit-to-total-adapter",
             "Converts unit price to total: total = quantity × unitPrice",
