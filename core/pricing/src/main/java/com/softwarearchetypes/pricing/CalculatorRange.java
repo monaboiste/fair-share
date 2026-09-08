@@ -3,26 +3,24 @@ package com.softwarearchetypes.pricing;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import org.jspecify.annotations.NonNull;
 
-/**
- * Represents a range of values that maps to a specific calculator. Supports different value types: numeric
- * (BigDecimal), time (LocalTime), date (LocalDate).
- */
+/** Maps values in an interval to a calculator. Numeric, time, and date ranges are supported. */
 interface CalculatorRange {
 
     /**
-     * Checks if this range supports the given value type.
+     * Returns whether this range supports the given value type.
      *
      * @param value the value to check
-     * @return true if the value type is supported by this range
+     * @return {@code true} when this range supports the value type
      */
     boolean supports(Object value);
 
     /**
-     * Checks if the given value falls within this range.
+     * Returns whether the given value falls within this range.
      *
      * @param value the value to check
-     * @return true if the value is within the range (inclusive start, exclusive end)
+     * @return {@code true} when the value is within the range (inclusive start, exclusive end)
      */
     boolean contains(Object value);
 
@@ -30,19 +28,19 @@ interface CalculatorRange {
     CalculatorId calculatorId();
 
     /**
-     * Checks if this range is compatible with another range (same type).
+     * Returns whether this range is compatible with another range (same type).
      *
      * @param other the other range
-     * @return true if both ranges are of the same type
+     * @return {@code true} when both ranges are of the same type
      */
     boolean isCompatibleWith(CalculatorRange other);
 
     /**
-     * Checks if this range overlaps with another range. Only compatible ranges can be checked for overlap.
+     * Returns whether this range overlaps with another range. Only compatible ranges can be checked for overlap.
      *
      * @param other the other range
-     * @return true if the ranges overlap
-     * @throws IllegalArgumentException if ranges are not compatible
+     * @return {@code true} when the ranges overlap
+     * @throws IllegalArgumentException when ranges are not compatible
      */
     boolean overlaps(CalculatorRange other);
 
@@ -66,7 +64,7 @@ interface CalculatorRange {
     }
 }
 
-/** Range for date values (LocalDate). Represents an interval [from, to) - inclusive from, exclusive to. */
+/** A date range represented by the half-open interval {@code [from, to)}. */
 record DateRange(LocalDate from, LocalDate to, CalculatorId calculatorId) implements CalculatorRange {
 
     public DateRange {
@@ -103,7 +101,7 @@ record DateRange(LocalDate from, LocalDate to, CalculatorId calculatorId) implem
 
         DateRange o = (DateRange) other;
 
-        return !(to.compareTo(o.from) <= 0) && !(o.to.compareTo(from) <= 0);
+        return to.isAfter(o.from) && o.to.isAfter(from);
     }
 
     @Override
@@ -112,12 +110,12 @@ record DateRange(LocalDate from, LocalDate to, CalculatorId calculatorId) implem
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         return "[%s, %s) → %s".formatted(from, to, calculatorId);
     }
 }
 
-/** Range for numeric values (BigDecimal). Represents an interval [min, max) - inclusive min, exclusive max. */
+/** A numeric range represented by the half-open interval {@code [min, max)}. */
 record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) implements CalculatorRange {
 
     public NumericRange {
@@ -154,7 +152,7 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
 
         NumericRange o = (NumericRange) other;
 
-        return !(max.compareTo(o.min) <= 0) && !(o.max.compareTo(min) <= 0);
+        return max.compareTo(o.min) > 0 && o.max.compareTo(min) > 0;
     }
 
     @Override
@@ -163,15 +161,12 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         return "[%s, %s) → %s".formatted(min, max, calculatorId);
     }
 }
 
-/**
- * Range for time values (LocalTime). Represents an interval [from, to) - inclusive from, exclusive to. Supports ranges
- * that cross midnight (e.g., 22:00-06:00).
- */
+/** A time range represented by {@code [from, to)}; it may cross midnight. */
 record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implements CalculatorRange {
 
     @Override
@@ -211,16 +206,16 @@ record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implem
         boolean otherNormal = o.from.isBefore(o.to);
 
         if (thisNormal && otherNormal) {
-            return !(to.compareTo(o.from) <= 0) && !(o.to.compareTo(from) <= 0);
+            return to.isAfter(o.from) && o.to.isAfter(from);
         }
 
         if (!thisNormal && otherNormal) {
-            boolean otherInGap = o.from.compareTo(to) >= 0 && o.to.compareTo(from) <= 0;
+            boolean otherInGap = !o.from.isBefore(to) && !o.to.isAfter(from);
             return !otherInGap;
         }
 
-        if (thisNormal && !otherNormal) {
-            boolean thisInGap = from.compareTo(o.to) >= 0 && to.compareTo(o.from) <= 0;
+        if (thisNormal) {
+            boolean thisInGap = !from.isBefore(o.to) && !to.isAfter(o.from);
             return !thisInGap;
         }
 
@@ -237,7 +232,7 @@ record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implem
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         if (from.isBefore(to)) {
             return "[%s, %s) → %s".formatted(from, to, calculatorId);
         } else {

@@ -10,12 +10,10 @@ import com.softwarearchetypes.pricing.PricingConfiguration
 import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.Map
 import spock.lang.Specification
 
 class TelcoComponentScenarioSpec extends Specification {
@@ -50,7 +48,6 @@ class TelcoComponentScenarioSpec extends Specification {
     }
 
     def "monthly bill with base fees only totals the sum of included fees"() {
-
         given: "a base fee composite with network maintenance (25 PLN) and commission (20 PLN)"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
@@ -65,7 +62,6 @@ class TelcoComponentScenarioSpec extends Specification {
         Money result = facade.calculateComponent("base-fee", Parameters.empty())
 
         expect:
-
         result == Money.of(BigDecimal.valueOf(45), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("base-fee", Parameters.empty())
@@ -75,7 +71,6 @@ class TelcoComponentScenarioSpec extends Specification {
     }
 
     def "monthly bill with data overage includes usage charges"() {
-
         given: "a monthly bill with base fee and data overage at 2 PLN per MB"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
@@ -98,7 +93,6 @@ class TelcoComponentScenarioSpec extends Specification {
         Money result = facade.calculateComponent("monthly-bill", usageParams)
 
         expect:
-
         result == Money.of(BigDecimal.valueOf(51), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("monthly-bill", usageParams)
@@ -114,7 +108,6 @@ class TelcoComponentScenarioSpec extends Specification {
     }
 
     def "monthly bill with roaming overage includes roaming charges"() {
-
         given: "a monthly bill with base fee and roaming overage at 1.50 PLN per MB"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
@@ -137,12 +130,10 @@ class TelcoComponentScenarioSpec extends Specification {
         Money result = facade.calculateComponent("monthly-bill", usageParams)
 
         expect:
-
         result == Money.of(BigDecimal.valueOf(75), "PLN")
     }
 
     def "total bill includes VAT calculated on the net amount"() {
-
         given: "a total bill with VAT depending on the net amount via a ValueOf dependency"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
@@ -160,7 +151,7 @@ class TelcoComponentScenarioSpec extends Specification {
                 "base-fee", "data-overage-component"
         )
         facade.createSimpleComponent("vat-component", "percentage-rate")
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "vat-component", Map.of("baseAmount", new ValueOf("net-amount")))
         facade.createCompositeComponent(
                 "total-bill", dependencies,
@@ -177,7 +168,6 @@ class TelcoComponentScenarioSpec extends Specification {
         Money expectedTotal = Money.of(new BigDecimal("62.73"), "PLN")
 
         expect:
-
         result == expectedTotal
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-bill", usageParams)
         breakdown.name() == "total-bill"
@@ -192,7 +182,6 @@ class TelcoComponentScenarioSpec extends Specification {
     }
 
     def "detailed breakdown shows the full component hierarchy"() {
-
         given: "a two-level composite with a nested base fee"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
@@ -214,10 +203,7 @@ class TelcoComponentScenarioSpec extends Specification {
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("monthly-bill", usageParams)
 
-        and:
-
         expect:
-
         breakdown.name() == "monthly-bill"
         breakdown.total() == Money.of(BigDecimal.valueOf(51), "PLN")
         breakdown.children().size() == 2

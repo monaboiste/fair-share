@@ -2,6 +2,7 @@ package com.softwarearchetypes.pricing;
 
 import java.util.Set;
 
+@SuppressWarnings("ImmutableEnumChecker")
 public enum CalculatorType {
     SIMPLE_FIXED("simple-fixed", "Fixed amount calculator - returns %s regardless", Set.of("amount"), Set.of()),
     SIMPLE_INTEREST(

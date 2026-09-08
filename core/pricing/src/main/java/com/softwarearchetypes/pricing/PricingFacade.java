@@ -7,7 +7,9 @@ import static java.util.stream.Collectors.mapping;
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -117,7 +119,7 @@ public class PricingFacade {
         return Arrays.asList(CalculatorType.values());
     }
 
-    public SimpleComponent createSimpleComponent(String componentName, String calculatorName) {
+    SimpleComponent createSimpleComponent(String componentName, String calculatorName) {
         return createSimpleComponent(
                 componentName,
                 calculatorName,
@@ -126,7 +128,7 @@ public class PricingFacade {
                 Validity.from(now(clock)));
     }
 
-    public SimpleComponent createSimpleComponent(
+    SimpleComponent createSimpleComponent(
             String componentName, String calculatorName, Map<String, String> parameterMappings) {
         return createSimpleComponent(
                 componentName,
@@ -136,19 +138,19 @@ public class PricingFacade {
                 Validity.from(now(clock)));
     }
 
-    public SimpleComponent createSimpleComponent(
+    SimpleComponent createSimpleComponent(
             String componentName, String calculatorName, Map<String, String> parameterMappings, Validity validity) {
         return createSimpleComponent(
                 componentName, calculatorName, parameterMappings, ApplicabilityConstraint.alwaysTrue(), validity);
     }
 
-    public SimpleComponent createSimpleComponent(
+    SimpleComponent createSimpleComponent(
             String componentName, String calculatorName, ApplicabilityConstraint applicabilityConstraint) {
         return createSimpleComponent(
                 componentName, calculatorName, Map.of(), applicabilityConstraint, Validity.from(now(clock)));
     }
 
-    public SimpleComponent createSimpleComponent(
+    SimpleComponent createSimpleComponent(
             String componentName,
             String calculatorName,
             Map<String, String> parameterMappings,
@@ -157,7 +159,7 @@ public class PricingFacade {
                 componentName, calculatorName, parameterMappings, applicabilityConstraint, Validity.from(now(clock)));
     }
 
-    public SimpleComponent createSimpleComponent(
+    SimpleComponent createSimpleComponent(
             String componentName,
             String calculatorName,
             Map<String, String> parameterMappings,
@@ -188,11 +190,11 @@ public class PricingFacade {
                 });
     }
 
-    public CompositeComponent createCompositeComponent(String compositeName, String... childComponentNames) {
+    CompositeComponent createCompositeComponent(String compositeName, String... childComponentNames) {
         return createCompositeComponent(compositeName, Map.of(), childComponentNames);
     }
 
-    public CompositeComponent createCompositeComponent(
+    CompositeComponent createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             String... childComponentNames) {
@@ -204,7 +206,7 @@ public class PricingFacade {
                 childComponentNames);
     }
 
-    public CompositeComponent createCompositeComponent(
+    CompositeComponent createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             Validity validity,
@@ -213,7 +215,7 @@ public class PricingFacade {
                 compositeName, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, childComponentNames);
     }
 
-    public CompositeComponent createCompositeComponent(
+    CompositeComponent createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
@@ -222,13 +224,13 @@ public class PricingFacade {
                 compositeName, dependencies, applicabilityConstraint, Validity.from(now(clock)), childComponentNames);
     }
 
-    public CompositeComponent createCompositeComponent(
+    CompositeComponent createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
             Validity validity,
             String... childComponentNames) {
-        List<Component> children = new java.util.ArrayList<>();
+        List<Component> children = new ArrayList<>();
         for (String childName : childComponentNames) {
             Component child = componentRepository
                     .findByName(childName)
@@ -236,7 +238,7 @@ public class PricingFacade {
             children.add(child);
         }
 
-        Map<ComponentId, Map<String, ParameterValue>> idBasedDeps = new java.util.HashMap<>();
+        Map<ComponentId, Map<String, ParameterValue>> idBasedDeps = new HashMap<>();
         for (Map.Entry<String, Map<String, ParameterValue>> entry : dependencies.entrySet()) {
             String childName = entry.getKey();
             Component child = children.stream()
@@ -286,7 +288,7 @@ public class PricingFacade {
 
     private Calculator createCalculator(String name, CalculatorType type, Parameters parameters) {
         if (!parameters.containsAll(type.requiredCreationFields())) {
-            throw new IllegalArgumentException("Calculator %s requiredPreviousKeys field %s, but passed only %s"
+            throw new IllegalArgumentException("Calculator %s requires fields %s, but received %s"
                     .formatted(type, type.requiredCreationFields(), parameters.keys()));
         }
 
@@ -310,7 +312,9 @@ public class PricingFacade {
                         stepBoundary);
             }
             case DISCRETE_POINTS -> {
-                Map<BigDecimal, Money> points = (Map<BigDecimal, Money>) parameters.get("points");
+                Map<BigDecimal, Money> points = new HashMap<>();
+                ((Map<?, ?>) parameters.get("points"))
+                        .forEach((quantity, price) -> points.put((BigDecimal) quantity, (Money) price));
                 yield interpretation != null
                         ? new DiscretePointsCalculator(name, points, interpretation)
                         : new DiscretePointsCalculator(name, points);
@@ -332,16 +336,16 @@ public class PricingFacade {
                 interpretation != null
                         ? new ContinuousLinearTimeCalculator(
                                 name,
-                                parameters.getTime("startTime"),
+                                parameters.getInstant("startTime"),
                                 parameters.getMoney("startPrice"),
-                                parameters.getTime("endTime"),
+                                parameters.getInstant("endTime"),
                                 parameters.getMoney("endPrice"),
                                 interpretation)
                         : new ContinuousLinearTimeCalculator(
                                 name,
-                                parameters.getTime("startTime"),
+                                parameters.getInstant("startTime"),
                                 parameters.getMoney("startPrice"),
-                                parameters.getTime("endTime"),
+                                parameters.getInstant("endTime"),
                                 parameters.getMoney("endPrice"));
             case COMPOSITE -> {
                 @SuppressWarnings("unchecked")

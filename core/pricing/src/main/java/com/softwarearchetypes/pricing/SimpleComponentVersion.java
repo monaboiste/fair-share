@@ -5,40 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Version of a SimpleComponent - represents calculator configuration valid during a time period and applicable under
- * specific business conditions.
- *
- * <p>Three orthogonal axes of a pricing component version:
- *
- * <ul>
- *   <li><b>Calculator</b> - how do we calculate? (the math)
- *   <li><b>Validity</b> - when does it apply? (time)
- *   <li><b>Applicability</b> - for whom / under what conditions? (business rules)
- * </ul>
- *
- * <p>A version fires if and only if BOTH conditions hold:
- *
- * <pre>
- *   validity.isValidAt(context.timestamp())
- *       &amp;&amp; applicabilityConstraint.isSatisfiedBy(context)
- * </pre>
- *
- * Example:
- *
- * <pre>
- *   new SimpleComponentVersion(
- *       fixedPerMinute,
- *       Map.of(),
- *       and(greaterThan("minutes", 10), equalsTo("customerType", "B2C")),
- *       Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)),
- *       now(clock)
- *   )
- * </pre>
- *
- * Interpretation: "From May, charge per minute - but only for B2C customers and only when the session exceeds 10
- * minutes."
- */
+/** Defines a calculator configuration with validity and applicability constraints. */
 record SimpleComponentVersion(
         Calculator calculator,
         Map<String, String> parameterMappings,
@@ -53,21 +20,18 @@ record SimpleComponentVersion(
         Objects.requireNonNull(applicabilityConstraint, "applicabilityConstraint cannot be null");
     }
 
-    /** Backward-compatible constructor - component always applicable (no business condition). */
+    /** Creates a version that always applies. */
     public SimpleComponentVersion(
             Calculator calculator, Map<String, String> parameterMappings, Validity validity, LocalDateTime definedAt) {
         this(calculator, parameterMappings, ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
     }
 
-    /**
-     * Returns true when this version should be used for the given pricing context. Combines the time dimension
-     * (validity) with the business dimension (applicability).
-     */
+    /** Returns whether validity and applicability match the context. */
     public boolean isApplicableFor(PricingContext context) {
         return validity.isValidAt(context.timestamp()) && applicabilityConstraint.isSatisfiedBy(context);
     }
 
-    /** Create a version with explicit applicability constraint. */
+    /** Create a version with an explicit applicability constraint. */
     public static SimpleComponentVersion of(
             Calculator calculator,
             Map<String, String> parameterMappings,

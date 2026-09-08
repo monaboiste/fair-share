@@ -3,7 +3,6 @@ package com.softwarearchetypes.pricing
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
@@ -17,19 +16,16 @@ class PricingFacadeSpec extends Specification {
     private final PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
 
     def "available calculators includes the pre-registered default calculators"() {
-
         given:
         List<CalculatorView> views = facade.availableCalculators()
 
         expect:
-
         views.size() == 2
         views.any { it.name() == "simple-fixed-20" }
         views.any { it.name() == "simple-interest-6" }
     }
 
     def "available calculators grows when a new calculator is registered"() {
-
         given:
         int before = facade.availableCalculators().size()
         facade.addCalculator("extra-fixed", CalculatorType.SIMPLE_FIXED,
@@ -39,23 +35,19 @@ class PricingFacadeSpec extends Specification {
         List<CalculatorView> views = facade.availableCalculators()
 
         expect:
-
         views.size() == before + 1
         views.any { it.name() == "extra-fixed" }
     }
 
     def "available calculators includes the correct type for each entry"() {
-
         given:
         facade.addCalculator("my-fixed", CalculatorType.SIMPLE_FIXED,
                 Parameters.of("amount", Money.of(100, "PLN")))
 
         and:
-
         CalculatorView view = facade.availableCalculators().find { it.name() == "my-fixed" }
 
         expect:
-
         view != null
         view.type() == CalculatorType.SIMPLE_FIXED
         view.description() != null
@@ -63,7 +55,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "list calculators with descriptions groups by calculator type"() {
-
         given:
         facade.addCalculator("fixed-extra-1", CalculatorType.SIMPLE_FIXED,
                 Parameters.of("amount", Money.of(10, "PLN")))
@@ -76,18 +67,15 @@ class PricingFacadeSpec extends Specification {
         Map<CalculatorType, List<CalculatorView>> grouped = facade.listCalculatorsWithDescriptions()
 
         expect:
-
         grouped.get(CalculatorType.SIMPLE_FIXED).size() >= 2
         grouped.get(CalculatorType.PERCENTAGE).size() >= 1
     }
 
     def "available calculator types returns all defined types"() {
-
         given:
         List<CalculatorType> types = facade.availableCalculatorTypes()
 
         expect:
-
         types.containsAll([
                 CalculatorType.SIMPLE_FIXED,
                 CalculatorType.STEP_FUNCTION,
@@ -159,20 +147,17 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "addCalculator returns the created calculator"() {
-
         given:
         Calculator calc = facade.addCalculator("my-calc", CalculatorType.SIMPLE_FIXED,
                 Parameters.of("amount", Money.of(99, "PLN")))
 
         expect:
-
         calc != null
         calc.name() == "my-calc"
         calc.getType() == CalculatorType.SIMPLE_FIXED
     }
 
     def "calculate delegates to the named calculator"() {
-
         given:
         facade.addCalculator("flat-100", CalculatorType.SIMPLE_FIXED,
                 Parameters.of("amount", Money.of(100, "PLN")))
@@ -181,7 +166,6 @@ class PricingFacadeSpec extends Specification {
         Money result = facade.calculate("flat-100", Parameters.empty())
 
         expect:
-
         result == Money.of(100, "PLN")
     }
 }

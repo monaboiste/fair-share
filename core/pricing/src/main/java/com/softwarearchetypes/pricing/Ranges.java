@@ -2,6 +2,7 @@ package com.softwarearchetypes.pricing;
 
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Aggregate of CalculatorRange objects with validation. Knows which parameter to check and ensures all ranges are
@@ -43,7 +44,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
             return;
         }
 
-        CalculatorRange first = ranges.get(0);
+        CalculatorRange first = ranges.getFirst();
 
         for (int i = 1; i < ranges.size(); i++) {
             CalculatorRange current = ranges.get(i);
@@ -100,7 +101,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         return "Ranges[selector='%s', ranges=%s]".formatted(rangeSelector, ranges);
     }
 }

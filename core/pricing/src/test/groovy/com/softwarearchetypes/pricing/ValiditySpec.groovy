@@ -6,7 +6,6 @@ import spock.lang.Specification
 class ValiditySpec extends Specification {
 
     def "validity from a date has no end boundary"() {
-
         given:
         LocalDateTime from = LocalDateTime.of(2024, 1, 1, 0, 0)
 
@@ -14,13 +13,11 @@ class ValiditySpec extends Specification {
         Validity validity = Validity.from(from)
 
         expect:
-
         validity.validFrom() == from
         validity.validTo() == LocalDateTime.MAX
     }
 
     def "validity between two dates has both boundaries set"() {
-
         given:
         LocalDateTime from = LocalDateTime.of(2024, 1, 1, 0, 0)
         LocalDateTime to = LocalDateTime.of(2024, 2, 1, 0, 0)
@@ -29,13 +26,11 @@ class ValiditySpec extends Specification {
         Validity validity = Validity.between(from, to)
 
         expect:
-
         validity.validFrom() == from
         validity.validTo() == to
     }
 
     def "invalid date range with from after to is rejected"() {
-
         given:
         LocalDateTime from = LocalDateTime.of(2024, 2, 1, 0, 0)
         LocalDateTime to = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -49,7 +44,6 @@ class ValiditySpec extends Specification {
     }
 
     def "isValidAt returns true only within the validity window"() {
-
         given:
         Validity validity = Validity.between(
                 LocalDateTime.of(2024, 2, 1, 0, 0),
@@ -57,7 +51,6 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-
         !(validity.isValidAt(LocalDateTime.of(2024, 1, 31, 23, 59)))
         validity.isValidAt(LocalDateTime.of(2024, 2, 1, 0, 0))
         validity.isValidAt(LocalDateTime.of(2024, 2, 15, 0, 0))
@@ -67,7 +60,6 @@ class ValiditySpec extends Specification {
     }
 
     def "overlapping validity periods are detected"() {
-
         given:
         Validity v1 = Validity.between(
                 LocalDateTime.of(2024, 1, 1, 0, 0),
@@ -79,13 +71,11 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-
         v1.overlaps(v2)
         v2.overlaps(v1)
     }
 
     def "adjacent validity periods are not overlapping"() {
-
         given:
         Validity v1 = Validity.between(
                 LocalDateTime.of(2024, 1, 1, 0, 0),
@@ -97,13 +87,11 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-
         !(v1.overlaps(v2))
         !(v2.overlaps(v1))
     }
 
     def "open-ended validity overlaps with any later period"() {
-
         given:
         Validity openEnded = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
         Validity limited = Validity.between(
@@ -112,14 +100,12 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-
         openEnded.overlaps(limited)
         limited.overlaps(openEnded)
         openEnded.isValidAt(LocalDateTime.of(2100, 1, 1, 0, 0))
     }
 
     def "hasExpired returns true only after the end date"() {
-
         given:
         Validity validity = Validity.between(
                 LocalDateTime.of(2024, 1, 1, 0, 0),
@@ -127,31 +113,26 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-
         !(validity.hasExpired(LocalDateTime.of(2024, 1, 15, 0, 0)))
         validity.hasExpired(LocalDateTime.of(2024, 2, 1, 0, 0))
         validity.hasExpired(LocalDateTime.of(2024, 3, 1, 0, 0))
     }
 
     def "hasNotStartedYet returns true only before the start date"() {
-
         given:
         Validity validity = Validity.from(LocalDateTime.of(2024, 2, 1, 0, 0))
 
         expect:
-
         validity.hasNotStartedYet(LocalDateTime.of(2024, 1, 15, 0, 0))
         !(validity.hasNotStartedYet(LocalDateTime.of(2024, 2, 1, 0, 0)))
         !(validity.hasNotStartedYet(LocalDateTime.of(2024, 3, 1, 0, 0)))
     }
 
     def "always validity is valid at any point in time"() {
-
         given:
         Validity always = Validity.always()
 
         expect:
-
         always.isValidAt(LocalDateTime.MIN)
         always.isValidAt(LocalDateTime.of(2024, 1, 1, 0, 0))
         always.isValidAt(LocalDateTime.MAX.minusYears(1))

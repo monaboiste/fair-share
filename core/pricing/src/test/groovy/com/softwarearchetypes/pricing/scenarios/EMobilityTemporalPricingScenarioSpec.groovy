@@ -11,12 +11,10 @@ import com.softwarearchetypes.pricing.SumOf
 import com.softwarearchetypes.pricing.Validity
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.Map
 import spock.lang.Specification
 
 class EMobilityTemporalPricingScenarioSpec extends Specification {
@@ -81,7 +79,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 Map.of(),
                 Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0))
         )
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "VAT", Map.of("baseAmount", new ValueOf("EnergyCharge")))
         facade.createCompositeComponent(
                 "TotalPrice", dependencies,
@@ -91,7 +89,6 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     }
 
     def "price in January uses the base rate of 2.50 PLN per kWh"() {
-
         given:
         Parameters jan15 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 1, 15, 10, 30),
@@ -102,7 +99,6 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", jan15)
 
         expect:
-
         breakdown.total() == Money.of(61.50, "PLN")
         breakdown.children().size() == 2
         breakdown.children().get(0).name() == "EnergyCharge"
@@ -110,7 +106,6 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     }
 
     def "Valentine promotion in February reduces the energy rate to 2.00 PLN per kWh"() {
-
         given: "a temporary discount valid only in February"
         facade.createSimpleComponent(
                 "EnergyCharge",
@@ -131,13 +126,11 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", feb14)
 
         expect:
-
         breakdown.total() == Money.of(49.20, "PLN")
         breakdown.children().get(0).total() == Money.of(40.00, "PLN")
     }
 
     def "price in March reverts to the base rate after the promotion ends"() {
-
         given: "the February promotion registered alongside the base rate"
         facade.createSimpleComponent(
                 "EnergyCharge",
@@ -158,15 +151,13 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", mar10)
 
         expect:
-
         breakdown.total() == Money.of(61.50, "PLN")
         breakdown.children().get(0).total() == Money.of(50.00, "PLN")
     }
 
     def "parking fee is added to the composite in May"() {
-
         given: "a new composite version that includes ParkingFee from May onwards"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice", dependencies,
@@ -183,7 +174,6 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", may20)
 
         expect:
-
         breakdown.total() == Money.of(67.65, "PLN")
         breakdown.children().size() == 3
         breakdown.children().get(0).name() == "EnergyCharge"
@@ -192,9 +182,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     }
 
     def "summer energy rate increase is applied in July"() {
-
         given: "composite updated for May, and energy raised to 2.80 PLN for July-August"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
@@ -221,15 +210,13 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", jul15)
 
         expect:
-
         breakdown.total() == Money.of(75.03, "PLN")
         breakdown.children().get(0).total() == Money.of(56.00, "PLN")
     }
 
     def "price reverts automatically to the base rate in September"() {
-
         given: "composite updated for May, summer increase registered for July-August"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
@@ -256,16 +243,14 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", sep15)
 
         expect:
-
         breakdown.total() == Money.of(67.65, "PLN")
         breakdown.children().get(0).total() == Money.of(50.00, "PLN")
         breakdown.children().get(1).total() == Money.of(5.00, "PLN")
     }
 
     def "winter parking fee increase takes effect in November"() {
-
         given: "full year pricing with composite, summer rate, and winter parking fee"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
@@ -298,13 +283,11 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("TotalPrice", dec05)
 
         expect:
-
         breakdown.total() == Money.of(71.34, "PLN")
         breakdown.children().get(1).total() == Money.of(8.00, "PLN")
     }
 
     def "all twelve months of pricing are consistent with the configured timeline"() {
-
         given: "full year pricing timeline for 2024"
         setupFullYearPricing()
 
@@ -366,7 +349,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 Map.of(),
                 Validity.from(LocalDateTime.of(2024, 11, 1, 0, 0))
         )
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",

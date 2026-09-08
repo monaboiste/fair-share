@@ -1,12 +1,12 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThanOrEqualTo
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.pricing.ApplicabilityConstraint
 import com.softwarearchetypes.pricing.CalculatorRange
 import com.softwarearchetypes.pricing.CalculatorType
 import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Interpretation
 import com.softwarearchetypes.pricing.ParameterValue
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingConfiguration
@@ -14,13 +14,10 @@ import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.Validity
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.List
-import java.util.Map
 import spock.lang.Specification
 
 class LogisticsShipmentScenarioSpec extends Specification {
@@ -36,24 +33,24 @@ class LogisticsShipmentScenarioSpec extends Specification {
         def lightRate = facade.addCalculator("base-rate-light", CalculatorType.SIMPLE_FIXED,
                 Parameters.of(
                         "amount", Money.of(new BigDecimal("7.90"), "PLN"),
-                        "interpretation", com.softwarearchetypes.pricing.Interpretation.UNIT))
+                        "interpretation", Interpretation.UNIT))
         def mediumRate = facade.addCalculator("base-rate-medium", CalculatorType.SIMPLE_FIXED,
                 Parameters.of(
                         "amount", Money.of(new BigDecimal("6.10"), "PLN"),
-                        "interpretation", com.softwarearchetypes.pricing.Interpretation.UNIT))
+                        "interpretation", Interpretation.UNIT))
         def heavyRate = facade.addCalculator("base-rate-heavy", CalculatorType.SIMPLE_FIXED,
                 Parameters.of(
                         "amount", Money.of(new BigDecimal("5.20"), "PLN"),
-                        "interpretation", com.softwarearchetypes.pricing.Interpretation.UNIT))
+                        "interpretation", Interpretation.UNIT))
         facade.addCalculator("base-by-weight", CalculatorType.COMPOSITE,
                 Parameters.of(
                         "ranges", List.of(
-                                CalculatorRange.numeric(
-                                        new BigDecimal("1"), new BigDecimal("5"), lightRate.getId()),
-                                CalculatorRange.numeric(
-                                        new BigDecimal("5"), new BigDecimal("30"), mediumRate.getId()),
-                                CalculatorRange.numeric(
-                                        new BigDecimal("30"), new BigDecimal("70"), heavyRate.getId())),
+                        CalculatorRange.numeric(
+                                new BigDecimal("1"), new BigDecimal("5"), lightRate.getId()),
+                        CalculatorRange.numeric(
+                                new BigDecimal("5"), new BigDecimal("30"), mediumRate.getId()),
+                        CalculatorRange.numeric(
+                                new BigDecimal("30"), new BigDecimal("70"), heavyRate.getId())),
                         "rangeSelector", "quantity"))
 
         facade.addCalculator("fuel-rate-4.5", CalculatorType.PERCENTAGE,
@@ -122,7 +119,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "vat-rate",
                 Map.of(),
                 Validity.from(januaryFirst))
-        Map<String, Map<String, ParameterValue>> nettoDependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> nettoDependencies = Map.<String, Map<String, ParameterValue>> of(
                 "fuel-component", Map.of("baseAmount", new ValueOf("base-component")),
                 "adr-component", Map.of("baseAmount", new ValueOf("base-component")),
                 "oversized-component", Map.of("baseAmount", new ValueOf("base-component")),
@@ -138,7 +135,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-component",
                 "insurance-component")
 
-        Map<String, Map<String, ParameterValue>> totalDependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> totalDependencies = Map.<String, Map<String, ParameterValue>> of(
                 "vat-component", Map.of("baseAmount", new ValueOf("netto")))
         facade.createCompositeComponent(
                 "total-cost", totalDependencies,
@@ -148,21 +145,19 @@ class LogisticsShipmentScenarioSpec extends Specification {
     }
 
     def "standard 3 kg shipment includes fuel surcharge and VAT"() {
-
         given:
         Parameters params = Parameters.of(
-                "weight",         BigDecimal.valueOf(3),
-                "cargo-type",     "standard",
-                "delivery-type",  "standard",
-                "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
+                "weight", BigDecimal.valueOf(3),
+                "cargo-type", "standard",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
         Money result = facade.calculateComponent("total-cost", params)
 
         expect:
-
         result == Money.of(new BigDecimal("30.47"), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
@@ -183,21 +178,19 @@ class LogisticsShipmentScenarioSpec extends Specification {
     }
 
     def "12 kg hazmat shipment with COD and insurance adds all applicable surcharges"() {
-
         given:
         Parameters params = Parameters.of(
-                "weight",         BigDecimal.valueOf(12),
-                "cargo-type",     "hazmat",
-                "delivery-type",  "standard",
-                "cod-value",      Money.of(BigDecimal.valueOf(800), "PLN"),
-                "insured-value",  Money.of(BigDecimal.valueOf(1500), "PLN"))
+                "weight", BigDecimal.valueOf(12),
+                "cargo-type", "hazmat",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.valueOf(800), "PLN"),
+                "insured-value", Money.of(BigDecimal.valueOf(1500), "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
         Money result = facade.calculateComponent("total-cost", params)
 
         expect:
-
         result == Money.of(new BigDecimal("161.55"), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
@@ -218,21 +211,19 @@ class LogisticsShipmentScenarioSpec extends Specification {
     }
 
     def "45 kg oversized shipment with time-window delivery applies both surcharges"() {
-
         given:
         Parameters params = Parameters.of(
-                "weight",         BigDecimal.valueOf(45),
-                "cargo-type",     "standard",
-                "delivery-type",  "time-window",
-                "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
+                "weight", BigDecimal.valueOf(45),
+                "cargo-type", "standard",
+                "delivery-type", "time-window",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
         Money result = facade.calculateComponent("total-cost", params)
 
         expect:
-
         result == Money.of(new BigDecimal("473.46"), "PLN")
 
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
@@ -252,26 +243,24 @@ class LogisticsShipmentScenarioSpec extends Specification {
     }
 
     def "fuel surcharge rate changes from 4.5% to 5.0% on 1 April 2025"() {
-
         given:
         Parameters jan = Parameters.of(
-                "weight",         BigDecimal.valueOf(3),
-                "cargo-type",     "standard",
-                "delivery-type",  "standard",
-                "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
+                "weight", BigDecimal.valueOf(3),
+                "cargo-type", "standard",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         Parameters apr = Parameters.of(
-                "weight",         BigDecimal.valueOf(3),
-                "cargo-type",     "standard",
-                "delivery-type",  "standard",
-                "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
+                "weight", BigDecimal.valueOf(3),
+                "cargo-type", "standard",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 4, 15, 10, 0))
 
         expect:
-
         facade.calculateComponent("total-cost", jan) == Money.of(new BigDecimal("30.47"), "PLN")
         facade.calculateComponent("total-cost", apr) == Money.of(new BigDecimal("30.61"), "PLN")
     }

@@ -4,18 +4,20 @@ import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class PricingConfiguration {
 
-    private final CalculatorRepository repository;
     private final PricingFacade facade;
 
-    PricingConfiguration(CalculatorRepository repository, PricingFacade facade) {
-        this.repository = repository;
+    PricingConfiguration(PricingFacade facade) {
         this.facade = facade;
     }
 
@@ -30,7 +32,7 @@ public class PricingConfiguration {
                 "simple-interest-6",
                 CalculatorType.SIMPLE_INTEREST,
                 new Parameters(Map.of("annualRate", BigDecimal.valueOf(6))));
-        return new PricingConfiguration(repository, facade);
+        return new PricingConfiguration(facade);
     }
 
     public PricingFacade pricingFacade() {
@@ -51,6 +53,7 @@ interface CalculatorRepository {
 }
 
 class InMemoryCalculatorsRepository implements CalculatorRepository {
+
     private final Set<Calculator> calculators = new HashSet<>();
 
     @Override
@@ -93,7 +96,7 @@ interface ComponentRepository {
 }
 
 class InMemoryComponentRepository implements ComponentRepository {
-    private final Map<ComponentId, Component> components = new java.util.HashMap<>();
+    private final Map<ComponentId, Component> components = new HashMap<>();
 
     @Override
     public void save(Component component) {
@@ -115,7 +118,7 @@ class InMemoryComponentRepository implements ComponentRepository {
 
     @Override
     public Collection<Component> findAll() {
-        return components.values().stream().map(this::refreshComponent).collect(java.util.stream.Collectors.toSet());
+        return components.values().stream().map(this::refreshComponent).collect(Collectors.toSet());
     }
 
     @Override
@@ -127,26 +130,22 @@ class InMemoryComponentRepository implements ComponentRepository {
                 .toList();
     }
 
-    /**
-     * Odświeża CompositeComponent pobierając świeże referencje do dzieci z repo. Działa jak JOIN w SQL - zawsze zwraca
-     * aktualne dane.
-     */
+    /** Refreshes a composite component with the latest child references from the repository. */
     private Component refreshComponent(Component component) {
-        if (!(component instanceof CompositeComponent composite)) {
+        if (!(component instanceof CompositeComponent(var id, var name, var versions))) {
             return component;
         }
 
-        java.util.List<CompositeComponentVersion> refreshedVersions =
-                composite.versions().stream().map(this::refreshVersion).toList();
+        var refreshedVersions = versions.stream().map(this::refreshVersion).toList();
 
-        return new CompositeComponent(composite.id(), composite.name(), refreshedVersions);
+        return new CompositeComponent(id, name, refreshedVersions);
     }
 
-    /** Odświeża wersję composite pobierając świeże referencje do dzieci po ID. */
+    /** Refreshes a composite version with the latest child references by component ID. */
     private CompositeComponentVersion refreshVersion(CompositeComponentVersion version) {
-        java.util.List<Component> freshChildren = version.children().stream()
+        List<Component> freshChildren = version.children().stream()
                 .map(child -> components.get(child.id()))
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .toList();
 
         return new CompositeComponentVersion(

@@ -7,7 +7,6 @@ import spock.lang.Specification
 class DateRangeSpec extends Specification {
 
     def "supports local date values"() {
-
         given:
         DateRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -16,7 +15,6 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         range.supports(LocalDate.of(2024, 7, 15))
         !(range.supports("2024-07-15"))
         !(range.supports(2024))
@@ -29,8 +27,7 @@ class DateRangeSpec extends Specification {
                 CalculatorId.generate()
         )
 
-        expect:        expect:
-
+        expect:
         range.contains(LocalDate.of(2024, 6, 1))
         range.contains(LocalDate.of(2024, 7, 15))
         range.contains(LocalDate.of(2024, 8, 31))
@@ -40,7 +37,6 @@ class DateRangeSpec extends Specification {
     }
 
     def "does not contain date of wrong type"() {
-
         given:
         DateRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -49,7 +45,6 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         !(range.contains("2024-07-15"))
         !(range.contains(2024))
     }
@@ -81,7 +76,6 @@ class DateRangeSpec extends Specification {
     }
 
     def "detects overlap when ranges overlap"() {
-
         given:
         DateRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -95,13 +89,11 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         summer.overlaps(lateSummer)
         lateSummer.overlaps(summer)
     }
 
     def "does not detect overlap when ranges adjacent"() {
-
         given:
         DateRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -115,13 +107,11 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         !(summer.overlaps(fall))
         !(fall.overlaps(summer))
     }
 
     def "detects overlap when one range contains another"() {
-
         given:
         DateRange year = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
@@ -135,13 +125,11 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         year.overlaps(summer)
         summer.overlaps(year)
     }
 
     def "is compatible with other date ranges"() {
-
         given:
         DateRange range1 = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
@@ -155,12 +143,10 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         range1.isCompatibleWith(range2)
     }
 
     def "is not compatible with time range"() {
-
         given:
         DateRange dateRange = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
@@ -174,7 +160,6 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-
         !(dateRange.isCompatibleWith(timeRange))
     }
 }

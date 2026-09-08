@@ -6,16 +6,14 @@ import spock.lang.Specification
 class TimeRangeSpec extends Specification {
 
     def "supports local time values"() {
-
         given:
         TimeRange range = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         range.supports(LocalTime.of(12, 0))
         !(range.supports("12:00"))
         !(range.supports(12))
@@ -23,13 +21,12 @@ class TimeRangeSpec extends Specification {
 
     def "contains time in normal range"() {
         TimeRange range = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
 
-        expect:        expect:
-
+        expect:
         range.contains(LocalTime.of(8, 0))
         range.contains(LocalTime.of(12, 0))
         range.contains(LocalTime.of(17, 59))
@@ -40,13 +37,12 @@ class TimeRangeSpec extends Specification {
 
     def "contains time in range crossing midnight"() {
         TimeRange range = CalculatorRange.time(
-            LocalTime.of(22, 0),
-            LocalTime.of(6, 0),
+                LocalTime.of(22, 0),
+                LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
 
-        expect:        expect:
-
+        expect:
         range.contains(LocalTime.of(22, 0))
         range.contains(LocalTime.of(23, 30))
         range.contains(LocalTime.of(0, 0))
@@ -58,169 +54,152 @@ class TimeRangeSpec extends Specification {
     }
 
     def "does not contain time of wrong type"() {
-
         given:
         TimeRange range = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         !(range.contains("12:00"))
         !(range.contains(12))
     }
 
     def "detects overlap when both ranges normal and overlap"() {
-
         given:
         TimeRange range1 = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
         TimeRange range2 = CalculatorRange.time(
-            LocalTime.of(15, 0),
-            LocalTime.of(20, 0),
+                LocalTime.of(15, 0),
+                LocalTime.of(20, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         range1.overlaps(range2)
         range2.overlaps(range1)
     }
 
     def "does not detect overlap when both ranges normal and adjacent"() {
-
         given:
         TimeRange range1 = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
         TimeRange range2 = CalculatorRange.time(
-            LocalTime.of(18, 0),
-            LocalTime.of(22, 0),
+                LocalTime.of(18, 0),
+                LocalTime.of(22, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         !(range1.overlaps(range2))
         !(range2.overlaps(range1))
     }
 
     def "does not detect overlap when one crosses midnight and other fits in gap"() {
-
         given:
         TimeRange night = CalculatorRange.time(
-            LocalTime.of(22, 0),
-            LocalTime.of(6, 0),
+                LocalTime.of(22, 0),
+                LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
         TimeRange day = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         !(night.overlaps(day))
         !(day.overlaps(night))
     }
 
     def "detects overlap when one crosses midnight and other overlaps"() {
-
         given:
         TimeRange night = CalculatorRange.time(
-            LocalTime.of(22, 0),
-            LocalTime.of(6, 0),
+                LocalTime.of(22, 0),
+                LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
         TimeRange lateEvening = CalculatorRange.time(
-            LocalTime.of(20, 0),
-            LocalTime.of(23, 0),
+                LocalTime.of(20, 0),
+                LocalTime.of(23, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         night.overlaps(lateEvening)
         lateEvening.overlaps(night)
     }
 
     def "detects overlap when both cross midnight"() {
-
         given:
         TimeRange night1 = CalculatorRange.time(
-            LocalTime.of(22, 0),
-            LocalTime.of(6, 0),
+                LocalTime.of(22, 0),
+                LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
         TimeRange night2 = CalculatorRange.time(
-            LocalTime.of(20, 0),
-            LocalTime.of(8, 0),
+                LocalTime.of(20, 0),
+                LocalTime.of(8, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         night1.overlaps(night2)
         night2.overlaps(night1)
     }
 
     def "is compatible with other time ranges"() {
-
         given:
         TimeRange range1 = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
         TimeRange range2 = CalculatorRange.time(
-            LocalTime.of(18, 0),
-            LocalTime.of(22, 0),
+                LocalTime.of(18, 0),
+                LocalTime.of(22, 0),
                 CalculatorId.generate()
         )
 
         expect:
-
         range1.isCompatibleWith(range2)
     }
 
     def "is not compatible with numeric range"() {
-
         given:
         TimeRange timeRange = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
         NumericRange numericRange = CalculatorRange.numeric(
-            java.math.BigDecimal.ZERO,
-            java.math.BigDecimal.TEN,
+                BigDecimal.ZERO,
+                BigDecimal.TEN,
                 CalculatorId.generate()
         )
 
         expect:
-
         !(timeRange.isCompatibleWith(numericRange))
     }
 
     def "throws when checking overlap with incompatible range"() {
-
         given:
         TimeRange timeRange = CalculatorRange.time(
-            LocalTime.of(8, 0),
-            LocalTime.of(18, 0),
+                LocalTime.of(8, 0),
+                LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
         NumericRange numericRange = CalculatorRange.numeric(
-            java.math.BigDecimal.ZERO,
-            java.math.BigDecimal.TEN,
+                BigDecimal.ZERO,
+                BigDecimal.TEN,
                 CalculatorId.generate()
         )
 

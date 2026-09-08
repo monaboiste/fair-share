@@ -12,12 +12,10 @@ import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.StepBoundary
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.Map
 import spock.lang.Specification
 
 class EMobilityComponentScenarioSpec extends Specification {
@@ -67,7 +65,6 @@ class EMobilityComponentScenarioSpec extends Specification {
     }
 
     def "complete EV charging session is calculated with a full cost breakdown"() {
-
         given: "a 12 kWh, 40-minute charging session with energy, CPO, EMSP, and VAT components"
         facade.createSimpleComponent("energy-wholesale-component", "energy-wholesale")
         facade.createSimpleComponent("energy-grid-component", "energy-grid")
@@ -96,7 +93,7 @@ class EMobilityComponentScenarioSpec extends Specification {
         )
         facade.createSimpleComponent("vat-component", "vat-rate")
 
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "vat-component", Map.of("baseAmount", new ValueOf("netto")))
         facade.createCompositeComponent("total-session-cost", dependencies,
                 "netto", "vat-component"
@@ -112,7 +109,6 @@ class EMobilityComponentScenarioSpec extends Specification {
         Money expectedTotal = Money.of(new BigDecimal("26.57"), "PLN")
 
         expect:
-
         result == expectedTotal
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-session-cost", sessionParams)
 
@@ -148,7 +144,6 @@ class EMobilityComponentScenarioSpec extends Specification {
     }
 
     def "charging session breakdown can be formatted for display"() {
-
         given: "a fully configured charging session"
         facade.createSimpleComponent("energy-wholesale-component", "energy-wholesale")
         facade.createSimpleComponent("energy-grid-component", "energy-grid")
@@ -170,7 +165,7 @@ class EMobilityComponentScenarioSpec extends Specification {
                 "energy-net", "cpo-markup", "emsp-markup")
 
         facade.createSimpleComponent("vat-component", "vat-rate")
-        Map<String, Map<String, ParameterValue>> dependencies = Map.of(
+        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
                 "vat-component", Map.of("baseAmount", new ValueOf("netto")))
         facade.createCompositeComponent("total-session-cost", dependencies,
                 "netto", "vat-component")
@@ -184,7 +179,6 @@ class EMobilityComponentScenarioSpec extends Specification {
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-session-cost", sessionParams)
 
         expect:
-
         breakdown.total() == Money.of(new BigDecimal("26.57"), "PLN")
         breakdown.format() != null
         breakdown.format().contains("total-session-cost")

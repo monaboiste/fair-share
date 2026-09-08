@@ -1,16 +1,7 @@
 package com.softwarearchetypes.pricing
 
-import com.softwarearchetypes.pricing.CalculatorRange
-import com.softwarearchetypes.pricing.CompositeFunctionCalculator
-import com.softwarearchetypes.pricing.InMemoryCalculatorsRepository
-import com.softwarearchetypes.pricing.Parameters
-import com.softwarearchetypes.pricing.Ranges
-import com.softwarearchetypes.pricing.SimpleFixedCalculator
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.LocalTime
-import java.util.List
-import java.util.Map
 import spock.lang.Specification
 
 class CompositeFunctionCalculatorScenarioSpec extends Specification {
@@ -22,32 +13,31 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
     }
 
     def "parking price depends on time of day"() {
-
         given: "day rate of 5 PLN (06:00-22:00) and night rate of 2 PLN (22:00-06:00)"
         SimpleFixedCalculator dayRate = new SimpleFixedCalculator(
-            "parking-day-rate",
-            Money.of(5.00, "PLN")
+                "parking-day-rate",
+                Money.of(5.00, "PLN")
         )
         SimpleFixedCalculator nightRate = new SimpleFixedCalculator(
-            "parking-night-rate",
-            Money.of(2.00, "PLN")
+                "parking-night-rate",
+                Money.of(2.00, "PLN")
         )
 
         repository.save(dayRate)
         repository.save(nightRate)
 
         Ranges timeRanges = new Ranges(
-            "parkingTime",
-            List.of(
-                CalculatorRange.time(LocalTime.of(6, 0), LocalTime.of(22, 0), dayRate.id()),
-                CalculatorRange.time(LocalTime.of(22, 0), LocalTime.of(6, 0), nightRate.id())
-            )
+                "parkingTime",
+                List.of(
+                        CalculatorRange.time(LocalTime.of(6, 0), LocalTime.of(22, 0), dayRate.id()),
+                        CalculatorRange.time(LocalTime.of(22, 0), LocalTime.of(6, 0), nightRate.id())
+                )
         )
 
         CompositeFunctionCalculator parkingPricing = new CompositeFunctionCalculator(
-            "parking-hourly-rate",
-            timeRanges,
-            repository
+                "parking-hourly-rate",
+                timeRanges,
+                repository
         )
 
         when: "calculating at 15:00 (day) and 23:00 (night)"
@@ -57,12 +47,11 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         Money nightPrice = parkingPricing.calculate(nightParams)
 
         then:
-        new BigDecimal("5.00").compareTo(dayPrice.value()) == 0
-        new BigDecimal("2.00").compareTo(nightPrice.value()) == 0
+        new BigDecimal("5.00") == dayPrice.value()
+        new BigDecimal("2.00") == nightPrice.value()
     }
 
     def "volume discounts are applied by quantity"() {
-
         given: "10 PLN for 1-9 units, 8 PLN for 10-49, 6 PLN for 50-999"
         SimpleFixedCalculator smallOrder = new SimpleFixedCalculator("price-small", Money.of(10.00, "PLN"))
         SimpleFixedCalculator mediumOrder = new SimpleFixedCalculator("price-medium", Money.of(8.00, "PLN"))
@@ -73,18 +62,18 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         repository.save(largeOrder)
 
         Ranges quantityRanges = new Ranges(
-            "quantity",
-            List.of(
-                CalculatorRange.numeric(new BigDecimal("1"), new BigDecimal("10"), smallOrder.id()),
-                CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), mediumOrder.id()),
-                CalculatorRange.numeric(new BigDecimal("50"), new BigDecimal("1000"), largeOrder.id())
-            )
+                "quantity",
+                List.of(
+                        CalculatorRange.numeric(new BigDecimal("1"), new BigDecimal("10"), smallOrder.id()),
+                        CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), mediumOrder.id()),
+                        CalculatorRange.numeric(new BigDecimal("50"), new BigDecimal("1000"), largeOrder.id())
+                )
         )
 
         CompositeFunctionCalculator volumePricing = new CompositeFunctionCalculator(
-            "volume-discount",
-            quantityRanges,
-            repository
+                "volume-discount",
+                quantityRanges,
+                repository
         )
 
         when: "calculating for quantities 5, 25, and 100"
@@ -93,13 +82,12 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         Money largePrice = volumePricing.calculate(new Parameters(Map.of("quantity", new BigDecimal("100"))))
 
         then:
-        new BigDecimal("10.00").compareTo(smallPrice.value()) == 0
-        new BigDecimal("8.00").compareTo(mediumPrice.value()) == 0
-        new BigDecimal("6.00").compareTo(largePrice.value()) == 0
+        new BigDecimal("10.00") == smallPrice.value()
+        new BigDecimal("8.00") == mediumPrice.value()
+        new BigDecimal("6.00") == largePrice.value()
     }
 
     def "shipping cost is determined by package weight"() {
-
         given: "four weight tiers: tiny (<1 kg), small (1-5 kg), medium (5-10 kg), large (10-20 kg)"
         SimpleFixedCalculator tinyPackage = new SimpleFixedCalculator("shipping-tiny", Money.of(12.00, "PLN"))
         SimpleFixedCalculator smallPackage = new SimpleFixedCalculator("shipping-small", Money.of(18.00, "PLN"))
@@ -112,19 +100,19 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         repository.save(largePackage)
 
         Ranges weightRanges = new Ranges(
-            "weight",
-            List.of(
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("1"), tinyPackage.id()),
-                CalculatorRange.numeric(new BigDecimal("1"), new BigDecimal("5"), smallPackage.id()),
-                CalculatorRange.numeric(new BigDecimal("5"), new BigDecimal("10"), mediumPackage.id()),
-                CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("20"), largePackage.id())
-            )
+                "weight",
+                List.of(
+                        CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("1"), tinyPackage.id()),
+                        CalculatorRange.numeric(new BigDecimal("1"), new BigDecimal("5"), smallPackage.id()),
+                        CalculatorRange.numeric(new BigDecimal("5"), new BigDecimal("10"), mediumPackage.id()),
+                        CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("20"), largePackage.id())
+                )
         )
 
         CompositeFunctionCalculator shippingPricing = new CompositeFunctionCalculator(
-            "shipping-by-weight",
-            weightRanges,
-            repository
+                "shipping-by-weight",
+                weightRanges,
+                repository
         )
 
         when: "calculating for 0.5 kg, 3.5 kg, and 15 kg"
@@ -133,13 +121,12 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         Money largePrice = shippingPricing.calculate(new Parameters(Map.of("weight", new BigDecimal("15"))))
 
         then:
-        new BigDecimal("12.00").compareTo(tinyPrice.value()) == 0
-        new BigDecimal("18.00").compareTo(smallPrice.value()) == 0
-        new BigDecimal("45.00").compareTo(largePrice.value()) == 0
+        new BigDecimal("12.00") == tinyPrice.value()
+        new BigDecimal("18.00") == smallPrice.value()
+        new BigDecimal("45.00") == largePrice.value()
     }
 
     def "bar pricing applies a happy-hour discount in the early evening"() {
-
         given: "regular price of 25 PLN, happy-hour price of 15 PLN between 17:00 and 19:00"
         SimpleFixedCalculator regularPrice = new SimpleFixedCalculator("drink-regular", Money.of(25.00, "PLN"))
         SimpleFixedCalculator happyHourPrice = new SimpleFixedCalculator("drink-happy-hour", Money.of(15.00, "PLN"))
@@ -148,18 +135,18 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         repository.save(happyHourPrice)
 
         Ranges happyHourRanges = new Ranges(
-            "orderTime",
-            List.of(
-                CalculatorRange.time(LocalTime.of(0, 0), LocalTime.of(17, 0), regularPrice.id()),
-                CalculatorRange.time(LocalTime.of(17, 0), LocalTime.of(19, 0), happyHourPrice.id()),
-                CalculatorRange.time(LocalTime.of(19, 0), LocalTime.of(23, 59), regularPrice.id())
-            )
+                "orderTime",
+                List.of(
+                        CalculatorRange.time(LocalTime.of(0, 0), LocalTime.of(17, 0), regularPrice.id()),
+                        CalculatorRange.time(LocalTime.of(17, 0), LocalTime.of(19, 0), happyHourPrice.id()),
+                        CalculatorRange.time(LocalTime.of(19, 0), LocalTime.of(23, 59), regularPrice.id())
+                )
         )
 
         CompositeFunctionCalculator barPricing = new CompositeFunctionCalculator(
-            "bar-pricing",
-            happyHourRanges,
-            repository
+                "bar-pricing",
+                happyHourRanges,
+                repository
         )
 
         when: "calculating at 14:00, 18:00, and 21:00"
@@ -168,13 +155,12 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         Money eveningPrice = barPricing.calculate(new Parameters(Map.of("orderTime", LocalTime.of(21, 0))))
 
         then:
-        new BigDecimal("25.00").compareTo(afternoonPrice.value()) == 0
-        new BigDecimal("15.00").compareTo(happyPrice.value()) == 0
-        new BigDecimal("25.00").compareTo(eveningPrice.value()) == 0
+        new BigDecimal("25.00") == afternoonPrice.value()
+        new BigDecimal("15.00") == happyPrice.value()
+        new BigDecimal("25.00") == eveningPrice.value()
     }
 
     def "transfer fees are applied based on transfer amount"() {
-
         given: "free for amounts below 100 PLN, 2 PLN for 100-999 PLN, 5 PLN for 1000-9999 PLN"
         SimpleFixedCalculator freeTransfer = new SimpleFixedCalculator("transfer-free", Money.zero("PLN"))
         SimpleFixedCalculator smallFee = new SimpleFixedCalculator("transfer-small-fee", Money.of(2.00, "PLN"))
@@ -185,18 +171,18 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         repository.save(mediumFee)
 
         Ranges amountRanges = new Ranges(
-            "amount",
-            List.of(
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("100"), freeTransfer.id()),
-                CalculatorRange.numeric(new BigDecimal("100"), new BigDecimal("1000"), smallFee.id()),
-                CalculatorRange.numeric(new BigDecimal("1000"), new BigDecimal("10000"), mediumFee.id())
-            )
+                "amount",
+                List.of(
+                        CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("100"), freeTransfer.id()),
+                        CalculatorRange.numeric(new BigDecimal("100"), new BigDecimal("1000"), smallFee.id()),
+                        CalculatorRange.numeric(new BigDecimal("1000"), new BigDecimal("10000"), mediumFee.id())
+                )
         )
 
         CompositeFunctionCalculator transferFees = new CompositeFunctionCalculator(
-            "transfer-fees",
-            amountRanges,
-            repository
+                "transfer-fees",
+                amountRanges,
+                repository
         )
 
         when: "calculating for 50, 500, and 5000 PLN transfers"
@@ -205,8 +191,8 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         Money largeFeeAmount = transferFees.calculate(new Parameters(Map.of("amount", new BigDecimal("5000"))))
 
         then:
-        BigDecimal.ZERO.compareTo(smallFeeAmount.value()) == 0
-        new BigDecimal("2.00").compareTo(mediumFeeAmount.value()) == 0
-        new BigDecimal("5.00").compareTo(largeFeeAmount.value()) == 0
+        BigDecimal.ZERO == smallFeeAmount.value()
+        new BigDecimal("2.00") == mediumFeeAmount.value()
+        new BigDecimal("5.00") == largeFeeAmount.value()
     }
 }

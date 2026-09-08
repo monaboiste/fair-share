@@ -2,17 +2,20 @@ package com.softwarearchetypes.pricing;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.StringTokenizer;
+import org.jspecify.annotations.NonNull;
 
-public class Parameters {
-    private final Map<String, Object> values;
-
+public record Parameters(Map<String, Object> values) {
     public Parameters() {
-        this.values = new HashMap<>();
+        this(new HashMap<>());
     }
 
     public Parameters(Map<String, Object> values) {
@@ -56,32 +59,31 @@ public class Parameters {
 
     public BigDecimal getBigDecimal(String key) {
         Object value = values.get(key);
-        if (value instanceof BigDecimal) {
-            return (BigDecimal) value;
+        if (value instanceof BigDecimal bigDecimal) {
+            return bigDecimal;
         }
         if (value instanceof Number) {
             return new BigDecimal(value.toString());
         }
-        if (value instanceof String) {
-            return new BigDecimal((String) value);
+        if (value instanceof String text) {
+            return new BigDecimal(text);
         }
         throw new IllegalArgumentException("Cannot convert " + value + " to BigDecimal");
     }
 
     public Money getMoney(String key) {
         Object value = values.get(key);
-        if (value instanceof Money) {
-            return (Money) value;
+        if (value instanceof Money money) {
+            return money;
         }
-        if (value instanceof String) {
-            String str = (String) value;
-            String[] parts = str.trim().split("\\s+");
-            if (parts.length != 2) {
+        if (value instanceof String text) {
+            StringTokenizer parts = new StringTokenizer(text);
+            if (parts.countTokens() != 2) {
                 throw new IllegalArgumentException(
                         "Invalid Money format: " + value + ". Expected format: 'PLN 1999.00'");
             }
-            String currency = parts[0].toUpperCase();
-            BigDecimal amount = new BigDecimal(parts[1]);
+            String currency = parts.nextToken().toUpperCase(Locale.ROOT);
+            BigDecimal amount = new BigDecimal(parts.nextToken());
             return Money.of(amount, currency);
         }
         throw new IllegalArgumentException("Cannot convert " + value + " to Money");
@@ -89,44 +91,49 @@ public class Parameters {
 
     LocalDate getLocalDate(String key) {
         Object value = values.get(key);
-        if (value instanceof LocalDate) {
-            return (LocalDate) value;
+        if (value instanceof LocalDate date) {
+            return date;
         }
-        if (value instanceof String) {
-            return LocalDate.parse((String) value);
+        if (value instanceof String text) {
+            return LocalDate.parse(text);
         }
         throw new IllegalArgumentException("Cannot convert " + value + " to LocalDate");
     }
 
+    Instant getInstant(String key) {
+        Object value = values.get(key);
+        if (value instanceof Instant instant) {
+            return instant;
+        }
+        if (value instanceof String text) {
+            return Instant.parse(text);
+        }
+        throw new IllegalArgumentException("Cannot convert " + value + " to Instant");
+    }
+
     LocalDateTime getTime(String key) {
         Object value = values.get(key);
-        if (value instanceof LocalDateTime) {
-            return (LocalDateTime) value;
+        if (value instanceof LocalDateTime date) {
+            return date;
         }
-        if (value instanceof String) {
-            return LocalDateTime.parse((String) value);
+        if (value instanceof String text) {
+            return LocalDateTime.parse(text);
         }
         throw new IllegalArgumentException("Cannot convert " + value + " to LocalDateTime");
     }
 
-    /**
-     * Returns the timestamp parameter for versioned component calculations. Used to determine which version of a
-     * component to use.
-     *
-     * @return Optional containing timestamp if present, empty otherwise
-     */
-    public java.util.Optional<LocalDateTime> timestamp() {
+    /** Returns the calculation timestamp, if present. */
+    public Optional<LocalDateTime> timestamp() {
         if (contains("timestamp")) {
-            return java.util.Optional.of(getTime("timestamp"));
+            return Optional.of(getTime("timestamp"));
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 
     /**
-     * Returns the timestamp parameter, or throws if not present. Use for strict validation when timestamp is mandatory.
+     * Returns the required calculation timestamp.
      *
-     * @return timestamp for version lookup
-     * @throws IllegalArgumentException if timestamp not present
+     * @throws IllegalArgumentException when the timestamp is absent.
      */
     public LocalDateTime requireTimestamp() {
         return timestamp()
@@ -147,29 +154,23 @@ public class Parameters {
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         return "Parameters" + values;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Parameters that = (Parameters) o;
-        return values.equals(that.values);
-    }
-
-    @Override
-    public int hashCode() {
-        return values.hashCode();
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Parameters(var thatValues))) {
+            return false;
+        }
+        return values.equals(thatValues);
     }
 
     public Set<String> keys() {
         return values.keySet();
-    }
-
-    public Map<String, Object> getValues() {
-        return values;
     }
 
     public void setValues(Map<String, Object> values) {
@@ -177,14 +178,7 @@ public class Parameters {
         this.values.putAll(values);
     }
 
-    /**
-     * Returns a new Parameters instance with an additional key-value pair. Does not modify this instance (immutable
-     * style).
-     *
-     * @param key parameter name
-     * @param value parameter value
-     * @return new Parameters with the added entry
-     */
+    /** Returns a copy containing the given parameter. */
     public Parameters with(String key, Object value) {
         Map<String, Object> newValues = new HashMap<>(this.values);
         newValues.put(key, value);

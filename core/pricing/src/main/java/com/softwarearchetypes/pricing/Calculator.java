@@ -1,15 +1,14 @@
 package com.softwarearchetypes.pricing;
 
 import static com.softwarearchetypes.pricing.CalculatorType.COMPOSITE;
-import static java.math.BigDecimal.valueOf;
 import static java.time.temporal.ChronoUnit.DAYS;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -108,7 +107,7 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
         Money base = (Money) parameters.get("base");
         ChronoUnit unit = (ChronoUnit) parameters.get("unit");
 
-        BigDecimal rate = annualRate.divide(valueOf(100), SCALE, RoundingMode.HALF_UP);
+        BigDecimal rate = annualRate.divide(BigDecimal.valueOf(100), SCALE, RoundingMode.HALF_UP);
         BigDecimal unitRate = rate.divide(unitsPerYear(unit), SCALE, RoundingMode.HALF_UP);
 
         return base.multiply(unitRate);
@@ -121,7 +120,8 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
 
     @Override
     public String formula() {
-        return "f(base, unit) = base × (rate/100) × (1/unitsPerYear(unit))%nwhere rate = %s%%".formatted(annualRate);
+        return ("f(base, unit) = base × (rate/100) × (1/unitsPerYear(unit))%n" + "where rate = %s%%")
+                .formatted(annualRate);
     }
 
     @Override
@@ -141,10 +141,10 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
 
     private BigDecimal unitsPerYear(ChronoUnit unit) {
         return switch (unit) {
-            case DAYS -> valueOf(365);
-            case WEEKS -> valueOf(52);
-            case MONTHS -> valueOf(12);
-            case YEARS -> valueOf(1);
+            case DAYS -> BigDecimal.valueOf(365);
+            case WEEKS -> BigDecimal.valueOf(52);
+            case MONTHS -> BigDecimal.valueOf(12);
+            case YEARS -> BigDecimal.valueOf(1);
             default -> throw new IllegalArgumentException("Unsupported unit for annual calculation: " + unit);
         };
     }
@@ -225,7 +225,7 @@ record StepFunctionCalculator(
 
     @Override
     public String formula() {
-        return "f(quantity) = basePrice + ⌊quantity/%s⌋ × %s%nwhere basePrice = %s"
+        return ("f(quantity) = basePrice + ⌊quantity/%s⌋ × %s%n" + "where basePrice = %s")
                 .formatted(
                         stepSize.stripTrailingZeros().toPlainString(),
                         stepIncrement.stripTrailingZeros().toPlainString(),
@@ -312,9 +312,9 @@ record DiscretePointsCalculator(
 }
 
 /**
- * Daily increment calculator - price grows by fixed amount each day (discrete). Example: Pre-sale pricing that
- * increases by 100 PLN per day over 14 days - Day 0 (start): 1999 PLN - Day 1: 2099 PLN - Day 7: 2699 PLN - Day 14:
- * 3399 PLN NOTE: Operates on full days - same price throughout each day (discrete, not continuous).
+ * Calculates a price that increases by a fixed amount for each full day after the start date.
+ *
+ * <p>The price is constant throughout each day.
  */
 record DailyIncrementCalculator(
         CalculatorId id,
@@ -360,7 +360,8 @@ record DailyIncrementCalculator(
 
     @Override
     public String formula() {
-        return "f(date) = startPrice + daysFromStart × dailyIncrement%nwhere:%n  startDate = %s%n  startPrice = %s%n  dailyIncrement = %s"
+        return ("f(date) = startPrice + daysFromStart × dailyIncrement%n"
+                        + "where:%n  startDate = %s%n  startPrice = %s%n  dailyIncrement = %s")
                 .formatted(startDate, startPrice, dailyIncrement);
     }
 
@@ -381,31 +382,30 @@ record DailyIncrementCalculator(
 }
 
 /**
- * Continuous linear time calculator - price changes continuously based on precise time. Uses linear interpolation
- * between start and end points. Example: Auction where price increases from 1999 PLN to 3399 PLN over 14 days - Day 0,
- * 00:00 → 1999.00 PLN - Day 0, 12:00 → 2049.00 PLN (interpolated) - Day 7, 00:00 → 2699.00 PLN - Day 7, 06:00 → 2724.00
- * PLN (interpolated) - Day 14, 00:00 → 3399.00 PLN NOTE: Continuous - price changes every second, not just daily.
+ * Calculates a price by linearly interpolating between two {@link Instant} endpoints.
+ *
+ * <p>The query time must be within the inclusive endpoint range.
  */
 record ContinuousLinearTimeCalculator(
         CalculatorId id,
         String name,
-        LocalDateTime startTime,
+        Instant startTime,
         Money startPrice,
-        LocalDateTime endTime,
+        Instant endTime,
         Money endPrice,
         Interpretation interpretation)
         implements Calculator {
 
     public ContinuousLinearTimeCalculator(
-            String name, LocalDateTime startTime, Money startPrice, LocalDateTime endTime, Money endPrice) {
+            String name, Instant startTime, Money startPrice, Instant endTime, Money endPrice) {
         this(CalculatorId.generate(), name, startTime, startPrice, endTime, endPrice, Interpretation.TOTAL);
     }
 
     public ContinuousLinearTimeCalculator(
             String name,
-            LocalDateTime startTime,
+            Instant startTime,
             Money startPrice,
-            LocalDateTime endTime,
+            Instant endTime,
             Money endPrice,
             Interpretation interpretation) {
         this(CalculatorId.generate(), name, startTime, startPrice, endTime, endPrice, interpretation);
@@ -418,7 +418,7 @@ record ContinuousLinearTimeCalculator(
                     .formatted(getType().requiredCalculationFields()));
         }
 
-        LocalDateTime queryTime = parameters.getTime("time");
+        Instant queryTime = parameters.getInstant("time");
 
         if (queryTime.isBefore(startTime)) {
             throw new IllegalArgumentException("Query time %s is before start time %s".formatted(queryTime, startTime));
@@ -426,9 +426,8 @@ record ContinuousLinearTimeCalculator(
         if (queryTime.isAfter(endTime)) {
             throw new IllegalArgumentException("Query time %s is after end time %s".formatted(queryTime, endTime));
         }
-
-        long totalSeconds = Duration.between(startTime, endTime).getSeconds();
-        long elapsedSeconds = Duration.between(startTime, queryTime).getSeconds();
+        long totalSeconds = Duration.between(startTime, endTime).toSeconds();
+        long elapsedSeconds = Duration.between(startTime, queryTime).toSeconds();
 
         BigDecimal progress =
                 BigDecimal.valueOf(elapsedSeconds).divide(BigDecimal.valueOf(totalSeconds), 10, RoundingMode.HALF_UP);
@@ -448,7 +447,9 @@ record ContinuousLinearTimeCalculator(
 
     @Override
     public String formula() {
-        return "f(t) = startPrice + progress × (endPrice - startPrice)%nwhere progress = (t - startTime) / (endTime - startTime)%ndomain: t ∈ [%s, %s]"
+        return ("f(t) = startPrice + progress × (endPrice - startPrice)%n"
+                        + "where progress = (t - startTime) / (endTime - startTime)%n"
+                        + "domain: t ∈ [%s, %s]")
                 .formatted(startTime, endTime);
     }
 
@@ -469,12 +470,9 @@ record ContinuousLinearTimeCalculator(
 }
 
 /**
- * Composite function calculator - delegates to different calculators based on parameter ranges. Supports different
- * parameter types: numeric (quantity, weight), time (LocalTime), date (LocalDate).
+ * Selects a calculator based on a numeric, time, or date range.
  *
- * <p>Examples: - Numeric ranges for quantity: [0, 10) → "small", [10, 50) → "medium", [50, ∞) → "large" - Time ranges
- * for pricing: [8:00, 18:00) → "day-rate", [18:00, 8:00) → "night-rate" - Date ranges for seasons: [2024-06-01,
- * 2024-09-01) → "summer", [2024-09-01, 2024-12-01) → "fall"
+ * <p>Each range delegates to one calculator registered in the repository.
  */
 record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, CalculatorRepository repository)
         implements Calculator {
@@ -569,7 +567,7 @@ record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, 
     }
 }
 
-/** Adapter: Unit Price → Total Price Formula: Total = UnitPrice × quantity */
+/** Converts a unit price to a total price by multiplying it by the quantity. */
 record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {
 
     public static UnitToTotalAdapter wrap(String name, Calculator sourceCalculator) {
@@ -614,8 +612,9 @@ record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalcula
 }
 
 /**
- * Adapter: Unit Price → Marginal Price Formula: Marginal(n) = Total(n) - Total(n-1) where Total(n) = UnitPrice(n) × n
- * NOTE: Works correctly for both constant and variable unit prices
+ * Converts a unit price to a marginal price using the difference between consecutive totals.
+ *
+ * <p>Works with both constant and variable unit prices.
  */
 record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {
 
@@ -643,7 +642,7 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
         Money unitPriceN = sourceCalculator.calculate(params);
         Money totalN = unitPriceN.multiply(quantity);
 
-        if (quantity.equals(BigDecimal.ONE)) {
+        if (quantity.compareTo(BigDecimal.ONE) == 0) {
             return totalN;
         }
 
@@ -676,7 +675,7 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 }
 
-/** Adapter: Total Price → Unit Price (Average) Formula: UnitPrice = Total / quantity */
+/** Converts a total price to an average unit price by dividing it by the quantity. */
 record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {
 
     public static TotalToUnitAdapter wrap(String name, Calculator sourceCalculator) {
@@ -720,10 +719,7 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 }
 
-/**
- * Adapter: Total Price → Marginal Price Formula: Marginal(n) = Total(n) - Total(n-1) NOTE: Requires calling
- * sourceCalculator TWICE (for n and n-1)
- */
+/** Converts a total price to a marginal price using the difference between consecutive totals. */
 record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {
 
     public static TotalToMarginalAdapter wrap(String name, Calculator sourceCalculator) {
@@ -749,7 +745,7 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
 
         Money totalN = sourceCalculator.calculate(params);
 
-        if (quantity.equals(BigDecimal.ONE)) {
+        if (quantity.compareTo(BigDecimal.ONE) == 0) {
             return totalN;
         }
 
@@ -781,10 +777,7 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 }
 
-/**
- * Adapter: Marginal Price → Total Price Formula: Total(q) = Σ[i=1→q] Marginal(i) NOTE: Requires q calls to
- * sourceCalculator - can be expensive!
- */
+/** Converts a marginal price to a total price by summing marginal prices from one through the quantity. */
 record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {
 
     public static MarginalToTotalAdapter wrap(String name, Calculator sourceCalculator) {
@@ -836,10 +829,7 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 }
 
-/**
- * Adapter: Marginal Price → Unit Price (Average) Formula: UnitPrice(q) = (Σ[i=1→q] Marginal(i)) / q Implementation:
- * Marginal → Total → Unit (two-step conversion)
- */
+/** Converts a marginal price to an average unit price by summing marginal prices and dividing by the quantity. */
 record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {
 
     public static MarginalToUnitAdapter wrap(String name, Calculator sourceCalculator) {
@@ -891,12 +881,7 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 }
 
-/**
- * Percentage Calculator - calculates percentage of a base amount. Requires "baseAmount" parameter (Money) and applies
- * the configured percentage rate.
- *
- * <p>Example: PercentageCalculator(10%) with baseAmount=100 PLN → 10 PLN
- */
+/** Calculates a configured percentage of the {@code baseAmount} parameter. */
 record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageRate) implements Calculator {
 
     public PercentageCalculator(String name, BigDecimal percentageRate) {

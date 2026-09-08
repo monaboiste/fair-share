@@ -6,19 +6,16 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Constraint evaluated against a {@link PricingContext} to decide whether a pricing component should contribute to the
- * price calculation.
+ * Determines whether a pricing component applies to a {@link PricingContext}.
  *
- * <p>Supports full logical composition:
+ * <p>Constraints support logical composition, for example:
  *
- * <pre>
- *   and(
- *       equalsTo("customerType", "B2C"),
- *       greaterThan("minutes", 10)
- *   )
- * </pre>
- *
- * <p>When a component's constraint is NOT satisfied, the component returns {@code Money.zero()}.
+ * <pre>{@code
+ * and(
+ *     equalsTo("customerType", "B2C"),
+ *     greaterThan("minutes", 10)
+ * )
+ * }</pre>
  *
  * @see SimpleComponentVersion#isApplicableFor(PricingContext)
  */

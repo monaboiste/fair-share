@@ -2,26 +2,17 @@ package com.softwarearchetypes.pricing;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.NonNull;
 
-/**
- * Represents an expression for computing a parameter value from component results. Allows algebraic operations on
- * component outputs.
- *
- * <p>Usage example: Map.of("baseAmount", SumOf("basePrice", "shipping"))
- */
+/** Computes a parameter value from component results. */
 public sealed interface ParameterValue permits ValueOf, SumOf, DifferenceOf, ProductOf {
 
-    /**
-     * Evaluate this expression given calculated component results.
-     *
-     * @param componentResults map of Components to their calculated Money values
-     * @return computed Money value
-     */
+    /** Returns this expression's value. */
     Money evaluate(Map<Component, Money> componentResults);
 }
 
-/** Reference to a single component's value. Example: ValueOf("basePrice") */
 record ValueOf(String componentName) implements ParameterValue {
 
     @Override
@@ -41,12 +32,19 @@ record ValueOf(String componentName) implements ParameterValue {
     }
 }
 
-/** Sum of multiple component values. Example: SumOf("basePrice", "shipping", "handling") */
-record SumOf(String... componentNames) implements ParameterValue {
+record SumOf(List<String> componentNames) implements ParameterValue {
+
+    SumOf(String... componentNames) {
+        this(List.of(componentNames));
+    }
+
+    SumOf {
+        componentNames = List.copyOf(componentNames);
+    }
 
     @Override
     public Money evaluate(Map<Component, Money> componentResults) {
-        if (componentNames.length == 0) {
+        if (componentNames.isEmpty()) {
             throw new IllegalArgumentException("SumOf requires at least one component name");
         }
 
@@ -68,9 +66,13 @@ record SumOf(String... componentNames) implements ParameterValue {
 
         return sum;
     }
+
+    @Override
+    @NonNull public String toString() {
+        return "SumOf{componentNames=%s}".formatted(componentNames);
+    }
 }
 
-/** Difference between two component values. Example: DifferenceOf("revenue", "costs") */
 record DifferenceOf(String minuendComponent, String subtrahendComponent) implements ParameterValue {
 
     @Override
@@ -102,7 +104,6 @@ record DifferenceOf(String minuendComponent, String subtrahendComponent) impleme
     }
 }
 
-/** Product of component value and a numeric factor. Example: ProductOf("basePrice", BigDecimal.valueOf(1.5)) */
 record ProductOf(String componentName, BigDecimal factor) implements ParameterValue {
 
     @Override

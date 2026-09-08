@@ -1,6 +1,7 @@
 package com.softwarearchetypes.pricing;
 
 import java.util.UUID;
+import org.jspecify.annotations.NonNull;
 
 public record CalculatorId(UUID id) {
 
@@ -9,7 +10,7 @@ public record CalculatorId(UUID id) {
     }
 
     @Override
-    public String toString() {
+    @NonNull public String toString() {
         return id.toString();
     }
 }

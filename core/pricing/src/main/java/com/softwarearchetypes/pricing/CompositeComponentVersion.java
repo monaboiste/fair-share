@@ -8,24 +8,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Version of a CompositeComponent - represents composition of children valid during a time period.
+ * Defines a composite component's children, dependencies, validity, and applicability.
  *
- * <p>Three orthogonal axes: - Children + Dependencies: which components and how they exchange values (composition) -
- * Validity: when this composition is active (time) - ApplicabilityConstraint: for whom / under what conditions
- * (business rules)
- *
- * <p>A version fires if and only if BOTH conditions hold:
- *
- * <pre>
- *   validity.isValidAt(context.timestamp())
- *       &amp;&amp; applicabilityConstraint.isSatisfiedBy(context)
- * </pre>
- *
- * Example - eMobility pricing changing over time: - Version 1 (Jan-Apr): children = [EnergyCharge, ParkingFee], valid
- * [2024-01-01, 2024-05-01) - Version 2 (May+): children = [EnergyCharge, ParkingFee, SeasonalSurcharge], valid
- * [2024-05-01, ∞)
- *
- * <p>Each child component maintains its own version history independently.
+ * <p>A version is selected only when both its validity period and applicability constraint match the pricing context.
+ * Each child component resolves its own version independently.
  */
 record CompositeComponentVersion(
         List<Component> children,
@@ -60,7 +46,7 @@ record CompositeComponentVersion(
         return validity.isValidAt(context.timestamp()) && applicabilityConstraint.isSatisfiedBy(context);
     }
 
-    /** Create version with explicit applicability constraint. */
+    /** Create a version with an explicit applicability constraint. */
     public static CompositeComponentVersion of(
             List<Component> children,
             Map<ComponentId, Map<String, ParameterValue>> dependencies,
@@ -71,7 +57,7 @@ record CompositeComponentVersion(
                 children, dependencies, applicabilityConstraint, validity, LocalDateTime.now(clock));
     }
 
-    /** Create version with clock - definedAt will be set to now(clock). */
+    /** Create a version with clock - definedAt will be set now(clock). */
     public static CompositeComponentVersion of(
             List<Component> children,
             Map<ComponentId, Map<String, ParameterValue>> dependencies,
@@ -81,13 +67,13 @@ record CompositeComponentVersion(
                 children, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, LocalDateTime.now(clock));
     }
 
-    /** Create version without dependencies (children are independent). */
+    /** Create a version without dependencies (children are independent). */
     public static CompositeComponentVersion of(List<Component> children, Validity validity, Clock clock) {
         return new CompositeComponentVersion(
                 children, Map.of(), ApplicabilityConstraint.alwaysTrue(), validity, LocalDateTime.now(clock));
     }
 
-    /** Create version without dependencies (children are independent). */
+    /** Create a version without dependencies (children are independent). */
     public static CompositeComponentVersion of(Validity validity, Clock clock, Component... children) {
         return new CompositeComponentVersion(
                 List.of(children), Map.of(), ApplicabilityConstraint.alwaysTrue(), validity, LocalDateTime.now(clock));

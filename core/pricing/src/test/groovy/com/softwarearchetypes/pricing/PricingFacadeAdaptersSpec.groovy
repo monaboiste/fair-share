@@ -3,7 +3,6 @@ package com.softwarearchetypes.pricing
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
@@ -17,7 +16,6 @@ class PricingFacadeAdaptersSpec extends Specification {
     private final PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
 
     def "calculateTotal returns directly when the calculator already returns total"() {
-
         given:
         facade.addCalculator(
                 "total-calc",
@@ -27,12 +25,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money total = facade.calculateTotal("total-calc", Parameters.empty())
 
         expect:
-
         total == Money.of(150, "PLN")
     }
 
     def "calculateTotal wraps a unit-price calculator"() {
-
         given:
         facade.addCalculator(
                 "unit-calc",
@@ -45,12 +41,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money total = facade.calculateTotal("unit-calc", Parameters.of("quantity", new BigDecimal("15")))
 
         expect:
-
         total == Money.of(150, "PLN")
     }
 
     def "calculateTotal wraps a marginal-price calculator"() {
-
         given:
         facade.addCalculator(
                 "marginal-calc",
@@ -63,12 +57,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money total = facade.calculateTotal("marginal-calc", Parameters.of("quantity", new BigDecimal("5")))
 
         expect:
-
         total == Money.of(50, "PLN")
     }
 
     def "calculateUnitPrice returns directly when the calculator already returns a unit price"() {
-
         given:
         facade.addCalculator(
                 "unit-calc",
@@ -81,12 +73,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money unit = facade.calculateUnitPrice("unit-calc", Parameters.empty())
 
         expect:
-
         unit == Money.of(10, "PLN")
     }
 
     def "calculateUnitPrice wraps a total-price calculator"() {
-
         given:
         facade.addCalculator(
                 "step-calc",
@@ -100,12 +90,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money unit = facade.calculateUnitPrice("step-calc", Parameters.of("quantity", new BigDecimal("15")))
 
         expect:
-
         unit == Money.of(7, "PLN")
     }
 
     def "calculateUnitPrice wraps a marginal-price calculator"() {
-
         given:
         facade.addCalculator(
                 "marginal-calc",
@@ -118,12 +106,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money unit = facade.calculateUnitPrice("marginal-calc", Parameters.of("quantity", new BigDecimal("5")))
 
         expect:
-
         unit == Money.of(10, "PLN")
     }
 
     def "calculateMarginal returns directly when the calculator already returns marginal"() {
-
         given:
         facade.addCalculator(
                 "marginal-calc",
@@ -136,12 +122,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money marginal = facade.calculateMarginal("marginal-calc", Parameters.empty())
 
         expect:
-
         marginal == Money.of(10, "PLN")
     }
 
     def "calculateMarginal wraps a unit-price calculator"() {
-
         given:
         facade.addCalculator(
                 "unit-calc",
@@ -154,12 +138,10 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money marginal = facade.calculateMarginal("unit-calc", Parameters.of("quantity", new BigDecimal("5")))
 
         expect:
-
         marginal == Money.of(10, "PLN")
     }
 
     def "calculateMarginal wraps a total-price calculator"() {
-
         given:
         facade.addCalculator(
                 "step-calc",
@@ -173,7 +155,6 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money marginal = facade.calculateMarginal("step-calc", Parameters.of("quantity", new BigDecimal("11")))
 
         expect:
-
         marginal == Money.of(5, "PLN")
     }
 
@@ -192,7 +173,6 @@ class PricingFacadeAdaptersSpec extends Specification {
     }
 
     def "auto-wrapping all three interpretations in a complex scenario"() {
-
         given:
         facade.addCalculator(
                 "bulk",
@@ -208,7 +188,6 @@ class PricingFacadeAdaptersSpec extends Specification {
         Money total = facade.calculateTotal("bulk", params)
 
         expect:
-
         total == Money.of(110, "PLN")
         Money unit = facade.calculateUnitPrice("bulk", params)
         unit == Money.of(new BigDecimal("4.40"), "PLN")

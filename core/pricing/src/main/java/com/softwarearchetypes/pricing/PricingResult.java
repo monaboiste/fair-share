@@ -4,12 +4,13 @@ import com.softwarearchetypes.quantity.Unit;
 import com.softwarearchetypes.quantity.money.Money;
 
 /**
- * Sealed interface representing different interpretations of pricing calculations.
+ * Represents a pricing result together with its semantic interpretation.
  *
- * <p>A pricing result carries both the monetary value AND its semantic meaning: - TotalPrice: whole cost for entire
- * quantity/period - UnitPrice: average price per single unit - MarginalPrice: price of the n-th specific unit
- *
- * <p>This design ensures type safety and makes the meaning of calculated prices explicit.
+ * <ul>
+ *   <li>total price for the whole quantity or period;
+ *   <li>average unit price; or
+ *   <li>marginal price for a specific unit.
+ * </ul>
  */
 public sealed interface PricingResult permits TotalPrice, UnitPrice, MarginalPrice {
 
@@ -20,14 +21,7 @@ public sealed interface PricingResult permits TotalPrice, UnitPrice, MarginalPri
     String describe();
 }
 
-/**
- * Represents the total price for entire quantity or period.
- *
- * <p>Example: "For 15 items, you pay PLN 150"
- *
- * <p>This is the most common pricing result - used for invoices, shopping carts, and any situation where you need to
- * know the complete cost.
- */
+/** Represents the total price for the entire quantity or period. */
 record TotalPrice(Money amount) implements PricingResult {
 
     @Override
@@ -41,14 +35,7 @@ record TotalPrice(Money amount) implements PricingResult {
     }
 }
 
-/**
- * Represents the average price per single unit.
- *
- * <p>Example: "At quantity 15, average price is PLN 10/kg"
- *
- * <p>Used for comparing prices, displaying unit prices in stores (PLN/kg), and analyzing unit costs. This is the
- * AVERAGE price, not the price of each individual unit.
- */
+/** Represents the average price per unit. */
 record UnitPrice(Money amountPerUnit, Unit unit) implements PricingResult {
 
     @Override
@@ -62,14 +49,7 @@ record UnitPrice(Money amountPerUnit, Unit unit) implements PricingResult {
     }
 }
 
-/**
- * Represents the price of the n-th specific unit.
- *
- * <p>Example: "The 15th kilogram costs PLN 8"
- *
- * <p>Used for marginal analysis - "does it pay off to buy one more unit?" Helps optimize orders and analyze marginal
- * costs.
- */
+/** Represents the price of a specific unit at the margin. */
 record MarginalPrice(Money amount, int unitIndex, Unit unit) implements PricingResult {
 
     @Override

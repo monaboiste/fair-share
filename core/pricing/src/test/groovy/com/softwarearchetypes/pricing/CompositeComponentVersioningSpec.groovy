@@ -6,7 +6,6 @@ import static java.time.LocalDateTime.now
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import java.time.LocalDateTime
-import java.util.List
 import spock.lang.Specification
 
 class CompositeComponentVersioningSpec extends Specification {
@@ -14,7 +13,6 @@ class CompositeComponentVersioningSpec extends Specification {
     Clock clock = someFixedClock()
 
     def "composite is created with an initial version"() {
-
         given:
         Component basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
@@ -38,14 +36,12 @@ class CompositeComponentVersioningSpec extends Specification {
         )
 
         expect:
-
         total.name() == "Total Price"
         Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
         total.calculate(params) == Money.of(123, "PLN")
     }
 
     def "composition of children changes over time"() {
-
         given:
         Component basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
@@ -77,7 +73,7 @@ class CompositeComponentVersioningSpec extends Specification {
 
         CompositeComponentVersion newVersion = new CompositeComponentVersion(
                 List.of(basePrice, tax, surcharge),
-                java.util.Map.of(),
+                Map.of(),
                 Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)),
                 now(clock).plusMinutes(10)
         )
@@ -87,7 +83,6 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0))
 
         expect:
-
         total.calculate(april) == Money.of(123, "PLN")
 
         Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
@@ -95,7 +90,6 @@ class CompositeComponentVersioningSpec extends Specification {
     }
 
     def "versioned children are resolved independently at each point in time"() {
-
         given:
         Calculator baseCalc = new SimpleFixedCalculator("base", Money.of(100, "PLN"))
         SimpleComponent basePrice = SimpleComponent.withInitialVersion(
@@ -107,7 +101,7 @@ class CompositeComponentVersioningSpec extends Specification {
         Calculator discountCalc = new SimpleFixedCalculator("discount", Money.of(80, "PLN"))
         SimpleComponentVersion discountVersion = new SimpleComponentVersion(
                 discountCalc,
-                java.util.Map.of(),
+                Map.of(),
                 Validity.between(
                         LocalDateTime.of(2024, 2, 1, 0, 0),
                         LocalDateTime.of(2024, 3, 1, 0, 0)
@@ -135,7 +129,6 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
 
         expect:
-
         total.calculate(jan15) == Money.of(123, "PLN")
 
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
@@ -146,7 +139,6 @@ class CompositeComponentVersioningSpec extends Specification {
     }
 
     def "a child can be removed from the composition in a new version"() {
-
         given:
         Component basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
@@ -177,7 +169,7 @@ class CompositeComponentVersioningSpec extends Specification {
         and:
         CompositeComponentVersion withoutSurcharge = new CompositeComponentVersion(
                 List.of(basePrice, tax),
-                java.util.Map.of(),
+                Map.of(),
                 Validity.from(LocalDateTime.of(2024, 3, 1, 0, 0)),
                 now(clock).plusMinutes(10)
         )
@@ -187,7 +179,6 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters feb = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
 
         expect:
-
         total.calculate(feb) == Money.of(133, "PLN")
 
         Parameters mar = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
@@ -195,7 +186,6 @@ class CompositeComponentVersioningSpec extends Specification {
     }
 
     def "a child can be replaced in the composition in a new version"() {
-
         given:
         Component basePriceV1 = SimpleComponent.withInitialVersion(
                 "Base Price V1",
@@ -227,7 +217,7 @@ class CompositeComponentVersioningSpec extends Specification {
 
         CompositeComponentVersion newVersion = new CompositeComponentVersion(
                 List.of(basePriceV2, tax),
-                java.util.Map.of(),
+                Map.of(),
                 Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)),
                 now(clock).plusMinutes(10)
         )
@@ -237,7 +227,6 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0))
 
         expect:
-
         total.calculate(april) == Money.of(123, "PLN")
 
         Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
@@ -245,7 +234,6 @@ class CompositeComponentVersioningSpec extends Specification {
     }
 
     def "when multiple versions overlap the youngest version wins"() {
-
         given:
         Component child = SimpleComponent.withInitialVersion(
                 "Child",
@@ -270,7 +258,7 @@ class CompositeComponentVersioningSpec extends Specification {
         )
         CompositeComponentVersion version2 = new CompositeComponentVersion(
                 List.of(child2),
-                java.util.Map.of(),
+                Map.of(),
                 Validity.from(LocalDateTime.of(2024, 2, 1, 0, 0)),
                 now(clock).plusMinutes(5)
         )
@@ -284,7 +272,7 @@ class CompositeComponentVersioningSpec extends Specification {
         )
         CompositeComponentVersion version3 = new CompositeComponentVersion(
                 List.of(child3),
-                java.util.Map.of(),
+                Map.of(),
                 Validity.from(LocalDateTime.of(2024, 2, 10, 0, 0)),
                 now(clock).plusMinutes(10)
         )
@@ -294,7 +282,6 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
 
         expect:
-
         composite.calculate(feb15) == Money.of(300, "PLN")
     }
 }

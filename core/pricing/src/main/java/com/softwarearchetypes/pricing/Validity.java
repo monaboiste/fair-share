@@ -3,16 +3,13 @@ package com.softwarearchetypes.pricing;
 import java.time.LocalDateTime;
 
 /**
- * Represents a validity period for pricing components. validFrom is inclusive, validTo is exclusive [validFrom,
- * validTo)
+ * Represents a pricing validity period with an inclusive start and exclusive end.
  *
- * <p>Examples: - Permanent price: Validity.from(2024-01-01) → valid from Jan 1 forever - Temporary discount:
- * Validity.between(2024-02-01, 2024-03-01) → valid only in February - When periods overlap, the version with the latest
- * validFrom takes precedence
+ * <p>When periods overlap, the version with the latest {@code validFrom} takes precedence.
  */
 public record Validity(LocalDateTime validFrom, LocalDateTime validTo) {
 
-    public static final Validity ALWAYS = new Validity(LocalDateTime.MIN, LocalDateTime.MAX);
+    public static final Validity ALWAYS_VALID = new Validity(LocalDateTime.MIN, LocalDateTime.MAX);
 
     public static Validity until(LocalDateTime validTo) {
         return new Validity(LocalDateTime.MIN, validTo);
@@ -24,7 +21,7 @@ public record Validity(LocalDateTime validFrom, LocalDateTime validTo) {
 
     public static Validity between(LocalDateTime validFrom, LocalDateTime validTo) {
         if (validFrom == null && validTo == null) {
-            return ALWAYS;
+            return ALWAYS_VALID;
         }
         if (validFrom == null) {
             return until(validTo);
@@ -40,7 +37,7 @@ public record Validity(LocalDateTime validFrom, LocalDateTime validTo) {
     }
 
     public static Validity always() {
-        return ALWAYS;
+        return ALWAYS_VALID;
     }
 
     public boolean isValidAt(LocalDateTime pointInTime) {

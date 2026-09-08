@@ -1,15 +1,11 @@
 package com.softwarearchetypes.pricing
 
 import com.softwarearchetypes.quantity.money.Money
-import java.math.BigDecimal
-import java.util.HashMap
-import java.util.Map
 import spock.lang.Specification
 
 class DiscretePointsCalculatorSpec extends Specification {
 
     def "price is returned for a defined quantity"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -23,12 +19,10 @@ class DiscretePointsCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
 
         expect:
-
-        new BigDecimal("180.00").compareTo(result.value()) == 0
+        new BigDecimal("180.00") == result.value()
     }
 
     def "correct price is returned for every defined point"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -41,18 +35,16 @@ class DiscretePointsCalculatorSpec extends Specification {
         Money result5 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("5"))))
 
         expect:
-
-        new BigDecimal("100.00").compareTo(result5.value()) == 0
+        new BigDecimal("100.00") == result5.value()
 
         Money result10 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("10"))))
-        new BigDecimal("180.00").compareTo(result10.value()) == 0
+        new BigDecimal("180.00") == result10.value()
 
         Money result20 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("20"))))
-        new BigDecimal("350.00").compareTo(result20.value()) == 0
+        new BigDecimal("350.00") == result20.value()
     }
 
     def "undefined quantity raises an exception"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -72,7 +64,6 @@ class DiscretePointsCalculatorSpec extends Specification {
     }
 
     def "quantity outside all defined points raises an exception"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -89,7 +80,6 @@ class DiscretePointsCalculatorSpec extends Specification {
     }
 
     def "missing quantity parameter raises an exception"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -105,7 +95,6 @@ class DiscretePointsCalculatorSpec extends Specification {
     }
 
     def "calculator type is discrete points"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -113,12 +102,10 @@ class DiscretePointsCalculatorSpec extends Specification {
         DiscretePointsCalculator calculator = new DiscretePointsCalculator("Volume Discount", points)
 
         expect:
-
         calculator.getType() == CalculatorType.DISCRETE_POINTS
     }
 
     def "description includes the number of defined points"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -130,14 +117,12 @@ class DiscretePointsCalculatorSpec extends Specification {
         String description = calculator.describe()
 
         expect:
-
         description != null
         description.contains("2")
         description.toLowerCase().contains("discrete")
     }
 
     def "single-point table returns that price"() {
-
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("1"), Money.of(50, "PLN"))
@@ -149,7 +134,6 @@ class DiscretePointsCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
 
         expect:
-
-        new BigDecimal("50.00").compareTo(result.value()) == 0
+        new BigDecimal("50.00") == result.value()
     }
 }
