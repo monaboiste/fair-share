@@ -22,7 +22,7 @@ public class PricingConfiguration {
     }
 
     public static PricingConfiguration inMemory(Clock clock) {
-        InMemoryCalculatorsRepository repository = new InMemoryCalculatorsRepository();
+        InMemoryCalculatorRepository repository = new InMemoryCalculatorRepository();
         PricingFacade facade = new PricingFacade(repository, new InMemoryComponentRepository(), clock);
         facade.addCalculator(
                 "simple-fixed-20",
@@ -52,7 +52,7 @@ interface CalculatorRepository {
     Collection<Calculator> findByIds(Collection<CalculatorId> ids);
 }
 
-class InMemoryCalculatorsRepository implements CalculatorRepository {
+class InMemoryCalculatorRepository implements CalculatorRepository {
 
     private final Set<Calculator> calculators = new HashSet<>();
 

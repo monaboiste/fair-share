@@ -8,7 +8,7 @@ class CompositeCalculatorSpec extends Specification {
     private CalculatorRepository repository
 
     def setup() {
-        repository = new InMemoryCalculatorsRepository()
+        repository = new InMemoryCalculatorRepository()
         repository.save(new SimpleFixedCalculator("fixed-100", Money.of(100, "PLN")))
 
         repository.save(new StepFunctionCalculator(

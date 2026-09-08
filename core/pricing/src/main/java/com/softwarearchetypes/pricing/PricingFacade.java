@@ -119,7 +119,7 @@ public class PricingFacade {
         return Arrays.asList(CalculatorType.values());
     }
 
-    SimpleComponent createSimpleComponent(String componentName, String calculatorName) {
+    public Component createSimpleComponent(String componentName, String calculatorName) {
         return createSimpleComponent(
                 componentName,
                 calculatorName,
@@ -128,7 +128,7 @@ public class PricingFacade {
                 Validity.from(now(clock)));
     }
 
-    SimpleComponent createSimpleComponent(
+    public Component createSimpleComponent(
             String componentName, String calculatorName, Map<String, String> parameterMappings) {
         return createSimpleComponent(
                 componentName,
@@ -138,19 +138,19 @@ public class PricingFacade {
                 Validity.from(now(clock)));
     }
 
-    SimpleComponent createSimpleComponent(
+    public Component createSimpleComponent(
             String componentName, String calculatorName, Map<String, String> parameterMappings, Validity validity) {
         return createSimpleComponent(
                 componentName, calculatorName, parameterMappings, ApplicabilityConstraint.alwaysTrue(), validity);
     }
 
-    SimpleComponent createSimpleComponent(
+    public Component createSimpleComponent(
             String componentName, String calculatorName, ApplicabilityConstraint applicabilityConstraint) {
         return createSimpleComponent(
                 componentName, calculatorName, Map.of(), applicabilityConstraint, Validity.from(now(clock)));
     }
 
-    SimpleComponent createSimpleComponent(
+    public Component createSimpleComponent(
             String componentName,
             String calculatorName,
             Map<String, String> parameterMappings,
@@ -159,7 +159,7 @@ public class PricingFacade {
                 componentName, calculatorName, parameterMappings, applicabilityConstraint, Validity.from(now(clock)));
     }
 
-    SimpleComponent createSimpleComponent(
+    public Component createSimpleComponent(
             String componentName,
             String calculatorName,
             Map<String, String> parameterMappings,
@@ -190,11 +190,11 @@ public class PricingFacade {
                 });
     }
 
-    CompositeComponent createCompositeComponent(String compositeName, String... childComponentNames) {
+    public Component createCompositeComponent(String compositeName, String... childComponentNames) {
         return createCompositeComponent(compositeName, Map.of(), childComponentNames);
     }
 
-    CompositeComponent createCompositeComponent(
+    public Component createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             String... childComponentNames) {
@@ -206,7 +206,7 @@ public class PricingFacade {
                 childComponentNames);
     }
 
-    CompositeComponent createCompositeComponent(
+    public Component createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             Validity validity,
@@ -215,7 +215,7 @@ public class PricingFacade {
                 compositeName, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, childComponentNames);
     }
 
-    CompositeComponent createCompositeComponent(
+    public Component createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
@@ -224,7 +224,7 @@ public class PricingFacade {
                 compositeName, dependencies, applicabilityConstraint, Validity.from(now(clock)), childComponentNames);
     }
 
-    CompositeComponent createCompositeComponent(
+    public Component createCompositeComponent(
             String compositeName,
             Map<String, Map<String, ParameterValue>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,

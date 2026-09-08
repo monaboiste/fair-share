@@ -6,10 +6,10 @@ import spock.lang.Specification
 
 class CompositeFunctionCalculatorScenarioSpec extends Specification {
 
-    private InMemoryCalculatorsRepository repository
+    private InMemoryCalculatorRepository repository
 
     def setup() {
-        repository = new InMemoryCalculatorsRepository()
+        repository = new InMemoryCalculatorRepository()
     }
 
     def "parking price depends on time of day"() {

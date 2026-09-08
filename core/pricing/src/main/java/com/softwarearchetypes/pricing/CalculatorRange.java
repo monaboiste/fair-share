@@ -6,7 +6,7 @@ import java.time.LocalTime;
 import org.jspecify.annotations.NonNull;
 
 /** Maps values in an interval to a calculator. Numeric, time, and date ranges are supported. */
-interface CalculatorRange {
+public interface CalculatorRange {
 
     /**
      * Returns whether this range supports the given value type.
@@ -51,15 +51,15 @@ interface CalculatorRange {
      */
     String describe();
 
-    static NumericRange numeric(BigDecimal min, BigDecimal max, CalculatorId calculatorId) {
+    static CalculatorRange numeric(BigDecimal min, BigDecimal max, CalculatorId calculatorId) {
         return new NumericRange(min, max, calculatorId);
     }
 
-    static TimeRange time(LocalTime from, LocalTime to, CalculatorId calculatorId) {
+    static CalculatorRange time(LocalTime from, LocalTime to, CalculatorId calculatorId) {
         return new TimeRange(from, to, calculatorId);
     }
 
-    static DateRange date(LocalDate from, LocalDate to, CalculatorId calculatorId) {
+    static CalculatorRange date(LocalDate from, LocalDate to, CalculatorId calculatorId) {
         return new DateRange(from, to, calculatorId);
     }
 }
