@@ -1,5 +1,14 @@
 package com.softwarearchetypes.pricing
 
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Interpretation
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingConfiguration
+import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.SumOf
+import com.softwarearchetypes.pricing.Validity
+import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
 import java.time.Clock
@@ -10,8 +19,7 @@ import java.util.Map
 import spock.lang.Specification
 
 
-
-class EMobilityTemporalPricingSpec extends Specification {
+class EMobilityTemporalPricingScenarioSpec extends Specification {
 
     private Clock fixedClock
     private PricingFacade facade
@@ -79,7 +87,7 @@ class EMobilityTemporalPricingSpec extends Specification {
                 "EnergyCharge", "VAT"
         )
     }
-    def "shouldCalculatePriceInJanuary BasePrice"() {
+    def "price in January uses the base rate of 2.50 PLN per kWh"() {
         given:
         Parameters jan15 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 1, 15, 10, 30),
@@ -92,15 +100,9 @@ class EMobilityTemporalPricingSpec extends Specification {
         assert breakdown.children().size() == 2
         assert breakdown.children().get(0).name() == "EnergyCharge"
         assert breakdown.children().get(0).total() == Money.of(50.00, "PLN")
-
-        System.out.println("=== STYCZEŃ 2024 - Cennik bazowy ===")
-        System.out.println("Energia: 20 kWh × 2.50 PLN = " + breakdown.children().get(0).total())
-        System.out.println("VAT 23%: " + breakdown.children().get(1).total())
-        System.out.println("RAZEM: " + breakdown.total())
-        System.out.println()
     }
-    def "shouldApplyValentinePromotion February"() {
-        given:
+    def "Valentine promotion in February reduces the energy rate to 2.00 PLN per kWh"() {
+        given: "a temporary discount valid only in February"
         facade.createSimpleComponent(
                 "EnergyCharge",
                 "energy-2.00",
@@ -120,15 +122,9 @@ class EMobilityTemporalPricingSpec extends Specification {
         and:
         assert breakdown.total() == Money.of(49.20, "PLN")
         assert breakdown.children().get(0).total() == Money.of(40.00, "PLN")
-
-        System.out.println("=== LUTY 2024 - Walentynkowa promocja ===")
-        System.out.println("Energia: 20 kWh × 2.00 PLN = " + breakdown.children().get(0).total() + " ← PROMOCJA!")
-        System.out.println("VAT 23%: " + breakdown.children().get(1).total())
-        System.out.println("RAZEM: " + breakdown.total() + " (-12.30 PLN taniej!)")
-        System.out.println()
     }
-    def "shouldRevertToBasePriceAfterPromotion March"() {
-        given:
+    def "price in March reverts to the base rate after the promotion ends"() {
+        given: "the February promotion registered alongside the base rate"
         facade.createSimpleComponent(
                 "EnergyCharge",
                 "energy-2.00",
@@ -148,15 +144,9 @@ class EMobilityTemporalPricingSpec extends Specification {
         and:
         assert breakdown.total() == Money.of(61.50, "PLN")
         assert breakdown.children().get(0).total() == Money.of(50.00, "PLN")
-
-        System.out.println("=== MARZEC 2024 - Powrót do cennika bazowego ===")
-        System.out.println("Energia: 20 kWh × 2.50 PLN = " + breakdown.children().get(0).total() + " ← automatyczny powrót")
-        System.out.println("VAT 23%: " + breakdown.children().get(1).total())
-        System.out.println("RAZEM: " + breakdown.total())
-        System.out.println()
     }
-    def "shouldAddParkingFeeInMay CompositeVersionUpdate"() {
-        given:
+    def "parking fee is added to the composite in May"() {
+        given: "a new composite version that includes ParkingFee from May onwards"
         facade.createCompositeComponent(
                 "TotalPrice",
                 Map.of("VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee"))),
@@ -176,16 +166,9 @@ class EMobilityTemporalPricingSpec extends Specification {
         assert breakdown.children().get(0).name() == "EnergyCharge"
         assert breakdown.children().get(1).name() == "ParkingFee"
         assert breakdown.children().get(2).name() == "VAT"
-
-        System.out.println("=== MAJ 2024 - Dodanie parkingu ===")
-        System.out.println("Energia: " + breakdown.children().get(0).total())
-        System.out.println("Parking: " + breakdown.children().get(1).total() + " ← NOWY SKŁADNIK")
-        System.out.println("VAT: " + breakdown.children().get(2).total())
-        System.out.println("RAZEM: " + breakdown.total())
-        System.out.println()
     }
-    def "shouldIncreasePriceInSummer July"() {
-        given:
+    def "summer energy rate increase is applied in July"() {
+        given: "composite updated for May, and energy raised to 2.80 PLN for July-August"
         facade.createCompositeComponent(
                 "TotalPrice",
                 Map.of("VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee"))),
@@ -211,16 +194,9 @@ class EMobilityTemporalPricingSpec extends Specification {
         and:
         assert breakdown.total() == Money.of(75.03, "PLN")
         assert breakdown.children().get(0).total() == Money.of(56.00, "PLN")
-
-        System.out.println("=== LIPIEC 2024 - Letnia podwyżka ===")
-        System.out.println("Energia: " + breakdown.children().get(0).total() + " ← podwyżka")
-        System.out.println("Parking: " + breakdown.children().get(1).total())
-        System.out.println("VAT: " + breakdown.children().get(2).total())
-        System.out.println("RAZEM: " + breakdown.total() + " ← NAJDROŻEJ!")
-        System.out.println()
     }
-    def "shouldRevertToBasePriceAfterSummer September"() {
-        given:
+    def "price reverts automatically to the base rate in September"() {
+        given: "composite updated for May, summer increase registered for July-August"
         facade.createCompositeComponent(
                 "TotalPrice",
                 Map.of("VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee"))),
@@ -247,16 +223,9 @@ class EMobilityTemporalPricingSpec extends Specification {
         assert breakdown.total() == Money.of(67.65, "PLN")
         assert breakdown.children().get(0).total() == Money.of(50.00, "PLN")
         assert breakdown.children().get(1).total() == Money.of(5.00, "PLN")
-
-        System.out.println("=== WRZESIEŃ 2024 - Automatyczny powrót po lecie ===")
-        System.out.println("Energia: " + breakdown.children().get(0).total() + " ← automatyczny powrót do 2.50 PLN/kWh")
-        System.out.println("Parking: " + breakdown.children().get(1).total())
-        System.out.println("VAT: " + breakdown.children().get(2).total())
-        System.out.println("RAZEM: " + breakdown.total())
-        System.out.println("⚡ NIC NIE MUSIELIŚMY ROBIĆ - system sam wrócił do ceny bazowej!")
-        System.out.println()
     }
-    def "shouldIncreaseWinterParkingFee November"() {
+    def "winter parking fee increase takes effect in November"() {
+        given: "full year pricing with composite, summer rate, and winter parking fee"
         facade.createCompositeComponent(
                 "TotalPrice",
                 Map.of("VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee"))),
@@ -278,7 +247,7 @@ class EMobilityTemporalPricingSpec extends Specification {
                 Map.of(),
                 Validity.from(LocalDateTime.of(2024, 11, 1, 0, 0))
         )
-        given:
+        and:
         Parameters dec05 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 12, 5, 8, 0),
                 "kwh", BigDecimal.valueOf(20)
@@ -288,23 +257,12 @@ class EMobilityTemporalPricingSpec extends Specification {
         and:
         assert breakdown.total() == Money.of(71.34, "PLN")
         assert breakdown.children().get(1).total() == Money.of(8.00, "PLN")
-
-        System.out.println("=== GRUDZIEŃ 2024 - Zimowy parking ===")
-        System.out.println("Energia: " + breakdown.children().get(0).total())
-        System.out.println("Parking: " + breakdown.children().get(1).total() + " ← zimowa podwyżka")
-        System.out.println("VAT: " + breakdown.children().get(2).total())
-        System.out.println("RAZEM: " + breakdown.total())
-        System.out.println()
     }
-    def "shouldVisualizeFullYearTimeline"() {
-        given:
+    def "all twelve months of pricing are consistent with the configured timeline"() {
+        given: "full year pricing timeline for 2024"
         setupFullYearPricing()
-
-        System.out.println("╔════════════════════════════════════════════════════════════════╗")
-        System.out.println("║    EMOBILITY - TIMELINE CENNIKA 2024 (20 kWh)                 ║")
-        System.out.println("╠════════════════════════════════════════════════════════════════╣")
-
-        LocalDateTime[] dates = [
+        and: "sample dates covering each month of 2024"
+        List<LocalDateTime> dates = [
                 LocalDateTime.of(2024, 1, 15, 12, 0),
                 LocalDateTime.of(2024, 2, 14, 12, 0),
                 LocalDateTime.of(2024, 3, 15, 12, 0),
@@ -318,22 +276,26 @@ class EMobilityTemporalPricingSpec extends Specification {
                 LocalDateTime.of(2024, 11, 15, 12, 0),
                 LocalDateTime.of(2024, 12, 15, 12, 0)
         ]
-
-        String[] months = ["STY", "LUT", "MAR", "KWI", "MAJ", "CZE",
-                "LIP", "SIE", "WRZ", "PAŹ", "LIS", "GRU"]
-
-        for (int i in 0..<dates.length) {
-            Parameters params = Parameters.of("timestamp", dates[i], "kwh", BigDecimal.valueOf(20))
-            Money price = facade.calculateComponent("TotalPrice", params)
-
-            System.out.printf("║ %s  %s  %7s  %s%n",
-                    months[i],
-                    getIndicator(price),
-                    price,
-                    getComment(dates[i].getMonthValue()))
+        and: "expected totals per month for 20 kWh"
+        List<Money> expected = [
+                Money.of(61.50, "PLN"),
+                Money.of(49.20, "PLN"),
+                Money.of(61.50, "PLN"),
+                Money.of(61.50, "PLN"),
+                Money.of(67.65, "PLN"),
+                Money.of(67.65, "PLN"),
+                Money.of(75.03, "PLN"),
+                Money.of(75.03, "PLN"),
+                Money.of(67.65, "PLN"),
+                Money.of(67.65, "PLN"),
+                Money.of(71.34, "PLN"),
+                Money.of(71.34, "PLN")
+        ]
+        expect:
+        dates.eachWithIndex { date, i ->
+            Parameters params = Parameters.of("timestamp", date, "kwh", BigDecimal.valueOf(20))
+            assert facade.calculateComponent("TotalPrice", params) == expected[i]
         }
-
-        System.out.println("╚════════════════════════════════════════════════════════════════╝")
     }
 
     private void setupFullYearPricing() {
@@ -361,41 +323,5 @@ class EMobilityTemporalPricingSpec extends Specification {
                 Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)),
                 "EnergyCharge", "ParkingFee", "VAT"
         )
-    }
-
-    private String getIndicator(Money price) {
-        double amount = price.value().doubleValue()
-        if (amount < 50) {
-            return "▁▁▁"
-        }
-        if (amount < 55) {
-            return "▂▂▂"
-        }
-        if (amount < 60) {
-            return "▃▃▃"
-        }
-        if (amount < 65) {
-            return "▄▄▄"
-        }
-        if (amount < 70) {
-            return "▅▅▅"
-        }
-        if (amount < 75) {
-            return "▆▆▆"
-        }
-        return "▇▇▇"
-    }
-
-    private String getComment(int month) {
-        return switch (month) {
-            case 1 -> "║ ← Cennik bazowy"
-            case 2 -> "║ ← PROMOCJA -20%!"
-            case 3 -> "║ ← Powrót do bazowej"
-            case 5 -> "║ ← +Parking 5 PLN"
-            case 7 -> "║ ← Letnia podwyżka"
-            case 9 -> "║ ← Powrót ceny"
-            case 11 -> "║ ← Zimowy parking 8 PLN"
-            default -> "║"
-        }
     }
 }

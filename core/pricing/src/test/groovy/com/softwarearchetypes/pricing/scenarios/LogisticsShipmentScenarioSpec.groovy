@@ -4,6 +4,15 @@ import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThan
 import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed
 
+import com.softwarearchetypes.pricing.ApplicabilityConstraint
+import com.softwarearchetypes.pricing.CalculatorRange
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingConfiguration
+import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.Validity
+import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
 import java.time.Clock
@@ -15,7 +24,7 @@ import java.util.Map
 import spock.lang.Specification
 
 
-class HomeworkSpec extends Specification {
+class LogisticsShipmentScenarioSpec extends Specification {
 
     static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
     static final Clock clock = fixed(NOW, ZoneId.systemDefault())
@@ -24,18 +33,18 @@ class HomeworkSpec extends Specification {
     def setup() {
         LocalDateTime januaryFirst = LocalDateTime.of(2025, 1, 1, 0, 0)
         LocalDateTime aprilFirst = LocalDateTime.of(2025, 4, 1, 0, 0)
-        Calculator lightRate = facade.addCalculator("base-rate-light", CalculatorType.SIMPLE_FIXED,
+        def lightRate = facade.addCalculator("base-rate-light", CalculatorType.SIMPLE_FIXED,
                 Parameters.of(
                         "amount", Money.of(new BigDecimal("7.90"), "PLN"),
-                        "interpretation", Interpretation.UNIT))
-        Calculator mediumRate = facade.addCalculator("base-rate-medium", CalculatorType.SIMPLE_FIXED,
+                        "interpretation", com.softwarearchetypes.pricing.Interpretation.UNIT))
+        def mediumRate = facade.addCalculator("base-rate-medium", CalculatorType.SIMPLE_FIXED,
                 Parameters.of(
                         "amount", Money.of(new BigDecimal("6.10"), "PLN"),
-                        "interpretation", Interpretation.UNIT))
-        Calculator heavyRate = facade.addCalculator("base-rate-heavy", CalculatorType.SIMPLE_FIXED,
+                        "interpretation", com.softwarearchetypes.pricing.Interpretation.UNIT))
+        def heavyRate = facade.addCalculator("base-rate-heavy", CalculatorType.SIMPLE_FIXED,
                 Parameters.of(
                         "amount", Money.of(new BigDecimal("5.20"), "PLN"),
-                        "interpretation", Interpretation.UNIT))
+                        "interpretation", com.softwarearchetypes.pricing.Interpretation.UNIT))
         facade.addCalculator("base-by-weight", CalculatorType.COMPOSITE,
                 Parameters.of(
                         "ranges", List.of(
@@ -136,7 +145,7 @@ class HomeworkSpec extends Specification {
                 "netto",
                 "vat-component")
     }
-    def "shouldCalculateStandardShipmentWithFuelSurchargeAndVAT"() {
+    def "standard 3 kg shipment includes fuel surcharge and VAT"() {
         given:
         Parameters params = Parameters.of(
                 "weight",         BigDecimal.valueOf(3),
@@ -145,7 +154,7 @@ class HomeworkSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
                 "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
-
+        and:
         Money result = facade.calculateComponent("total-cost", params)
         assert result == Money.of(new BigDecimal("30.47"), "PLN")
 
@@ -168,7 +177,7 @@ class HomeworkSpec extends Specification {
         assertThat(breakdown).child("vat-component")
                 .hasTotal(Money.of(new BigDecimal("5.70"), "PLN")).hasNoChildren()
     }
-    def "shouldCalculateHazmatShipmentWithCODAndInsurance"() {
+    def "12 kg hazmat shipment with COD and insurance adds all applicable surcharges"() {
         given:
         Parameters params = Parameters.of(
                 "weight",         BigDecimal.valueOf(12),
@@ -177,7 +186,7 @@ class HomeworkSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.valueOf(800), "PLN"),
                 "insured-value",  Money.of(BigDecimal.valueOf(1500), "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
-
+        and:
         Money result = facade.calculateComponent("total-cost", params)
         assert result == Money.of(new BigDecimal("161.55"), "PLN")
 
@@ -206,7 +215,7 @@ class HomeworkSpec extends Specification {
         assertThat(breakdown).child("vat-component")
                 .hasTotal(Money.of(new BigDecimal("30.21"), "PLN"))
     }
-    def "shouldCalculateOversizedShipmentWithTimeWindowDelivery"() {
+    def "45 kg oversized shipment with time-window delivery applies both surcharges"() {
         given:
         Parameters params = Parameters.of(
                 "weight",         BigDecimal.valueOf(45),
@@ -215,7 +224,7 @@ class HomeworkSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
                 "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
-
+        and:
         Money result = facade.calculateComponent("total-cost", params)
         assert result == Money.of(new BigDecimal("473.46"), "PLN")
 
@@ -242,9 +251,8 @@ class HomeworkSpec extends Specification {
         assertThat(breakdown).child("vat-component")
                 .hasTotal(Money.of(new BigDecimal("88.53"), "PLN"))
     }
-    def "shouldApplyFuelRateChangeTemporallyFrom1April"() {
+    def "fuel surcharge rate changes from 4.5% to 5.0% on 1 April 2025"() {
         given:
-
         Parameters jan = Parameters.of(
                 "weight",         BigDecimal.valueOf(3),
                 "cargo-type",     "standard",
@@ -260,6 +268,7 @@ class HomeworkSpec extends Specification {
                 "cod-value",      Money.of(BigDecimal.ZERO, "PLN"),
                 "insured-value",  Money.of(BigDecimal.ZERO, "PLN"))
                 .with("timestamp", LocalDateTime.of(2025, 4, 15, 10, 0))
+        and:
         assert facade.calculateComponent("total-cost", jan) == Money.of(new BigDecimal("30.47"), "PLN")
         assert facade.calculateComponent("total-cost", apr) == Money.of(new BigDecimal("30.61"), "PLN")
     }

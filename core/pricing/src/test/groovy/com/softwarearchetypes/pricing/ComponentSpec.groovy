@@ -9,7 +9,7 @@ import java.util.Map
 import spock.lang.Specification
 
 class ComponentSpec extends Specification {
-    def "simpleComponentShouldCalculateUsingWrappedCalculator"() {
+    def "simple component delegates calculation to its wrapped calculator"() {
         given:
         Calculator calculator = new SimpleFixedCalculator("fixed-20", Money.of(BigDecimal.valueOf(20), "PLN"))
         SimpleComponent component = SimpleComponent.of("base-fee", calculator)
@@ -19,7 +19,7 @@ class ComponentSpec extends Specification {
         assert result == Money.of(BigDecimal.valueOf(20), "PLN")
         assert component.interpretation() == Interpretation.TOTAL
     }
-    def "simpleComponentShouldReturnBreakdownWithNoChildren"() {
+    def "simple component breakdown has no children"() {
         given:
         Calculator calculator = new SimpleFixedCalculator("fixed-50", Money.of(BigDecimal.valueOf(50), "PLN"))
         SimpleComponent component = SimpleComponent.of("service-fee", calculator)
@@ -31,7 +31,7 @@ class ComponentSpec extends Specification {
                 .hasTotal(Money.of(BigDecimal.valueOf(50), "PLN"))
                 .hasNoChildren()
     }
-    def "compositeComponentShouldSumChildrenResults"() {
+    def "composite component sums children results"() {
         given:
         SimpleComponent fee1 = SimpleComponent.of("fee-1",
                 new SimpleFixedCalculator("calc-1", Money.of(BigDecimal.valueOf(10), "PLN")))
@@ -43,7 +43,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(40), "PLN")
     }
-    def "compositeComponentShouldProvideHierarchicalBreakdown"() {
+    def "composite component provides a hierarchical breakdown"() {
         given:
         SimpleComponent fee1 = SimpleComponent.of("maintenance",
                 new SimpleFixedCalculator("calc-1", Money.of(BigDecimal.valueOf(25), "PLN")))
@@ -80,7 +80,7 @@ class ComponentSpec extends Specification {
                 .hasTotal(Money.of(BigDecimal.valueOf(5), "PLN"))
                 .hasNoChildren()
     }
-    def "compositeComponentShouldEnrichParametersBasedOnDependencies"() {
+    def "composite component enriches child parameters based on declared dependencies"() {
         given:
         Calculator baseCalculator = new SimpleFixedCalculator("base", Money.of(BigDecimal.valueOf(100), "PLN"))
         SimpleComponent base = SimpleComponent.of("base-price", baseCalculator)
@@ -100,7 +100,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(123), "PLN")
     }
-    def "compositeComponentShouldSupportSumOfDependency"() {
+    def "composite component supports sum-of dependencies"() {
         given:
         SimpleComponent fee1 = SimpleComponent.of("fee-1",
                 new SimpleFixedCalculator("c1", Money.of(BigDecimal.valueOf(50), "PLN")))
@@ -122,7 +122,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(88), "PLN")
     }
-    def "compositeComponentShouldSupportDifferenceOfDependency"() {
+    def "composite component supports difference-of dependencies"() {
         given:
         SimpleComponent revenue = SimpleComponent.of("revenue",
                 new SimpleFixedCalculator("rev", Money.of(BigDecimal.valueOf(1000), "PLN")))
@@ -144,7 +144,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(1514), "PLN")
     }
-    def "compositeComponentShouldSupportProductOfDependency"() {
+    def "composite component supports product-of dependencies"() {
         given:
         SimpleComponent baseAmount = SimpleComponent.of("base",
                 new SimpleFixedCalculator("base", Money.of(BigDecimal.valueOf(100), "PLN")))
@@ -164,7 +164,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(115), "PLN")
     }
-    def "compositeComponentShouldHandleMixedInterpretations"() {
+    def "composite component handles mixed interpretations"() {
         given:
         Calculator totalCalc = new SimpleFixedCalculator("total", Money.of(BigDecimal.valueOf(100), "PLN"))
         SimpleComponent totalComponent = SimpleComponent.of("total-comp", totalCalc)
@@ -180,7 +180,7 @@ class ComponentSpec extends Specification {
         Money result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
         assert result == Money.of(BigDecimal.valueOf(150), "PLN")
     }
-    def "compositeComponentShouldThrowWhenDependentComponentNotCalculatedYet"() {
+    def "composite component throws when a dependent component has not been calculated yet"() {
         given:
         SimpleComponent comp1 = SimpleComponent.of("comp-1",
                 new SimpleFixedCalculator("c1", Money.of(BigDecimal.valueOf(100), "PLN")))
@@ -202,7 +202,7 @@ class ComponentSpec extends Specification {
         and:
         assert exception.getMessage() == "Component 'comp-1' has not been calculated yet. Check execution order."
     }
-    def "compositeComponentShouldThrowWhenReferencedComponentNotFound"() {
+    def "composite component throws when a referenced component is not found"() {
         given:
         SimpleComponent comp = SimpleComponent.of("comp",
                 new PercentageCalculator("c", BigDecimal.valueOf(10)))
@@ -221,7 +221,7 @@ class ComponentSpec extends Specification {
         and:
         assert exception.getMessage() == "Component 'non-existent' not found"
     }
-    def "compositeComponentShouldAlwaysReturnTotalInterpretation"() {
+    def "composite component always returns total interpretation"() {
         given:
         Calculator calc1 = new SimpleFixedCalculator("c1",
                 Money.of(BigDecimal.valueOf(10), "PLN"),
@@ -239,7 +239,7 @@ class ComponentSpec extends Specification {
         Money result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
         assert result == Money.of(BigDecimal.valueOf(75), "PLN")
     }
-    def "compositeComponentShouldPassParametersToAllChildren"() {
+    def "composite component passes parameters to all children"() {
         given:
         Calculator stepCalc1 = new StepFunctionCalculator("step1",
                 Money.of(BigDecimal.ZERO, "PLN"),
@@ -261,7 +261,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(25), "PLN")
     }
-    def "compositeComponentShouldThrowWhenEmpty"() {
+    def "composite component throws when it has no children"() {
         given:
         CompositeComponent empty = CompositeComponent.of("empty", List.of())
         and:
@@ -269,7 +269,7 @@ class ComponentSpec extends Specification {
         and:
         assert exception.getMessage() == "Composite component empty has no children"
     }
-    def "simpleComponentShouldMapParameters"() {
+    def "simple component maps parameters before delegating"() {
         given:
         Calculator calculator = new StepFunctionCalculator("calc",
                 Money.of(BigDecimal.ZERO, "PLN"),
@@ -283,7 +283,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(15), "PLN")
     }
-    def "simpleComponentShouldPassUnmappedParametersThrough"() {
+    def "simple component passes unmapped parameters through"() {
         given:
         Calculator calculator = new StepFunctionCalculator("calc",
                 Money.of(BigDecimal.ZERO, "PLN"),
@@ -300,7 +300,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(20), "PLN")
     }
-    def "simpleComponentShouldConvertToTargetInterpretationUsingAdapters"() {
+    def "simple component converts to the requested interpretation using adapters"() {
         given:
         Calculator unitPriceCalc = new SimpleFixedCalculator("unit",
                 Money.of(BigDecimal.valueOf(10), "PLN"),
@@ -322,7 +322,7 @@ class ComponentSpec extends Specification {
         and:
         assert resultAsUnit == Money.of(BigDecimal.valueOf(10), "PLN")
     }
-    def "simpleComponentShouldConvertMarginalToTotalUsingAdapter"() {
+    def "simple component converts marginal to total using an adapter"() {
         given:
         Calculator marginalCalc = new StepFunctionCalculator("marginal",
                 Money.of(BigDecimal.ZERO, "PLN"),
@@ -339,7 +339,7 @@ class ComponentSpec extends Specification {
 
         assert resultAsTotal == Money.of(BigDecimal.valueOf(27.5), "PLN")
     }
-    def "compositeComponentShouldWorkWithChildrenUsingParameterMappings"() {
+    def "composite component works with children that have parameter mappings"() {
         given:
         Calculator calc1 = new StepFunctionCalculator("calc1",
                 Money.of(BigDecimal.ZERO, "PLN"),
@@ -363,7 +363,7 @@ class ComponentSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(19), "PLN")
     }
-    def "compositeComponentShouldConvertChildrenWithDifferentInterpretationsToTotal"() {
+    def "composite component converts children with different interpretations to total"() {
         given:
         Calculator marginalCalc = new StepFunctionCalculator("marginal",
                 Money.of(BigDecimal.ZERO, "PLN"),

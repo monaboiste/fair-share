@@ -3,6 +3,13 @@ package com.softwarearchetypes.pricing
 import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed
 
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingConfiguration
+import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.SumOf
+import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
 import java.time.Clock
@@ -10,7 +17,6 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalUnit
 import java.util.Map
 import spock.lang.Specification
 
@@ -44,8 +50,8 @@ class BankingComponentScenarioSpec extends Specification {
         facade.addCalculator("performance-fee", CalculatorType.PERCENTAGE,
                 Parameters.of("percentageRate", BigDecimal.valueOf(20)))
     }
-    def "shouldCalculateLoanCostWithInsuranceDependency"() {
-        given:
+    def "loan cost with insurance is calculated as a dependency on the base"() {
+        given: "a loan base of 100,000 PLN at 5.5% annual interest plus a 500 PLN processing fee, with 2% insurance on the base"
         facade.createSimpleComponent("principal-interest", "loan-interest")
         facade.createSimpleComponent("loan-insurance", "insurance-rate")
         facade.createSimpleComponent("processing", "processing-fee")
@@ -94,8 +100,8 @@ class BankingComponentScenarioSpec extends Specification {
                 .hasTotal(expectedInsurance)
                 .hasNoChildren()
     }
-    def "shouldCalculateAccountFeesWithTransactions"() {
-        given:
+    def "account fees include both monthly fee and per-transaction charges"() {
+        given: "monthly account fee of 15 PLN plus 0.50 PLN per transaction for 50 transactions"
         facade.createSimpleComponent("monthly-fee", "monthly-account-fee")
         facade.createSimpleComponent("transaction-fees", "transaction-fee")
 
@@ -117,8 +123,8 @@ class BankingComponentScenarioSpec extends Specification {
                 .hasTotal(expected)
                 .hasChildrenCount(2)
     }
-    def "shouldCalculatePortfolioFeesWithPerformanceBonus"() {
-        given:
+    def "portfolio fees include a performance bonus calculated on the management fee"() {
+        given: "1,000,000 PLN portfolio with 1.5% management fee and 20% performance bonus on the management fee"
         facade.createSimpleComponent("base-management", "management-fee")
         facade.createSimpleComponent("performance-bonus", "performance-fee")
         facade.createCompositeComponent(
@@ -155,8 +161,8 @@ class BankingComponentScenarioSpec extends Specification {
                 .child("performance-bonus")
                 .hasTotal(expectedPerformance)
     }
-    def "shouldCalculateComplexLoanWithMultipleDependencies"() {
-        given:
+    def "complex loan cost combines interest, processing, and insurance with multiple dependencies"() {
+        given: "200,000 PLN loan with interest, processing fee, and insurance on the sum of both"
         facade.createSimpleComponent("interest", "loan-interest")
         facade.createSimpleComponent("processing", "processing-fee")
         facade.createSimpleComponent("insurance", "insurance-rate")

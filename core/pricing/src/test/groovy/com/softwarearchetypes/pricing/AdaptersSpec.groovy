@@ -6,7 +6,7 @@ import spock.lang.Specification
 
 
 class AdaptersSpec extends Specification {
-    def "unitToTotalAdapter shouldMultiplyByQuantity"() {
+    def "unit-to-total adapter multiplies by quantity"() {
         given:
         Calculator unitCalc = new SimpleFixedCalculator(
                 "unit-price",
@@ -18,7 +18,7 @@ class AdaptersSpec extends Specification {
         assert total == Money.of(150, "PLN")
         assert totalCalc.interpretation() == Interpretation.TOTAL
     }
-    def "unitToTotalAdapter shouldRejectNonUnitPriceCalculator"() {
+    def "unit-to-total adapter rejects a non-unit-price calculator"() {
         given:
         Calculator totalCalc = new SimpleFixedCalculator(
                 "total",
@@ -28,7 +28,7 @@ class AdaptersSpec extends Specification {
         IllegalArgumentException ex = shouldFail(IllegalArgumentException) { UnitToTotalAdapter.wrap("adapter", totalCalc) }
         assert ex.getMessage().contains("UNIT")
     }
-    def "unitToMarginalAdapter shouldReturnSamePrice"() {
+    def "unit-to-marginal adapter returns the same price regardless of quantity"() {
         given:
         Calculator unitCalc = new SimpleFixedCalculator(
                 "unit-price",
@@ -43,7 +43,7 @@ class AdaptersSpec extends Specification {
         assert marginal15 == Money.of(10, "PLN")
         assert marginalCalc.interpretation() == Interpretation.MARGINAL
     }
-    def "totalToUnitAdapter shouldDivideByQuantity"() {
+    def "total-to-unit adapter divides total by quantity"() {
         given:
         Calculator totalCalc = new StepFunctionCalculator(
                 "bulk-pricing",
@@ -57,7 +57,7 @@ class AdaptersSpec extends Specification {
         assert unit == Money.of(7, "PLN")
         assert unitCalc.interpretation() == Interpretation.UNIT
     }
-    def "totalToMarginalAdapter shouldCalculateDerivative"() {
+    def "total-to-marginal adapter computes the marginal as the derivative"() {
         given:
         Calculator totalCalc = new StepFunctionCalculator(
                 "step-pricing",
@@ -76,7 +76,7 @@ class AdaptersSpec extends Specification {
 
         assert marginalCalc.interpretation() == Interpretation.MARGINAL
     }
-    def "marginalToTotalAdapter shouldSumMarginalPrices"() {
+    def "marginal-to-total adapter sums marginal prices"() {
         given:
         Calculator marginalCalc = new SimpleFixedCalculator(
                 "marginal-price",
@@ -88,7 +88,7 @@ class AdaptersSpec extends Specification {
         assert total == Money.of(50, "PLN")
         assert totalCalc.interpretation() == Interpretation.TOTAL
     }
-    def "marginalToUnitAdapter shouldCalculateAverage"() {
+    def "marginal-to-unit adapter returns the average price"() {
         given:
         Calculator marginalCalc = new SimpleFixedCalculator(
                 "marginal-price",
@@ -100,7 +100,7 @@ class AdaptersSpec extends Specification {
         assert unit == Money.of(10, "PLN")
         assert unitCalc.interpretation() == Interpretation.UNIT
     }
-    def "unitToMarginalAdapter shouldWorkForVariableUnitPrice"() {
+    def "unit-to-marginal adapter works for a variable unit price"() {
         given:
         Calculator unitCalc = new StepFunctionCalculator(
                 "bulk-unit-price",
@@ -116,7 +116,7 @@ class AdaptersSpec extends Specification {
         assert marginal11 != null
         assert marginalCalc.interpretation() == Interpretation.MARGINAL
     }
-    def "adapters shouldHaveCorrectTypes"() {
+    def "each adapter reports its correct calculator type"() {
         given:
         Calculator unitCalc = new SimpleFixedCalculator("u", Money.of(10, "PLN"), Interpretation.UNIT)
         Calculator totalCalc = new SimpleFixedCalculator("t", Money.of(100, "PLN"), Interpretation.TOTAL)
@@ -129,14 +129,14 @@ class AdaptersSpec extends Specification {
         assert MarginalToTotalAdapter.wrap("a", marginalCalc).getType() == CalculatorType.MARGINAL_TO_TOTAL_ADAPTER
         assert MarginalToUnitAdapter.wrap("a", marginalCalc).getType() == CalculatorType.MARGINAL_TO_UNIT_ADAPTER
     }
-    def "adapters shouldPreserveSourceCalculatorFormula"() {
+    def "adapter formula includes the source calculator formula"() {
         given:
         Calculator unitCalc = new SimpleFixedCalculator("test", Money.of(10, "PLN"), Interpretation.UNIT)
 
         Calculator totalAdapter = UnitToTotalAdapter.wrap("adapter", unitCalc)
 
         String formula = totalAdapter.formula()
-        assert formula.contains("quantity ×")
+        assert formula.contains("quantity \u00d7")
         assert formula.contains("f(x) = PLN 10")
     }
 

@@ -2,7 +2,7 @@ package com.softwarearchetypes.pricing
 
 import com.softwarearchetypes.quantity.money.Money
 
-class ComponentBreakdownAssert {
+public class ComponentBreakdownAssert {
     private final ComponentBreakdown actual
     private ComponentBreakdownAssert(ComponentBreakdown actual) { this.actual = actual }
     static ComponentBreakdownAssert assertThat(ComponentBreakdown actual) { assert actual != null; return new ComponentBreakdownAssert(actual) }

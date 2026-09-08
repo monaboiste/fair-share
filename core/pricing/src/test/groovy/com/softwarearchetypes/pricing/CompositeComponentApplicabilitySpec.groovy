@@ -42,7 +42,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         facade.addCalculator("pct-10", CalculatorType.PERCENTAGE,
                 Parameters.of("percentageRate", BigDecimal.valueOf(10)))
     }
-    def "shouldReturnZeroForCompositeWhenConstraintNotSatisfied"() {
+    def "composite component returns zero when its applicability constraint is not satisfied"() {
         given:
         facade.createSimpleComponent("base-fee", "fixed-100")
         facade.createSimpleComponent("premium-feature", "fixed-50")
@@ -63,7 +63,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         assert facade.calculateComponent("total", standard) == Money.of(BigDecimal.valueOf(100), "PLN")
         assert facade.calculateComponent("total", premium) == Money.of(BigDecimal.valueOf(180), "PLN")
     }
-    def "shouldIncludeCompositeInBreakdownWithZeroWhenNotApplicable"() {
+    def "composite component appears in the breakdown with zero when not applicable"() {
         given:
         facade.createSimpleComponent("base-fee", "fixed-100")
         facade.createSimpleComponent("premium-feature", "fixed-50")
@@ -85,7 +85,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         assertThat(breakdown).child("base-fee").hasTotal(Money.of(BigDecimal.valueOf(100), "PLN"))
         assertThat(breakdown).child("premium-bundle").hasTotal(Money.of(BigDecimal.ZERO, "PLN"))
     }
-    def "shouldSelectCorrectCompositeBasedOnNumericConstraint"() {
+    def "numeric applicability constraint selects the correct composite"() {
         given:
         facade.createSimpleComponent("light-fee", "fixed-20")
         facade.createSimpleComponent("heavy-fee", "fixed-50")
@@ -110,7 +110,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         assert facade.calculateComponent("delivery-cost", light) == Money.of(BigDecimal.valueOf(20), "PLN")
         assert facade.calculateComponent("delivery-cost", heavy) == Money.of(BigDecimal.valueOf(50), "PLN")
     }
-    def "shouldReturnZeroForBothCompositesWhenWeightAtNoBoundary"() {
+    def "weight at the active boundary falls into the correct composite"() {
         given:
         facade.createSimpleComponent("light-fee", "fixed-20")
         facade.createSimpleComponent("heavy-fee", "fixed-50")
@@ -125,7 +125,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         Parameters boundary = Parameters.of("weight", BigDecimal.valueOf(5))
         assert facade.calculateComponent("delivery-cost", boundary) == Money.of(BigDecimal.valueOf(50), "PLN")
     }
-    def "shouldGateEntireSubtreeWithOuterCompositeConstraint"() {
+    def "outer composite constraint gates the entire subtree"() {
         given:
         facade.createSimpleComponent("handling-fee", "fixed-100")
         facade.createSimpleComponent("inspection-fee", "fixed-50",
@@ -148,7 +148,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         assert facade.calculateComponent("contract", hazmatStandard) == Money.of(BigDecimal.valueOf(100), "PLN")
         assert facade.calculateComponent("contract", normalCargo) == Money.of(BigDecimal.ZERO, "PLN")
     }
-    def "shouldRequireBothValidityAndConstraintForComposite"() {
+    def "composite requires both a valid period and a satisfied constraint to contribute"() {
         given:
         facade.createSimpleComponent("promo-fee", "fixed-50")
         facade.createSimpleComponent("bonus-fee", "fixed-30")
@@ -171,7 +171,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 .with("timestamp", LocalDateTime.of(2025, 6, 15, 10, 0))
         assert facade.calculateComponent("total", withinSilver) == Money.of(BigDecimal.ZERO, "PLN")
     }
-    def "shouldNotComputeChildrenWhenCompositeConstraintNotSatisfied"() {
+    def "composite does not compute children when its constraint is not satisfied"() {
         given:
         facade.createSimpleComponent("base-service", "fixed-100")
         facade.createSimpleComponent("surcharge", "pct-10")

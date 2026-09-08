@@ -3,6 +3,12 @@ package com.softwarearchetypes.pricing
 import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed
 
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingConfiguration
+import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
 import java.time.Clock
@@ -42,8 +48,8 @@ class TelcoComponentScenarioSpec extends Specification {
         facade.addCalculator("percentage-rate", CalculatorType.PERCENTAGE,
                 Parameters.of("percentageRate", BigDecimal.valueOf(23)))
     }
-    def "shouldCalculateMonthlyBillWithBaseFeesOnly"() {
-        given:
+    def "monthly bill with base fees only totals the sum of included fees"() {
+        given: "a base fee composite with network maintenance (25 PLN) and commission (20 PLN)"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
 
@@ -63,8 +69,8 @@ class TelcoComponentScenarioSpec extends Specification {
                 .hasTotal(Money.of(BigDecimal.valueOf(45), "PLN"))
                 .hasChildrenCount(2)
     }
-    def "shouldCalculateMonthlyBillWithDataOverage"() {
-        given:
+    def "monthly bill with data overage includes usage charges"() {
+        given: "a monthly bill with base fee and data overage at 2 PLN per MB"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
         facade.createSimpleComponent("data-overage-component", "data-overage")
@@ -102,8 +108,8 @@ class TelcoComponentScenarioSpec extends Specification {
                 .hasTotal(Money.of(BigDecimal.valueOf(6), "PLN"))
                 .hasNoChildren()
     }
-    def "shouldCalculateMonthlyBillWithRoamingOverage"() {
-        given:
+    def "monthly bill with roaming overage includes roaming charges"() {
+        given: "a monthly bill with base fee and roaming overage at 1.50 PLN per MB"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
         facade.createSimpleComponent("roaming-overage-component", "roaming-overage")
@@ -125,8 +131,8 @@ class TelcoComponentScenarioSpec extends Specification {
         and:
         assert result == Money.of(BigDecimal.valueOf(75), "PLN")
     }
-    def "shouldCalculateBillWithVATDependingOnNetAmount"() {
-        given:
+    def "total bill includes VAT calculated on the net amount"() {
+        given: "a total bill with VAT depending on the net amount via a ValueOf dependency"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
         facade.createSimpleComponent("data-overage-component", "data-overage")
@@ -177,8 +183,8 @@ class TelcoComponentScenarioSpec extends Specification {
                 .hasTotal(expectedVAT)
                 .hasNoChildren()
     }
-    def "shouldShowDetailedBreakdownHierarchy"() {
-        given:
+    def "detailed breakdown shows the full component hierarchy"() {
+        given: "a two-level composite with a nested base fee"
         facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
         facade.createSimpleComponent("commission-component", "commission")
         facade.createSimpleComponent("data-overage-component", "data-overage")

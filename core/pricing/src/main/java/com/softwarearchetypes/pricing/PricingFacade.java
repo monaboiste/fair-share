@@ -24,7 +24,8 @@ public class PricingFacade {
         this.clock = clock;
     }
 
-    // Backward compatibility constructor
+    /** @deprecated use the three-argument constructor. */
+    @Deprecated
     PricingFacade(CalculatorRepository calculatorRepository, Clock clock) {
         this(calculatorRepository, new InMemoryComponentRepository(), clock);
     }
@@ -48,8 +49,8 @@ public class PricingFacade {
     }
 
     /**
-     * Calculate total price - automatically wraps calculator if it doesn't return TOTAL. This is a convenience method
-     * that handles interpretation conversion transparently.
+     * Calculates the total price, automatically wrapping the calculator if it does not already return
+     * {@link Interpretation#TOTAL}.
      */
     public Money calculateTotal(String calculatorName, Parameters parameters) {
         Calculator calc = calculatorRepository
@@ -57,10 +58,9 @@ public class PricingFacade {
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
 
-        // Auto-wrap if calculator doesn't return TOTAL
         Calculator totalCalc =
                 switch (calc.interpretation()) {
-                    case TOTAL -> calc; // already returns total
+                    case TOTAL -> calc;
                     case UNIT -> UnitToTotalAdapter.wrap(calc.name() + "-to-total", calc);
                     case MARGINAL -> MarginalToTotalAdapter.wrap(calc.name() + "-to-total", calc);
                 };
@@ -69,8 +69,8 @@ public class PricingFacade {
     }
 
     /**
-     * Calculate unit price (average) - automatically wraps calculator if it doesn't return UNIT. This is a convenience
-     * method that handles interpretation conversion transparently.
+     * Calculates the average unit price, automatically wrapping the calculator if it does not already return
+     * {@link Interpretation#UNIT}.
      */
     public Money calculateUnitPrice(String calculatorName, Parameters parameters) {
         Calculator calc = calculatorRepository
@@ -78,10 +78,9 @@ public class PricingFacade {
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
 
-        // Auto-wrap if calculator doesn't return UNIT
         Calculator unitCalc =
                 switch (calc.interpretation()) {
-                    case UNIT -> calc; // already returns unit price
+                    case UNIT -> calc;
                     case TOTAL -> TotalToUnitAdapter.wrap(calc.name() + "-to-unit", calc);
                     case MARGINAL -> MarginalToUnitAdapter.wrap(calc.name() + "-to-unit", calc);
                 };
@@ -90,11 +89,14 @@ public class PricingFacade {
     }
 
     /**
-     * Calculate marginal price - automatically wraps calculator if it doesn't return MARGINAL. This is a convenience
-     * method that handles interpretation conversion transparently.
+     * Calculates the marginal price, automatically wrapping the calculator if it does not already return
+     * {@link Interpretation#MARGINAL}.
      *
-     * <p>NOTE: Not all conversions to MARGINAL are possible! - MARGINAL → MARGINAL: OK (identity) - UNIT → MARGINAL: OK
-     * (for constant unit price) - TOTAL → MARGINAL: OK (derivative: marginal(n) = total(n) - total(n-1))
+     * <ul>
+     *   <li>MARGINAL → MARGINAL: identity
+     *   <li>UNIT → MARGINAL: valid for a constant unit price
+     *   <li>TOTAL → MARGINAL: derivative — marginal(n) = total(n) − total(n−1)
+     * </ul>
      */
     public Money calculateMarginal(String calculatorName, Parameters parameters) {
         Calculator calc = calculatorRepository
@@ -102,10 +104,9 @@ public class PricingFacade {
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
 
-        // Auto-wrap if calculator doesn't return MARGINAL
         Calculator marginalCalc =
                 switch (calc.interpretation()) {
-                    case MARGINAL -> calc; // already returns marginal
+                    case MARGINAL -> calc;
                     case UNIT -> UnitToMarginalAdapter.wrap(calc.name() + "-to-marginal", calc);
                     case TOTAL -> TotalToMarginalAdapter.wrap(calc.name() + "-to-marginal", calc);
                 };
@@ -233,7 +234,6 @@ public class PricingFacade {
             ApplicabilityConstraint applicabilityConstraint,
             Validity validity,
             String... childComponentNames) {
-        // Preserve order by looking up components one by one
         List<Component> children = new java.util.ArrayList<>();
         for (String childName : childComponentNames) {
             Component child = componentRepository
@@ -242,7 +242,6 @@ public class PricingFacade {
             children.add(child);
         }
 
-        // Convert name-based dependencies to id-based
         Map<ComponentId, Map<String, ParameterValue>> idBasedDeps = new java.util.HashMap<>();
         for (Map.Entry<String, Map<String, ParameterValue>> entry : dependencies.entrySet()) {
             String childName = entry.getKey();
@@ -254,11 +253,9 @@ public class PricingFacade {
             idBasedDeps.put(child.id(), entry.getValue());
         }
 
-        // Sprawdź czy komponent już istnieje
         return componentRepository
                 .findByName(compositeName)
                 .map(existing -> {
-                    // Istnieje - dodaj nową wersję
                     if (!(existing instanceof CompositeComponent compositeComponent)) {
                         throw new IllegalArgumentException(
                                 "Component '%s' exists but is not a CompositeComponent".formatted(compositeName));
@@ -270,7 +267,6 @@ public class PricingFacade {
                     return updated;
                 })
                 .orElseGet(() -> {
-                    // Nie istnieje - utwórz nowy
                     CompositeComponent component = CompositeComponent.withInitialVersion(
                             compositeName, children, idBasedDeps, applicabilityConstraint, validity, clock);
                     componentRepository.save(component);
@@ -300,7 +296,6 @@ public class PricingFacade {
                     .formatted(type, type.requiredCreationFields(), parameters.keys()));
         }
 
-        // Optional interpretation parameter
         Interpretation interpretation =
                 parameters.contains("interpretation") ? (Interpretation) parameters.get("interpretation") : null;
 

@@ -12,7 +12,8 @@ import spock.lang.Specification
 class CompositeComponentVersioningSpec extends Specification {
 
     Clock clock = someFixedClock()
-    def "shouldCreateCompositeWithInitialVersion"() {        given:
+    def "composite is created with an initial version"() {
+        given:
         Component basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
                 new SimpleFixedCalculator("base", Money.of(100, "PLN")),
@@ -37,7 +38,8 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
         assert total.calculate(params) == Money.of(123, "PLN")
     }
-    def "shouldChangeCompositionOverTime"() {        given:
+    def "composition of children changes over time"() {
+        given:
         Component basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
                 new SimpleFixedCalculator("base", Money.of(100, "PLN")),
@@ -79,7 +81,8 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
         assert total.calculate(may) == Money.of(133, "PLN")
     }
-    def "shouldWorkWhenChildrenAreAlsoVersioned"() {        given:
+    def "versioned children are resolved independently at each point in time"() {
+        given:
         Calculator baseCalc = new SimpleFixedCalculator("base", Money.of(100, "PLN"))
         SimpleComponent basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
@@ -122,7 +125,8 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
         assert total.calculate(mar15) == Money.of(123, "PLN")
     }
-    def "shouldRemoveChildFromComposition"() {        given:
+    def "a child can be removed from the composition in a new version"() {
+        given:
         Component basePrice = SimpleComponent.withInitialVersion(
                 "Base Price",
                 new SimpleFixedCalculator("base", Money.of(100, "PLN")),
@@ -163,7 +167,8 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters mar = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
         assert total.calculate(mar) == Money.of(123, "PLN")
     }
-    def "shouldReplaceChildInComposition"() {        given:
+    def "a child can be replaced in the composition in a new version"() {
+        given:
         Component basePriceV1 = SimpleComponent.withInitialVersion(
                 "Base Price V1",
                 new SimpleFixedCalculator("base-v1", Money.of(100, "PLN")),
@@ -205,7 +210,8 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
         assert total.calculate(may) == Money.of(173, "PLN")
     }
-    def "shouldWorkWithYoungestVersionWinningStrategy"() {        given:
+    def "when multiple versions overlap the youngest version wins"() {
+        given:
         Component child = SimpleComponent.withInitialVersion(
                 "Child",
                 new SimpleFixedCalculator("child", Money.of(100, "PLN")),

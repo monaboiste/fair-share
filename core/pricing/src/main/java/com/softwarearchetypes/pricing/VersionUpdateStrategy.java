@@ -65,9 +65,7 @@ public enum VersionUpdateStrategy {
      */
     ALLOW_ALL {
         @Override
-        void validate(List<? extends ComponentVersion> existingVersions, Validity newValidity) {
-            // No validation - anything goes
-        }
+        void validate(List<? extends ComponentVersion> existingVersions, Validity newValidity) {}
     };
 
     /**

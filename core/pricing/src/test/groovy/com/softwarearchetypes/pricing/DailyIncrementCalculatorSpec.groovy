@@ -8,7 +8,7 @@ import spock.lang.Specification
 
 
 class DailyIncrementCalculatorSpec extends Specification {
-    def "shouldCalculatePriceAtStartDate"() {
+    def "start date returns the start price"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -23,7 +23,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         and:
         assert new BigDecimal("1999.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculatePriceAfterOneDay"() {
+    def "one day after start returns start price plus one increment"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -37,7 +37,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("2099.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculatePriceAfterSevenDays"() {
+    def "seven days after start returns start price plus seven increments"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -51,7 +51,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("2699.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculatePriceAfterFourteenDays"() {
+    def "fourteen days after start returns the accumulated price"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -65,7 +65,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("3399.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculatePriceBeforeStartDate"() {
+    def "date before start returns start price minus the elapsed decrement"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -78,7 +78,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("1899.00").compareTo(result.value()) == 0
     }
-    def "shouldWorkWithDifferentCurrencies"() {
+    def "daily increment works with different currencies"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing-eur",
@@ -93,7 +93,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         assert new BigDecimal("269.00").compareTo(result.value()) == 0
         assert result.toString().contains("EUR")
     }
-    def "shouldThrowExceptionWhenDateParameterMissing"() {
+    def "missing date parameter raises an exception"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -106,7 +106,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldReturnCorrectType"() {
+    def "calculator type is daily increment"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -117,7 +117,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         and:
         assert calculator.getType() == CalculatorType.DAILY_INCREMENT
     }
-    def "shouldProvideDescription"() {
+    def "description includes start price, increment, and date"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -133,7 +133,8 @@ class DailyIncrementCalculatorSpec extends Specification {
         assert description.contains("100")
         assert description.contains("2024-06-01")
     }
-    def "shouldHandleDecreasingPriceWithNegativeIncrement"() {
+    def "negative daily increment decreases the price over time"() {
+        given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "clearance-sale",
             LocalDate.of(2024, 6, 1),
@@ -142,11 +143,11 @@ class DailyIncrementCalculatorSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 11)))
-        given:
+        and:
         Money result = calculator.calculate(params)
         assert new BigDecimal("4000.00").compareTo(result.value()) == 0
     }
-    def "shouldProvideFormula"() {
+    def "formula shows daily increment expression"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -157,7 +158,7 @@ class DailyIncrementCalculatorSpec extends Specification {
         and:
         String formula = calculator.formula()
         and:
-        String expected = "f(date) = startPrice + daysFromStart × dailyIncrement\n" +
+        String expected = "f(date) = startPrice + daysFromStart \u00d7 dailyIncrement\n" +
                          "where:\n" +
                          "  startDate = 2024-06-01\n" +
                          "  startPrice = PLN 1999\n" +

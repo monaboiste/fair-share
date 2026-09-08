@@ -8,7 +8,7 @@ import spock.lang.Specification
 
 
 class DiscretePointsCalculatorSpec extends Specification {
-    def "shouldReturnPriceForDefinedQuantity"() {
+    def "price is returned for a defined quantity"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -22,7 +22,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         and:
         assert new BigDecimal("180.00").compareTo(result.value()) == 0
     }
-    def "shouldReturnCorrectPriceForAllDefinedPoints"() {
+    def "correct price is returned for every defined point"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -40,7 +40,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         Money result20 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("20"))))
         assert new BigDecimal("350.00").compareTo(result20.value()) == 0
     }
-    def "shouldThrowExceptionForUndefinedQuantity"() {
+    def "undefined quantity raises an exception"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -55,7 +55,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         assert exception.getMessage().contains("7")
         assert exception.getMessage().contains("not defined")
     }
-    def "shouldThrowExceptionForQuantityOutsideRange"() {
+    def "quantity outside all defined points raises an exception"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -66,7 +66,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldThrowExceptionWhenQuantityParameterMissing"() {
+    def "missing quantity parameter raises an exception"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -76,7 +76,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldReturnCorrectType"() {
+    def "calculator type is discrete points"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -85,7 +85,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         and:
         assert calculator.getType() == CalculatorType.DISCRETE_POINTS
     }
-    def "shouldProvideDescription"() {
+    def "description includes the number of defined points"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("5"), Money.of(100, "PLN"))
@@ -99,7 +99,7 @@ class DiscretePointsCalculatorSpec extends Specification {
         assert description.contains("2")
         assert description.toLowerCase().contains("discrete")
     }
-    def "shouldHandleSinglePoint"() {
+    def "single-point table returns that price"() {
         given:
         Map<BigDecimal, Money> points = new HashMap<>()
         points.put(new BigDecimal("1"), Money.of(50, "PLN"))

@@ -8,7 +8,8 @@ import spock.lang.Specification
 
 
 class ContinuousLinearTimeCalculatorSpec extends Specification {
-    def "shouldReturnStartPriceAtStartTime"() {
+    def "start price is returned at start time"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -21,12 +22,12 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("time", startTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         and:
         assert new BigDecimal("1999.00").compareTo(result.value()) == 0
     }
-    def "shouldReturnEndPriceAtEndTime"() {
+    def "end price is returned at end time"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -45,7 +46,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         and:
         assert new BigDecimal("3399.00").compareTo(result.value()) == 0
     }
-    def "shouldThrowExceptionForTimeBeforeStart"() {
+    def "time before the start boundary raises an exception"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -62,7 +63,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldThrowExceptionForTimeAfterEnd"() {
+    def "time after the end boundary raises an exception"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -79,7 +80,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldInterpolateAtMidpoint"() {
+    def "price is interpolated at the midpoint"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -92,11 +94,12 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime midTime = LocalDateTime.of(2024, 6, 8, 0, 0)
         Parameters params = new Parameters(Map.of("time", midTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         assert new BigDecimal("2699.00").compareTo(result.value()) == 0
     }
-    def "shouldInterpolateAtHalfDayWithPrecision"() {
+    def "price is interpolated at a half-day offset with precision"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -109,12 +112,13 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 6, 1, 12, 0)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         BigDecimal expected = new BigDecimal("2049")
         assert result.value().subtract(expected).abs().compareTo(new BigDecimal("1")) < 0
     }
-    def "shouldInterpolatePreciselyAtQuarterPoint"() {
+    def "price is interpolated at the quarter point"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -127,12 +131,13 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 6, 4, 12, 0)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         BigDecimal expected = new BigDecimal("2349")
         assert result.value().subtract(expected).abs().compareTo(new BigDecimal("1")) < 0
     }
-    def "shouldInterpolateAtThreeQuartersPoint"() {
+    def "price is interpolated at the three-quarters point"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -145,12 +150,13 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 6, 11, 12, 0)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         BigDecimal expected = new BigDecimal("3049")
         assert result.value().subtract(expected).abs().compareTo(new BigDecimal("1")) < 0
     }
-    def "shouldInterpolateWithMinutePrecision"() {
+    def "price is interpolated with minute precision"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 10, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 1, 11, 0)
 
@@ -163,11 +169,12 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 6, 1, 10, 30)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         assert new BigDecimal("150.00").compareTo(result.value()) == 0
     }
-    def "shouldWorkWithDifferentCurrencies"() {
+    def "interpolation works with different currencies"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -180,12 +187,13 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime midTime = LocalDateTime.of(2024, 6, 8, 0, 0)
         Parameters params = new Parameters(Map.of("time", midTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         assert new BigDecimal("269.00").compareTo(result.value()) == 0
         assert result.toString().contains("EUR")
     }
-    def "shouldHandleDecreasingPrice"() {
+    def "decreasing price is interpolated correctly"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -198,11 +206,11 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime midTime = LocalDateTime.of(2024, 6, 8, 0, 0)
         Parameters params = new Parameters(Map.of("time", midTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         assert new BigDecimal("3000.00").compareTo(result.value()) == 0
     }
-    def "shouldThrowExceptionWhenTimeParameterMissing"() {
+    def "missing time parameter raises an exception"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -219,7 +227,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldReturnCorrectType"() {
+    def "calculator type is continuous linear time"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -234,7 +242,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         and:
         assert calculator.getType() == CalculatorType.CONTINUOUS_LINEAR_TIME
     }
-    def "shouldProvideDescription"() {
+    def "description includes start and end price and dates"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -255,7 +263,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         assert description.contains("2024-06-01")
         assert description.contains("2024-06-15")
     }
-    def "shouldHandleVeryShortTimeInterval"() {
+    def "very short time intervals are interpolated correctly"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 10, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 1, 10, 1, 0)
 
@@ -268,11 +277,11 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 6, 1, 10, 0, 30)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        given:
+        and:
         Money result = calculator.calculate(params)
         assert new BigDecimal("150.00").compareTo(result.value()) == 0
     }
-    def "shouldProvideFormula"() {
+    def "formula shows linear interpolation expression"() {
         given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
@@ -287,9 +296,9 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         and:
         String formula = calculator.formula()
         and:
-        String expected = "f(t) = startPrice + progress × (endPrice - startPrice)\n" +
+        String expected = "f(t) = startPrice + progress \u00d7 (endPrice - startPrice)\n" +
                          "where progress = (t - startTime) / (endTime - startTime)\n" +
-                         "domain: t ∈ [2024-06-01T00:00, 2024-06-15T00:00]"
+                         "domain: t \u2208 [2024-06-01T00:00, 2024-06-15T00:00]"
         assert formula == expected
     }
 

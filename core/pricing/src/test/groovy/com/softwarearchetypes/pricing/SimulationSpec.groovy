@@ -16,7 +16,8 @@ import spock.lang.Specification
 
 
 class SimulationSpec extends Specification {
-    def "shouldSimulateStepFunctionCalculatorOverQuantityRange"() {
+    def "step function calculator can be simulated over a quantity range"() {
+        given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "volume-discount",
             Money.of(100, "PLN"),
@@ -27,8 +28,9 @@ class SimulationSpec extends Specification {
         for (int qty in (0..30).step(5)) {
             points.add(Parameters.of("quantity", new BigDecimal(qty)))
         }
-        given:
+        and:
         Map<Parameters, Money> results = calculator.simulate(points)
+        and:
         assert results != null
         assert results.size() == 7
         assert new BigDecimal("100.00").compareTo(
@@ -46,7 +48,8 @@ class SimulationSpec extends Specification {
         assert new BigDecimal("115.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("30"))).value()) == 0
     }
-    def "shouldSimulateDailyIncrementCalculatorOverDateRange"() {
+    def "daily increment calculator can be simulated over a date range"() {
+        given:
         LocalDate startDate = LocalDate.of(2024, 6, 1)
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "presale-pricing",
@@ -58,8 +61,9 @@ class SimulationSpec extends Specification {
         for (int day in (0..14).step(2)) {
             points.add(Parameters.of("date", startDate.plusDays(day)))
         }
-        given:
+        and:
         Map<Parameters, Money> results = calculator.simulate(points)
+        and:
         assert results != null
         assert results.size() == 8
 
@@ -80,7 +84,8 @@ class SimulationSpec extends Specification {
         assert new BigDecimal("3399.00").compareTo(
             results.get(Parameters.of("date", startDate.plusDays(14))).value()) == 0
     }
-    def "shouldSimulateContinuousLinearTimeCalculator"() {
+    def "continuous linear time calculator can be simulated"() {
+        given:
         LocalDateTime startTime = LocalDateTime.of(2024, 6, 1, 0, 0)
         LocalDateTime endTime = LocalDateTime.of(2024, 6, 15, 0, 0)
 
@@ -98,8 +103,9 @@ class SimulationSpec extends Specification {
             Parameters.of("time", startTime.plusDays(10).plusHours(12)),
             Parameters.of("time", endTime)
         )
-        given:
+        and:
         Map<Parameters, Money> results = calculator.simulate(points)
+        and:
         assert results != null
         assert results.size() == 5
         assert new BigDecimal("1999.00").compareTo(
@@ -113,7 +119,8 @@ class SimulationSpec extends Specification {
         Money at75Percent = results.get(Parameters.of("time", startTime.plusDays(10).plusHours(12)))
         assert new BigDecimal("3049").compareTo(at75Percent.value().setScale(0, java.math.RoundingMode.HALF_UP)) == 0
     }
-    def "shouldSimulateSimpleFixedCalculator"() {
+    def "simple fixed calculator always returns the same price when simulated"() {
+        given:
         SimpleFixedCalculator calculator = new SimpleFixedCalculator(
             "flat-fee",
             Money.of(50, "PLN")
@@ -124,8 +131,9 @@ class SimulationSpec extends Specification {
             Parameters.of("quantity", new BigDecimal("100")),
             Parameters.of("anything", "value")
         )
-        given:
+        and:
         Map<Parameters, Money> results = calculator.simulate(points)
+        and:
         assert results != null
         assert results.size() == 4
 
@@ -133,7 +141,8 @@ class SimulationSpec extends Specification {
             assert new BigDecimal("50.00").compareTo(price.value()) == 0
         }
     }
-    def "shouldSimulateDiscretePointsCalculator"() {
+    def "discrete points calculator can be simulated over its defined points"() {
+        given:
         Map<BigDecimal, Money> pricePoints = Map.of(
             new BigDecimal("5"), Money.of(100, "PLN"),
             new BigDecimal("10"), Money.of(180, "PLN"),
@@ -149,7 +158,7 @@ class SimulationSpec extends Specification {
             Parameters.of("quantity", new BigDecimal("10")),
             Parameters.of("quantity", new BigDecimal("20"))
         )
-        given:
+        and:
         Map<Parameters, Money> results = calculator.simulate(points)
         and:
         assert results != null
@@ -162,7 +171,8 @@ class SimulationSpec extends Specification {
         assert new BigDecimal("350.00").compareTo(
             results.get(Parameters.of("quantity", new BigDecimal("20"))).value()) == 0
     }
-    def "shouldSimulateCompositeCalculator"() {
+    def "composite calculator can be simulated"() {
+        given:
         Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
         Clock clock = fixed(NOW, ZoneId.systemDefault())
         PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
@@ -207,7 +217,7 @@ class SimulationSpec extends Specification {
             Parameters.of("monthlyIncome", new BigDecimal("4000")),
             Parameters.of("monthlyIncome", new BigDecimal("10000"))
         )
-        given:
+        and:
         Map<Parameters, Money> results = composite.simulate(points)
         and:
         assert results != null
@@ -225,7 +235,7 @@ class SimulationSpec extends Specification {
         assert BigDecimal.ZERO.compareTo(
             results.get(Parameters.of("monthlyIncome", new BigDecimal("10000"))).value()) == 0
     }
-    def "shouldPreserveOrderInSimulationResults"() {
+    def "simulation results preserve input order"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "test",
@@ -247,7 +257,7 @@ class SimulationSpec extends Specification {
         assert resultKeys.get(2) == points.get(2)
         assert resultKeys.get(3) == points.get(3)
     }
-    def "shouldSimulateEmptyListOfPoints"() {
+    def "simulating with an empty list returns an empty result"() {
         given:
         SimpleFixedCalculator calculator = new SimpleFixedCalculator(
             "test",

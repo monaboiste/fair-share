@@ -1,22 +1,17 @@
 package com.softwarearchetypes.pricing
 
-import static com.softwarearchetypes.pricing.ClockFixture.someFixedClock
-import static java.time.Clock.fixed
-import static java.time.LocalDateTime.now
-
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
-import java.time.Clock
-import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.util.Map
 import spock.lang.Specification
 
+
 class SimpleComponentVersioningSpec extends Specification {
 
-    static final Clock clock = someFixedClock()
-    def "shouldCreateComponentWithInitialVersion"() {
+    static final Clock clock = ClockFixture.someFixedClock()
+    def "component is created with an initial version"() {
         given:
         Calculator calculator = new SimpleFixedCalculator("fixed-100", Money.of(100, "PLN"))
         Validity validity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
@@ -31,7 +26,7 @@ class SimpleComponentVersioningSpec extends Specification {
         assert component.name() == "Base Price"
         assert component.id() != null
     }
-    def "shouldCalculateUsingVersionValidAtGivenTimestamp"() {
+    def "calculation uses the version valid at the given timestamp"() {
         given:
         Calculator calculator = new SimpleFixedCalculator("fixed-100", Money.of(100, "PLN"))
         Validity validity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
@@ -42,7 +37,7 @@ class SimpleComponentVersioningSpec extends Specification {
         and:
         assert result == Money.of(100, "PLN")
     }
-    def "shouldAddNewVersionAndKeepOldOne"() {
+    def "adding a new version keeps the old one for its validity period"() {
         given:
         Calculator baseCalculator = new SimpleFixedCalculator("fixed-100", Money.of(100, "PLN"))
         Validity baseValidity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
@@ -57,7 +52,7 @@ class SimpleComponentVersioningSpec extends Specification {
                 discountCalculator,
                 Map.of(),
                 discountValidity,
-                now(clock)
+                java.time.LocalDateTime.now(clock)
         )
         SimpleComponent updated = component.updateWith(discountVersion)
         and:
@@ -70,7 +65,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
         assert updated.calculate(mar15) == Money.of(100, "PLN")
     }
-    def "shouldUseYoungestValidFromWhenVersionsOverlap"() {
+    def "when versions overlap the one with the youngest validFrom wins"() {
         given:
         Calculator baseCalculator = new SimpleFixedCalculator("base", Money.of(100, "PLN"))
         Validity baseValidity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
@@ -78,15 +73,15 @@ class SimpleComponentVersioningSpec extends Specification {
         and:
         Calculator calc1 = new SimpleFixedCalculator("v1", Money.of(80, "PLN"))
         Validity validity1 = Validity.from(LocalDateTime.of(2024, 2, 1, 0, 0))
-        component = component.updateWith(new SimpleComponentVersion(calc1, Map.of(), validity1, now(clock)))
+        component = component.updateWith(new SimpleComponentVersion(calc1, Map.of(), validity1, java.time.LocalDateTime.now(clock)))
         Calculator calc2 = new SimpleFixedCalculator("v2", Money.of(90, "PLN"))
         Validity validity2 = Validity.from(LocalDateTime.of(2024, 2, 10, 0, 0))
-        component = component.updateWith(new SimpleComponentVersion(calc2, Map.of(), validity2, now(clock)))
+        component = component.updateWith(new SimpleComponentVersion(calc2, Map.of(), validity2, java.time.LocalDateTime.now(clock)))
         and:
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
         assert component.calculate(feb15) == Money.of(90, "PLN")
     }
-    def "shouldThrowExceptionWhenNoVersionValidAtTimestamp"() {
+    def "calculation fails when no version is valid at the given timestamp"() {
         given:
         Calculator calculator = new SimpleFixedCalculator("fixed", Money.of(100, "PLN"))
         Validity validity = Validity.from(LocalDateTime.of(2024, 2, 1, 0, 0))
@@ -98,7 +93,7 @@ class SimpleComponentVersioningSpec extends Specification {
         assert exception.message.contains("No version of component")
         assert exception.message.contains("valid at 2024-01-15")
     }
-    def "shouldFallbackToCurrentTimeWhenTimestampNotProvided"() {
+    def "calculation falls back to current time when no timestamp is provided"() {
         given:
         Calculator calculator = new SimpleFixedCalculator("fixed", Money.of(100, "PLN"))
         Validity validity = Validity.from(LocalDateTime.of(2020, 1, 1, 0, 0))
@@ -109,31 +104,31 @@ class SimpleComponentVersioningSpec extends Specification {
         and:
         assert result == Money.of(100, "PLN")
     }
-    def "shouldRejectVersionWithIdenticalValidityByDefault"() {
+    def "version with identical validity is rejected by default"() {
         given:
         Calculator calculator1 = new SimpleFixedCalculator("v1", Money.of(100, "PLN"))
         Validity validity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
         SimpleComponent component = SimpleComponent.withInitialVersion("Price", calculator1, validity, clock)
         and:
         Calculator calculator2 = new SimpleFixedCalculator("v2", Money.of(200, "PLN"))
-        SimpleComponentVersion duplicate = new SimpleComponentVersion(calculator2, Map.of(), validity, now(clock))
+        SimpleComponentVersion duplicate = new SimpleComponentVersion(calculator2, Map.of(), validity, java.time.LocalDateTime.now(clock))
         and:
         shouldFail(IllegalArgumentException) { component.updateWith(duplicate) }.message.contains("identical validity period")
     }
-    def "shouldAllowVersionWithIdenticalValidityWhenUsingALLOW ALL"() {
+    def "version with identical validity is allowed with the ALLOW_ALL strategy"() {
         given:
         Calculator calculator1 = new SimpleFixedCalculator("v1", Money.of(100, "PLN"))
         Validity validity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
         SimpleComponent component = SimpleComponent.withInitialVersion("Price", calculator1, validity, clock)
         and:
         Calculator calculator2 = new SimpleFixedCalculator("v2", Money.of(200, "PLN"))
-        SimpleComponentVersion duplicate = new SimpleComponentVersion(calculator2, Map.of(), validity, now(clock).plusMinutes(10))
+        SimpleComponentVersion duplicate = new SimpleComponentVersion(calculator2, Map.of(), validity, java.time.LocalDateTime.now(clock).plusMinutes(10))
         SimpleComponent updated = component.updateWith(duplicate, VersionUpdateStrategy.ALLOW_ALL)
         and:
         Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
         assert updated.calculate(params) == Money.of(200, "PLN")
     }
-    def "shouldRejectOverlappingVersionsWhenUsingREJECT OVERLAPPING"() {
+    def "overlapping versions are rejected with the REJECT_OVERLAPPING strategy"() {
         given:
         Calculator calculator1 = new SimpleFixedCalculator("v1", Money.of(100, "PLN"))
         Validity validity1 = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
@@ -144,11 +139,11 @@ class SimpleComponentVersioningSpec extends Specification {
                 LocalDateTime.of(2024, 2, 1, 0, 0),
                 LocalDateTime.of(2024, 3, 1, 0, 0)
         )
-        SimpleComponentVersion overlapping = new SimpleComponentVersion(calculator2, Map.of(), validity2, now(clock))
+        SimpleComponentVersion overlapping = new SimpleComponentVersion(calculator2, Map.of(), validity2, java.time.LocalDateTime.now(clock))
         and:
         shouldFail(IllegalArgumentException) { component.updateWith(overlapping, VersionUpdateStrategy.REJECT_OVERLAPPING) }.message.contains("overlaps")
     }
-    def "shouldWorkWithParameterMappings"() {
+    def "versioned component works with parameter mappings"() {
         given:
         Calculator calculator = new StepFunctionCalculator(
                 "step",

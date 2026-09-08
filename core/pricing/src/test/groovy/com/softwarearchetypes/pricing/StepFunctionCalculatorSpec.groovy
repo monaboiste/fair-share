@@ -7,7 +7,7 @@ import spock.lang.Specification
 
 
 class StepFunctionCalculatorSpec extends Specification {
-    def "shouldCalculateBasePriceForQuantityWithinFirstStep"() {
+    def "base price is returned for quantity within the first step"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",
@@ -22,7 +22,7 @@ class StepFunctionCalculatorSpec extends Specification {
         and:
         assert new BigDecimal("100.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculateIncreasedPriceForSecondStep"() {
+    def "price increases by one increment for quantities in the second step"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",
@@ -36,7 +36,7 @@ class StepFunctionCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("105.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculateIncreasedPriceForMultipleSteps"() {
+    def "price increases by one increment per step crossed"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",
@@ -50,7 +50,7 @@ class StepFunctionCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("115.00").compareTo(result.value()) == 0
     }
-    def "shouldCalculatePriceAtExactStepBoundary"() {
+    def "price at an exact step boundary applies the next increment"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",
@@ -64,7 +64,7 @@ class StepFunctionCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         assert new BigDecimal("110.00").compareTo(result.value()) == 0
     }
-    def "shouldThrowExceptionWhenQuantityParameterMissing"() {
+    def "missing quantity parameter raises an exception"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",
@@ -77,7 +77,7 @@ class StepFunctionCalculatorSpec extends Specification {
         and:
         shouldFail(IllegalArgumentException) { calculator.calculate(params) }
     }
-    def "shouldReturnCorrectType"() {
+    def "calculator type is step function"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",
@@ -88,7 +88,7 @@ class StepFunctionCalculatorSpec extends Specification {
         and:
         assert calculator.getType() == CalculatorType.STEP_FUNCTION
     }
-    def "shouldProvideDescription"() {
+    def "description includes base price and step size"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "Volume Pricing",

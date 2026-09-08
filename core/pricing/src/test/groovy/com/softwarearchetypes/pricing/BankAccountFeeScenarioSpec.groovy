@@ -2,6 +2,14 @@ package com.softwarearchetypes.pricing
 
 import static java.time.Clock.fixed
 
+import com.softwarearchetypes.pricing.Calculator
+import com.softwarearchetypes.pricing.CalculatorRange
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.CompositeFunctionCalculator
+import com.softwarearchetypes.pricing.NumericRange
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingConfiguration
+import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
 import java.time.Clock
@@ -57,89 +65,107 @@ class BankAccountFeeScenarioSpec extends Specification {
             ))
         )
     }
-    def "shouldCharge20PlnForVeryLowIncome"() {
+    def "income of zero is charged 20 PLN"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", BigDecimal.ZERO
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert new BigDecimal("20.00").compareTo(fee.value()) == 0
     }
-    def "shouldCharge20PlnForLowIncome"() {
+    def "income below 1000 PLN is charged 20 PLN"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("500")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert new BigDecimal("20.00").compareTo(fee.value()) == 0
     }
-    def "shouldCharge20PlnForIncomeJustBelowThreshold"() {
+    def "income just below 1000 PLN is still charged 20 PLN"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("999.99")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert new BigDecimal("20.00").compareTo(fee.value()) == 0
     }
-    def "shouldCharge10PlnForIncomeAtLowerBoundary"() {
+    def "income at the 1000 PLN boundary is charged 10 PLN"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("1000")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert new BigDecimal("10.00").compareTo(fee.value()) == 0
     }
-    def "shouldCharge10PlnForMediumIncome"() {
+    def "income between 1000 and 4000 PLN is charged 10 PLN"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("2500")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert new BigDecimal("10.00").compareTo(fee.value()) == 0
     }
-    def "shouldCharge10PlnForIncomeJustBelowHighTier"() {
+    def "income just below 4000 PLN is charged 10 PLN"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("3999.99")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert new BigDecimal("10.00").compareTo(fee.value()) == 0
     }
-    def "shouldChargeNothingForIncomeAtHighTierBoundary"() {
+    def "income at the 4000 PLN boundary is charged nothing"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("4000")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert BigDecimal.ZERO.compareTo(fee.value()) == 0
     }
-    def "shouldChargeNothingForHighIncome"() {
+    def "income above 4000 PLN is free"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("5000")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert BigDecimal.ZERO.compareTo(fee.value()) == 0
     }
-    def "shouldChargeNothingForVeryHighIncome"() {
+    def "very high income is free"() {
+        given:
         Parameters params = new Parameters(Map.of(
             "monthlyIncome", new BigDecimal("50000")
         ))
-        given:
+        and:
         Money fee = facade.calculate("account-fee", params)
+        and:
         assert BigDecimal.ZERO.compareTo(fee.value()) == 0
     }
-    def "shouldVerifyCalculatorType"() {
+    def "calculator type is composite"() {
         given:
         assert accountFeeCalculator.getType() == CalculatorType.COMPOSITE
     }
-    def "shouldProvideCompositeFunctionFormula"() {
+    def "formula shows piecewise function with all three tiers"() {
         given:
         String formula = accountFeeCalculator.formula()
         String expected = "f(x) = piecewise function:\n" +
-                         "  [0, 1000) → acc-fee-tier-1: f(x) = PLN 20\n" +
-                         "  [1000, 4000) → acc-fee-tier-2: f(x) = PLN 10\n" +
-                         "  [4000, 2147483647) → acc-fee-tier-3: f(x) = PLN 0"
+                         "  [0, 1000) \u2192 acc-fee-tier-1: f(x) = PLN 20\n" +
+                         "  [1000, 4000) \u2192 acc-fee-tier-2: f(x) = PLN 10\n" +
+                         "  [4000, 2147483647) \u2192 acc-fee-tier-3: f(x) = PLN 0"
         assert formula == expected
     }
 }

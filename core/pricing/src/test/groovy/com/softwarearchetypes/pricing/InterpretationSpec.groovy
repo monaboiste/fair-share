@@ -9,13 +9,13 @@ import spock.lang.Specification
 
 
 class InterpretationSpec extends Specification {
-    def "shouldHaveTotalAsDefaultInterpretationForSimpleFixed"() {
+    def "simple fixed calculator defaults to total interpretation"() {
         given:
         SimpleFixedCalculator calculator = new SimpleFixedCalculator("test", Money.of(100, "PLN"))
 
         assert calculator.interpretation() == Interpretation.TOTAL
     }
-    def "shouldAllowSettingInterpretationForSimpleFixed"() {
+    def "simple fixed calculator can be set to a specific interpretation"() {
         given:
         SimpleFixedCalculator calculator = new SimpleFixedCalculator(
             "test",
@@ -25,7 +25,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.UNIT
     }
-    def "shouldHaveTotalAsDefaultInterpretationForStepFunction"() {
+    def "step function calculator defaults to total interpretation"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "test",
@@ -36,7 +36,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.TOTAL
     }
-    def "shouldAllowSettingInterpretationForStepFunction"() {
+    def "step function calculator can be set to a specific interpretation"() {
         given:
         StepFunctionCalculator calculator = new StepFunctionCalculator(
             "test",
@@ -48,7 +48,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.MARGINAL
     }
-    def "shouldHaveTotalAsDefaultInterpretationForDiscretePoints"() {
+    def "discrete points calculator defaults to total interpretation"() {
         given:
         DiscretePointsCalculator calculator = new DiscretePointsCalculator(
             "test",
@@ -57,7 +57,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.TOTAL
     }
-    def "shouldAllowSettingInterpretationForDiscretePoints"() {
+    def "discrete points calculator can be set to a specific interpretation"() {
         given:
         DiscretePointsCalculator calculator = new DiscretePointsCalculator(
             "test",
@@ -67,7 +67,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.UNIT
     }
-    def "shouldHaveTotalAsDefaultInterpretationForDailyIncrement"() {
+    def "daily increment calculator defaults to total interpretation"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "test",
@@ -78,7 +78,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.TOTAL
     }
-    def "shouldAllowSettingInterpretationForDailyIncrement"() {
+    def "daily increment calculator can be set to a specific interpretation"() {
         given:
         DailyIncrementCalculator calculator = new DailyIncrementCalculator(
             "test",
@@ -90,7 +90,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.MARGINAL
     }
-    def "shouldHaveTotalAsDefaultInterpretationForContinuousLinearTime"() {
+    def "continuous linear time calculator defaults to total interpretation"() {
         given:
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
             "test",
@@ -102,7 +102,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.TOTAL
     }
-    def "shouldAllowSettingInterpretationForContinuousLinearTime"() {
+    def "continuous linear time calculator can be set to a specific interpretation"() {
         given:
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
             "test",
@@ -115,7 +115,7 @@ class InterpretationSpec extends Specification {
 
         assert calculator.interpretation() == Interpretation.UNIT
     }
-    def "shouldProvideDescriptionsForInterpretations"() {
+    def "each interpretation has a human-readable description"() {
         given:
         assert Interpretation.TOTAL.describe() == "Total price for entire quantity/period"
         assert Interpretation.UNIT.describe() == "Average price per single unit"

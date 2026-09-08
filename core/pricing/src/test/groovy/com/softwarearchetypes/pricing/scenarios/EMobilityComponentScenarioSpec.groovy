@@ -3,6 +3,14 @@ package com.softwarearchetypes.pricing
 import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed
 
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Interpretation
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingConfiguration
+import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.StepBoundary
+import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.math.BigDecimal
 import java.time.Clock
@@ -57,8 +65,8 @@ class EMobilityComponentScenarioSpec extends Specification {
                 Parameters.of("percentageRate", BigDecimal.valueOf(23),
                         "interpretation", Interpretation.TOTAL))
     }
-    def "shouldCalculateCompleteChargingSessionWithBreakdown"() {
-        given:
+    def "complete EV charging session is calculated with a full cost breakdown"() {
+        given: "a 12 kWh, 40-minute charging session with energy, CPO, EMSP, and VAT components"
         facade.createSimpleComponent("energy-wholesale-component", "energy-wholesale")
         facade.createSimpleComponent("energy-grid-component", "energy-grid")
         facade.createCompositeComponent("energy-net",
@@ -178,8 +186,8 @@ class EMobilityComponentScenarioSpec extends Specification {
                 .child("vat-component")
                 .hasTotal(Money.of(new BigDecimal("4.97"), "PLN"))
     }
-    def "shouldShowFormattedBreakdownForSession"() {
-        given:
+    def "charging session breakdown can be formatted for display"() {
+        given: "a fully configured charging session"
         facade.createSimpleComponent("energy-wholesale-component", "energy-wholesale")
         facade.createSimpleComponent("energy-grid-component", "energy-grid")
         facade.createCompositeComponent("energy-net", Map.of(),
@@ -203,21 +211,17 @@ class EMobilityComponentScenarioSpec extends Specification {
         facade.createCompositeComponent("total-session-cost",
                 Map.of("vat-component", Map.of("baseAmount", new ValueOf("netto"))),
                 "netto", "vat-component")
-        and:
+
         Parameters sessionParams = Parameters.of(
                 "quantity", BigDecimal.valueOf(12),
                 "time", BigDecimal.valueOf(40)
         )
-
+        and:
         ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-session-cost", sessionParams)
         and:
-        System.out.println("=".repeat(60))
-        System.out.println("E-MOBILITY CHARGING SESSION BREAKDOWN")
-        System.out.println("Session: 12 kWh, 40 minutes")
-        System.out.println("=".repeat(60))
-        System.out.println(breakdown.format())
-        System.out.println("=".repeat(60))
-
         assert breakdown.total() == Money.of(new BigDecimal("26.57"), "PLN")
+        assert breakdown.format() != null
+        assert breakdown.format().contains("total-session-cost")
+        assert breakdown.format().contains("netto")
     }
 }
