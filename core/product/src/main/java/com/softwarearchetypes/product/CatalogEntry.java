@@ -20,45 +20,38 @@ public class CatalogEntry {
     private final Set<String> categories;
     private final Validity validity;
     private final Map<String, String> metadata;
+
     /** Restricts availability using catalog-specific sales conditions. */
     private final ApplicabilityConstraint salesConstraint;
 
-    private CatalogEntry(
-            CatalogEntryId id,
-            String displayName,
-            String description,
-            Product product,
-            @Nullable Set<String> categories,
-            Validity validity,
-            @Nullable Map<String, String> metadata,
-            ApplicabilityConstraint salesConstraint) {
-        if (id == null) {
+    private CatalogEntry(Builder builder) {
+        if (builder.id == null) {
             throw new IllegalArgumentException("CatalogEntryId must be defined");
         }
-        if (displayName == null || displayName.isBlank()) {
+        if (builder.displayName == null || builder.displayName.isBlank()) {
             throw new IllegalArgumentException("Display name must be defined");
         }
-        if (description == null || description.isBlank()) {
+        if (builder.description == null || builder.description.isBlank()) {
             throw new IllegalArgumentException("Description must be defined");
         }
-        if (product == null) {
+        if (builder.product == null) {
             throw new IllegalArgumentException("Product must be defined");
         }
-        if (validity == null) {
+        if (builder.validity == null) {
             throw new IllegalArgumentException("Validity must be defined");
         }
-        if (salesConstraint == null) {
-            throw new IllegalArgumentException("salesConstraint must be defined");
+        if (builder.salesConstraint == null) {
+            throw new IllegalArgumentException("Sales constraint must be defined");
         }
 
-        this.id = id;
-        this.displayName = displayName;
-        this.description = description;
-        this.product = product;
-        this.categories = categories != null ? Set.copyOf(categories) : Set.of();
-        this.validity = validity;
-        this.metadata = metadata != null ? Map.copyOf(metadata) : Map.of();
-        this.salesConstraint = salesConstraint;
+        this.id = builder.id;
+        this.displayName = builder.displayName;
+        this.description = builder.description;
+        this.product = builder.product;
+        this.categories = Set.copyOf(builder.categories);
+        this.validity = builder.validity;
+        this.metadata = Map.copyOf(builder.metadata);
+        this.salesConstraint = builder.salesConstraint;
     }
 
     public static Builder builder() {
@@ -129,14 +122,16 @@ public class CatalogEntry {
 
     /** Returns a copy with the given validity. */
     CatalogEntry withValidity(Validity newValidity) {
-        return new CatalogEntry(
-                id, displayName, description, product, categories, newValidity, metadata, salesConstraint);
+        return toBuilder().validity(newValidity).build();
     }
 
     /** Returns a copy with the given metadata. */
     CatalogEntry withMetadata(Map<String, String> newMetadata) {
-        return new CatalogEntry(
-                id, displayName, description, product, categories, validity, newMetadata, salesConstraint);
+        return toBuilder().metadata(newMetadata).build();
+    }
+
+    private Builder toBuilder() {
+        return new Builder(this);
     }
 
     @Override
@@ -162,6 +157,7 @@ public class CatalogEntry {
     }
 
     public static class Builder {
+
         private CatalogEntryId id;
         private String displayName;
         private String description;
@@ -170,6 +166,19 @@ public class CatalogEntry {
         private Validity validity;
         private Map<String, String> metadata = new HashMap<>();
         private ApplicabilityConstraint salesConstraint = ApplicabilityConstraint.alwaysTrue();
+
+        private Builder() {}
+
+        private Builder(CatalogEntry entry) {
+            this.id = entry.id;
+            this.displayName = entry.displayName;
+            this.description = entry.description;
+            this.product = entry.product;
+            this.categories = new HashSet<>(entry.categories);
+            this.validity = entry.validity;
+            this.metadata = new HashMap<>(entry.metadata);
+            this.salesConstraint = entry.salesConstraint;
+        }
 
         public Builder id(CatalogEntryId id) {
             this.id = id;
@@ -191,8 +200,8 @@ public class CatalogEntry {
             return this;
         }
 
-        public Builder categories(Set<String> categories) {
-            this.categories = new HashSet<>(categories);
+        public Builder categories(@Nullable Set<String> categories) {
+            this.categories = categories != null ? new HashSet<>(categories) : new HashSet<>();
             return this;
         }
 
@@ -206,8 +215,8 @@ public class CatalogEntry {
             return this;
         }
 
-        public Builder metadata(Map<String, String> metadata) {
-            this.metadata = new HashMap<>(metadata);
+        public Builder metadata(@Nullable Map<String, String> metadata) {
+            this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
             return this;
         }
 
@@ -222,8 +231,7 @@ public class CatalogEntry {
         }
 
         public CatalogEntry build() {
-            return new CatalogEntry(
-                    id, displayName, description, product, categories, validity, metadata, salesConstraint);
+            return new CatalogEntry(this);
         }
     }
 }

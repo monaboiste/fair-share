@@ -7,6 +7,8 @@ import org.jspecify.annotations.Nullable;
 /** A period with optional inclusive start and end dates. */
 public record Validity(@Nullable LocalDate from, @Nullable LocalDate to) {
 
+    private static final Validity ALWAYS_VALID = new Validity(null, null);
+
     public Validity {
         if (from != null && to != null && from.isAfter(to)) {
             throw new IllegalArgumentException("Start date must not be after end date");
@@ -30,7 +32,7 @@ public record Validity(@Nullable LocalDate from, @Nullable LocalDate to) {
 
     /** Creates an unbounded period. */
     public static Validity always() {
-        return new Validity(null, null);
+        return ALWAYS_VALID;
     }
 
     /** Returns whether the given date falls within this period. */
@@ -41,10 +43,7 @@ public record Validity(@Nullable LocalDate from, @Nullable LocalDate to) {
         if (from != null && date.isBefore(from)) {
             return false;
         }
-        if (to != null && date.isAfter(to)) {
-            return false;
-        }
-        return true;
+        return to == null || !date.isAfter(to);
     }
 
     @Override

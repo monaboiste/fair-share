@@ -118,10 +118,10 @@ record ProductFeatureInstance(ProductFeatureType featureType, Object value) {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ProductFeatureInstance that)) {
+        if (!(o instanceof ProductFeatureInstance(ProductFeatureType thatFeatureType, Object thatValue))) {
             return false;
         }
-        return Objects.equals(featureType, that.featureType) && Objects.equals(value, that.value);
+        return Objects.equals(featureType, thatFeatureType) && Objects.equals(value, thatValue);
     }
 
     @Override

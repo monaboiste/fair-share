@@ -21,46 +21,35 @@ class Batch {
     private final SerialNumber endSerialNumber;
     private final String comments;
 
-    private Batch(
-            BatchId id,
-            BatchName name,
-            ProductType productType,
-            Quantity quantityInBatch,
-            @Nullable Instant dateProduced,
-            @Nullable Instant sellBy,
-            @Nullable Instant useBy,
-            @Nullable Instant bestBefore,
-            @Nullable SerialNumber startSerialNumber,
-            @Nullable SerialNumber endSerialNumber,
-            @Nullable String comments) {
-        if (id == null) {
+    private Batch(Builder builder) {
+        if (builder.id == null) {
             throw new IllegalArgumentException("BatchId must be defined");
         }
-        if (name == null) {
+        if (builder.name == null) {
             throw new IllegalArgumentException("BatchName must be defined");
         }
-        if (productType == null) {
+        if (builder.productType == null) {
             throw new IllegalArgumentException("ProductType must be defined");
         }
-        if (quantityInBatch == null) {
+        if (builder.quantityInBatch == null) {
             throw new IllegalArgumentException("Quantity in batch must be defined");
         }
 
-        if (!quantityInBatch.unit().equals(productType.preferredUnit())) {
+        if (!builder.quantityInBatch.unit().equals(builder.productType.preferredUnit())) {
             throw new IllegalArgumentException("Batch quantity unit must match ProductType's preferred unit");
         }
 
-        this.id = id;
-        this.name = name;
-        this.batchOf = productType.id();
-        this.quantityInBatch = quantityInBatch;
-        this.dateProduced = dateProduced;
-        this.sellBy = sellBy;
-        this.useBy = useBy;
-        this.bestBefore = bestBefore;
-        this.startSerialNumber = startSerialNumber;
-        this.endSerialNumber = endSerialNumber;
-        this.comments = comments;
+        this.id = builder.id;
+        this.name = builder.name;
+        this.batchOf = builder.productType.id();
+        this.quantityInBatch = builder.quantityInBatch;
+        this.dateProduced = builder.dateProduced;
+        this.sellBy = builder.sellBy;
+        this.useBy = builder.useBy;
+        this.bestBefore = builder.bestBefore;
+        this.startSerialNumber = builder.startSerialNumber;
+        this.endSerialNumber = builder.endSerialNumber;
+        this.comments = builder.comments;
     }
 
     static Builder builder() {
@@ -117,17 +106,20 @@ class Batch {
     }
 
     static class Builder {
+
         private BatchId id;
         private BatchName name;
         private ProductType productType;
         private Quantity quantityInBatch;
-        private Instant dateProduced;
-        private Instant sellBy;
-        private Instant useBy;
-        private Instant bestBefore;
-        private SerialNumber startSerialNumber;
-        private SerialNumber endSerialNumber;
-        private String comments;
+        private @Nullable Instant dateProduced;
+        private @Nullable Instant sellBy;
+        private @Nullable Instant useBy;
+        private @Nullable Instant bestBefore;
+        private @Nullable SerialNumber startSerialNumber;
+        private @Nullable SerialNumber endSerialNumber;
+        private @Nullable String comments;
+
+        private Builder() {}
 
         Builder id(BatchId id) {
             this.id = id;
@@ -185,18 +177,7 @@ class Batch {
         }
 
         Batch build() {
-            return new Batch(
-                    id,
-                    name,
-                    productType,
-                    quantityInBatch,
-                    dateProduced,
-                    sellBy,
-                    useBy,
-                    bestBefore,
-                    startSerialNumber,
-                    endSerialNumber,
-                    comments);
+            return new Batch(this);
         }
     }
 }

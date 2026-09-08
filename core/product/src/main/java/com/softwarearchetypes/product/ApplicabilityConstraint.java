@@ -82,7 +82,7 @@ record GreaterThanConstraint(String parameterName, int threshold) implements App
                 .map(value -> {
                     try {
                         return Integer.parseInt(value) > threshold;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
@@ -97,7 +97,7 @@ record LessThanConstraint(String parameterName, int threshold) implements Applic
                 .map(value -> {
                     try {
                         return Integer.parseInt(value) < threshold;
-                    } catch (NumberFormatException ignored) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
@@ -113,7 +113,7 @@ record BetweenConstraint(String parameterName, int min, int max) implements Appl
                     try {
                         int numValue = Integer.parseInt(value);
                         return numValue >= min && numValue <= max;
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         return false;
                     }
                 })
