@@ -1,4 +1,4 @@
-package com.softwarearchetypes.pricing
+package com.softwarearchetypes.pricing.scenarios
 
 import com.softwarearchetypes.pricing.CalculatorType
 import com.softwarearchetypes.pricing.ComponentBreakdown

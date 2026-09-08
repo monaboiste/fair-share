@@ -45,22 +45,26 @@ class DateRangeSpec extends Specification {
         assert !(range.contains(2024))
     }
     def "should throw when from not before to"() {
-        given:
-        shouldFail(IllegalArgumentException) {
-                CalculatorRange.date(
-                        LocalDate.of(2024, 9, 1),
-                        LocalDate.of(2024, 6, 1),
-                        CalculatorId.generate()
-                ) }
+        when:
+        CalculatorRange.date(
+                LocalDate.of(2024, 9, 1),
+                LocalDate.of(2024, 6, 1),
+                CalculatorId.generate()
+        )
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should throw when from equals to"() {
-        given:
-        shouldFail(IllegalArgumentException) {
-                CalculatorRange.date(
-                        LocalDate.of(2024, 6, 1),
-                        LocalDate.of(2024, 6, 1),
-                        CalculatorId.generate()
-                ) }
+        when:
+        CalculatorRange.date(
+                LocalDate.of(2024, 6, 1),
+                LocalDate.of(2024, 6, 1),
+                CalculatorId.generate()
+        )
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should detect overlap when ranges overlap"() {
         given:
@@ -139,15 +143,5 @@ class DateRangeSpec extends Specification {
         )
         and:
         assert !(dateRange.isCompatibleWith(timeRange))
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

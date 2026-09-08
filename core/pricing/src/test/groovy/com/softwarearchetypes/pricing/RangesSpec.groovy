@@ -22,27 +22,35 @@ class RangesSpec extends Specification {
         assert ranges.size() == 3
     }
     def "should throw when ranges are empty"() {
-        given:
-        shouldFail(IllegalArgumentException) {
-            new Ranges("quantity", List.of()) }
+        when:
+        new Ranges("quantity", List.of())
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should throw when range selector is null"() {
         given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate())
         )
-        and:
-        shouldFail(IllegalArgumentException) {
-            new Ranges(null, rangesList) }
+
+        when:
+        new Ranges(null, rangesList)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should throw when range selector is blank"() {
         given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate())
         )
-        and:
-        shouldFail(IllegalArgumentException) {
-            new Ranges("  ", rangesList) }
+
+        when:
+        new Ranges("  ", rangesList)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should throw when ranges overlap"() {
         given:
@@ -50,10 +58,12 @@ class RangesSpec extends Specification {
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
             CalculatorRange.numeric(new BigDecimal("5"), new BigDecimal("15"), CalculatorId.generate())
         )
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { new Ranges("quantity", rangesList) }
+        when:
+        new Ranges("quantity", rangesList)
 
-        assert exception.getMessage().contains("overlap")
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("overlap")
     }
     def "should throw when ranges have incompatible types"() {
         given:
@@ -61,10 +71,12 @@ class RangesSpec extends Specification {
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
             CalculatorRange.time(LocalTime.of(8, 0), LocalTime.of(18, 0), CalculatorId.generate())
         )
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { new Ranges("param", rangesList) }
+        when:
+        new Ranges("param", rangesList)
 
-        assert exception.getMessage().contains("same type")
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("same type")
     }
     def "should find matching range for numeric value"() {
         given:
@@ -128,11 +140,14 @@ class RangesSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("weight", new BigDecimal("5")))
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { ranges.findMatching(params) }
 
-        assert exception.getMessage().contains("quantity")
-        assert exception.getMessage().contains("required")
+        when:
+        ranges.findMatching(params)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("quantity")
+        ex.message.contains("required")
     }
     def "should find first matching range when adjacent"() {
         given:
@@ -150,15 +165,5 @@ class RangesSpec extends Specification {
         and:
         CalculatorRange matchingRange = ranges.findMatching(paramsAt10).orElseThrow()
         assert matchingRange.calculatorId() == matchingRangeCalculatorId
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

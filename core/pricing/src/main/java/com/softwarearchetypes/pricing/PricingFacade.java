@@ -24,12 +24,6 @@ public class PricingFacade {
         this.clock = clock;
     }
 
-    /** @deprecated use the three-argument constructor. */
-    @Deprecated
-    PricingFacade(CalculatorRepository calculatorRepository, Clock clock) {
-        this(calculatorRepository, new InMemoryComponentRepository(), clock);
-    }
-
     public List<CalculatorView> availableCalculators() {
         return calculatorRepository.findAll().stream().map(CalculatorView::from).toList();
     }

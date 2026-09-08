@@ -28,8 +28,13 @@ class ValiditySpec extends Specification {
         given:
         LocalDateTime from = LocalDateTime.of(2024, 2, 1, 0, 0)
         LocalDateTime to = LocalDateTime.of(2024, 1, 1, 0, 0)
-        and:
-        shouldFail(IllegalArgumentException) { Validity.between(from, to) }.message.contains("validFrom must be before validTo")
+
+        when:
+        Validity.between(from, to)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("validFrom must be before validTo")
     }
     def "isValidAt returns true only within the validity window"() {
         given:
@@ -111,15 +116,5 @@ class ValiditySpec extends Specification {
         assert always.isValidAt(LocalDateTime.MIN)
         assert always.isValidAt(LocalDateTime.of(2024, 1, 1, 0, 0))
         assert always.isValidAt(LocalDateTime.MAX.minusYears(1))
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

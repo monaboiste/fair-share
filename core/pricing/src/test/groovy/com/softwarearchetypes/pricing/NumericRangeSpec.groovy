@@ -45,22 +45,26 @@ class NumericRangeSpec extends Specification {
         assert !(range.contains(5))
     }
     def "should throw when min greater than max"() {
-        given:
-        shouldFail(IllegalArgumentException) {
-            CalculatorRange.numeric(
-                new BigDecimal("20"),
-                new BigDecimal("10"),
-                CalculatorId.generate()
-            ) }
+        when:
+        CalculatorRange.numeric(
+            new BigDecimal("20"),
+            new BigDecimal("10"),
+            CalculatorId.generate()
+        )
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should throw when min equals max"() {
-        given:
-        shouldFail(IllegalArgumentException) {
-            CalculatorRange.numeric(
-                new BigDecimal("10"),
-                new BigDecimal("10"),
-                CalculatorId.generate()
-            ) }
+        when:
+        CalculatorRange.numeric(
+            new BigDecimal("10"),
+            new BigDecimal("10"),
+            CalculatorId.generate()
+        )
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should detect overlap when ranges overlap"() {
         given:
@@ -124,15 +128,5 @@ class NumericRangeSpec extends Specification {
         )
         and:
         assert range1.isCompatibleWith(range2)
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

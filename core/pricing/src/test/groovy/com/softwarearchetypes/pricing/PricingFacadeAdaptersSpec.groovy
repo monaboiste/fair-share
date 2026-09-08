@@ -132,13 +132,16 @@ class PricingFacadeAdaptersSpec extends Specification {
         assert marginal == Money.of(5, "PLN")
     }
     def "facade rejects direct creation of adapter calculator types"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) { facade.addCalculator(
-                        "adapter",
-                        CalculatorType.UNIT_TO_TOTAL_ADAPTER,
-                        Parameters.empty()
-                ) }
-        assert ex.getMessage().contains("cannot be created directly")
+        when:
+        facade.addCalculator(
+                "adapter",
+                CalculatorType.UNIT_TO_TOTAL_ADAPTER,
+                Parameters.empty()
+        )
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("cannot be created directly")
     }
     def "auto-wrapping all three interpretations in a complex scenario"() {
         given:
@@ -159,15 +162,5 @@ class PricingFacadeAdaptersSpec extends Specification {
         assert unit == Money.of(new BigDecimal("4.40"), "PLN")
         Money marginal = facade.calculateMarginal("bulk", params)
         assert marginal == Money.of(0, "PLN")
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

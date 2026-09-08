@@ -1,4 +1,4 @@
-package com.softwarearchetypes.pricing
+package com.softwarearchetypes.pricing.scenarios
 
 import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
 import static java.time.Clock.fixed

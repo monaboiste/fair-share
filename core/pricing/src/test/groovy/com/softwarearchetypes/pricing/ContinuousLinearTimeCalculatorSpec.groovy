@@ -60,8 +60,12 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 5, 31, 12, 0)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "time after the end boundary raises an exception"() {
         given:
@@ -77,8 +81,12 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
         LocalDateTime queryTime = LocalDateTime.of(2024, 6, 16, 12, 0)
         Parameters params = new Parameters(Map.of("time", queryTime))
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "price is interpolated at the midpoint"() {
         given:
@@ -224,8 +232,12 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         )
 
         Parameters params = Parameters.empty()
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "calculator type is continuous linear time"() {
         given:
@@ -300,15 +312,5 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                          "where progress = (t - startTime) / (endTime - startTime)\n" +
                          "domain: t \u2208 [2024-06-01T00:00, 2024-06-15T00:00]"
         assert formula == expected
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

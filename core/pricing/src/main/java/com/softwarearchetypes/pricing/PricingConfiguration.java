@@ -21,7 +21,7 @@ public class PricingConfiguration {
 
     public static PricingConfiguration inMemory(Clock clock) {
         InMemoryCalculatorsRepository repository = new InMemoryCalculatorsRepository();
-        PricingFacade facade = new PricingFacade(repository, clock);
+        PricingFacade facade = new PricingFacade(repository, new InMemoryComponentRepository(), clock);
         facade.addCalculator(
                 "simple-fixed-20",
                 CalculatorType.SIMPLE_FIXED,

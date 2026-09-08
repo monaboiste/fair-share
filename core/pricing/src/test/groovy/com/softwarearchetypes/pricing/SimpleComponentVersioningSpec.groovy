@@ -88,10 +88,14 @@ class SimpleComponentVersioningSpec extends Specification {
         Component component = SimpleComponent.withInitialVersion("Price", calculator, validity, clock)
         and:
         Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
-        and:
-        def exception = shouldFail(IllegalStateException) { component.calculate(jan15) }
-        assert exception.message.contains("No version of component")
-        assert exception.message.contains("valid at 2024-01-15")
+
+        when:
+        component.calculate(jan15)
+
+        then:
+        def ex = thrown(IllegalStateException)
+        ex.message.contains("No version of component")
+        ex.message.contains("valid at 2024-01-15")
     }
     def "calculation falls back to current time when no timestamp is provided"() {
         given:
@@ -112,8 +116,13 @@ class SimpleComponentVersioningSpec extends Specification {
         and:
         Calculator calculator2 = new SimpleFixedCalculator("v2", Money.of(200, "PLN"))
         SimpleComponentVersion duplicate = new SimpleComponentVersion(calculator2, Map.of(), validity, java.time.LocalDateTime.now(clock))
-        and:
-        shouldFail(IllegalArgumentException) { component.updateWith(duplicate) }.message.contains("identical validity period")
+
+        when:
+        component.updateWith(duplicate)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("identical validity period")
     }
     def "version with identical validity is allowed with the ALLOW_ALL strategy"() {
         given:
@@ -140,8 +149,13 @@ class SimpleComponentVersioningSpec extends Specification {
                 LocalDateTime.of(2024, 3, 1, 0, 0)
         )
         SimpleComponentVersion overlapping = new SimpleComponentVersion(calculator2, Map.of(), validity2, java.time.LocalDateTime.now(clock))
-        and:
-        shouldFail(IllegalArgumentException) { component.updateWith(overlapping, VersionUpdateStrategy.REJECT_OVERLAPPING) }.message.contains("overlaps")
+
+        when:
+        component.updateWith(overlapping, VersionUpdateStrategy.REJECT_OVERLAPPING)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("overlaps")
     }
     def "versioned component works with parameter mappings"() {
         given:
@@ -169,15 +183,5 @@ class SimpleComponentVersioningSpec extends Specification {
         Money result = component.calculate(params)
         and:
         assert result == Money.of(105, "PLN")
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

@@ -103,8 +103,12 @@ class DailyIncrementCalculatorSpec extends Specification {
         )
 
         Parameters params = Parameters.empty()
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "calculator type is daily increment"() {
         given:
@@ -164,15 +168,5 @@ class DailyIncrementCalculatorSpec extends Specification {
                          "  startPrice = PLN 1999\n" +
                          "  dailyIncrement = PLN 100"
         assert formula == expected
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

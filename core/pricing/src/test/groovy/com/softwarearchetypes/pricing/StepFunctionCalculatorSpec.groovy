@@ -74,8 +74,12 @@ class StepFunctionCalculatorSpec extends Specification {
         )
 
         Parameters params = Parameters.empty()
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "calculator type is step function"() {
         given:
@@ -102,15 +106,5 @@ class StepFunctionCalculatorSpec extends Specification {
         assert description != null
         assert description.contains("100")
         assert description.contains("10")
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

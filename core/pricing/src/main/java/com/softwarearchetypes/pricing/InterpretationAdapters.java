@@ -11,7 +11,7 @@ class InterpretationAdapters {
     }
 
     /**
-     * Wraps calculator with appropriate adapter to convert from its interpretation to target interpretation. If
+     * Wraps calculator with the appropriate adapter to convert from its interpretation to target interpretation. If the
      * calculator already has target interpretation, returns it unchanged.
      *
      * @param calc calculator to potentially wrap
@@ -43,7 +43,7 @@ class InterpretationAdapters {
     }
 
     /**
-     * Wraps calculator with appropriate adapter to convert from its interpretation to target interpretation. Uses
+     * Wraps calculator with the appropriate adapter to convert from its interpretation to target interpretation. Uses
      * default adapter name suffix based on target interpretation.
      *
      * @param calc calculator to potentially wrap

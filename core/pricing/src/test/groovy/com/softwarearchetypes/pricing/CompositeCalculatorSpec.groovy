@@ -131,10 +131,13 @@ class CompositeCalculatorSpec extends Specification {
         )
 
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("100")))
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { calculator.calculate(params) }
 
-        assert exception.getMessage().contains("No matching range")
+        when:
+        calculator.calculate(params)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("No matching range")
     }
     def "should throw when referenced calculator not found"() {
         given:
@@ -144,10 +147,12 @@ class CompositeCalculatorSpec extends Specification {
             "quantity",
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), nonExistentId)
         )
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { new CompositeFunctionCalculator("piecewise-pricing", ranges, repository) }
+        when:
+        new CompositeFunctionCalculator("piecewise-pricing", ranges, repository)
 
-        assert exception.getMessage().contains("not found")
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("not found")
     }
     def "should throw when parameter missing"() {
         given:
@@ -163,8 +168,12 @@ class CompositeCalculatorSpec extends Specification {
         )
 
         Parameters params = Parameters.empty()
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "should return correct type"() {
         given:
@@ -209,10 +218,12 @@ class CompositeCalculatorSpec extends Specification {
             "quantity",
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), nonExistentId)
         )
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { new CompositeFunctionCalculator("composite", ranges, repository) }
+        when:
+        new CompositeFunctionCalculator("composite", ranges, repository)
 
-        assert exception.getMessage().contains("not found in repository")
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("not found in repository")
     }
     def "should fail when component calculators have different interpretations"() {
         given:
@@ -227,12 +238,14 @@ class CompositeCalculatorSpec extends Specification {
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), totalId),
             CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), unitId)
         )
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { new CompositeFunctionCalculator("composite", ranges, repository) }
+        when:
+        new CompositeFunctionCalculator("composite", ranges, repository)
 
-        assert exception.getMessage().contains("same interpretation")
-        assert exception.getMessage().contains("TOTAL")
-        assert exception.getMessage().contains("UNIT")
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("same interpretation")
+        ex.message.contains("TOTAL")
+        ex.message.contains("UNIT")
     }
     def "should return shared interpretation of component calculators"() {
         given:
@@ -271,15 +284,5 @@ class CompositeCalculatorSpec extends Specification {
         and:
         assert calculator.interpretation() == Interpretation.TOTAL
         assert calculator != null
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

@@ -137,10 +137,10 @@ class NoSelfRelationshipPolicy implements ProductRelationshipDefiningPolicy {
 }
 
 class NoSeasonalCompatibilityPolicy implements ProductRelationshipDefiningPolicy {
-    private final ProductTypeRepository productRepo
+    private final ProductTypeRepository productRepository
 
-    NoSeasonalCompatibilityPolicy(ProductTypeRepository productRepo) {
-        this.productRepo = productRepo
+    NoSeasonalCompatibilityPolicy(ProductTypeRepository productRepository) {
+        this.productRepository = productRepository
     }
 
     @Override
@@ -149,8 +149,8 @@ class NoSeasonalCompatibilityPolicy implements ProductRelationshipDefiningPolicy
             return true
         }
 
-        ProductType fromProduct = productRepo.findById(from).orElseThrow()
-        ProductType toProduct = productRepo.findById(to).orElseThrow()
+        ProductType fromProduct = productRepository.findById(from).orElseThrow()
+        ProductType toProduct = productRepository.findById(to).orElseThrow()
 
         boolean fromSeasonal = "true" == fromProduct.metadata().getOrDefault("seasonal", "false")
         boolean toSeasonal = "true" == toProduct.metadata().getOrDefault("seasonal", "false")

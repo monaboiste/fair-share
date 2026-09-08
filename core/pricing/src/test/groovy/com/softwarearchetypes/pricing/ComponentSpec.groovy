@@ -197,10 +197,12 @@ class ComponentSpec extends Specification {
                 ),
                 childrenInWrongOrder
         )
-        and:
-        IllegalStateException exception = shouldFail(IllegalStateException) { composite.calculate(Parameters.empty()) }
-        and:
-        assert exception.getMessage() == "Component 'comp-1' has not been calculated yet. Check execution order."
+        when:
+        composite.calculate(Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalStateException)
+        ex.message == "Component 'comp-1' has not been calculated yet. Check execution order."
     }
     def "composite component throws when a referenced component is not found"() {
         given:
@@ -216,10 +218,12 @@ class ComponentSpec extends Specification {
                 ),
                 comp
         )
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { composite.calculate(Parameters.empty()) }
-        and:
-        assert exception.getMessage() == "Component 'non-existent' not found"
+        when:
+        composite.calculate(Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message == "Component 'non-existent' not found"
     }
     def "composite component always returns total interpretation"() {
         given:
@@ -264,10 +268,12 @@ class ComponentSpec extends Specification {
     def "composite component throws when it has no children"() {
         given:
         CompositeComponent empty = CompositeComponent.of("empty", List.of())
-        and:
-        IllegalStateException exception = shouldFail(IllegalStateException) { empty.calculate(Parameters.empty()) }
-        and:
-        assert exception.getMessage() == "Composite component empty has no children"
+        when:
+        empty.calculate(Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalStateException)
+        ex.message == "Composite component empty has no children"
     }
     def "simple component maps parameters before delegating"() {
         given:
@@ -388,15 +394,5 @@ class ComponentSpec extends Specification {
         Parameters params = Parameters.of("quantity", BigDecimal.valueOf(3))
         Money result = composite.calculate(params)
         assert result == Money.of(BigDecimal.valueOf(31), "PLN")
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

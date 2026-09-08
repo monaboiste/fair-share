@@ -49,11 +49,14 @@ class DiscretePointsCalculatorSpec extends Specification {
 
         DiscretePointsCalculator calculator = new DiscretePointsCalculator("Volume Discount", points)
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("7")))
-        and:
-        IllegalArgumentException exception = shouldFail(IllegalArgumentException) { calculator.calculate(params) }
 
-        assert exception.getMessage().contains("7")
-        assert exception.getMessage().contains("not defined")
+        when:
+        calculator.calculate(params)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("7")
+        ex.message.contains("not defined")
     }
     def "quantity outside all defined points raises an exception"() {
         given:
@@ -63,8 +66,12 @@ class DiscretePointsCalculatorSpec extends Specification {
 
         DiscretePointsCalculator calculator = new DiscretePointsCalculator("Volume Discount", points)
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("100")))
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "missing quantity parameter raises an exception"() {
         given:
@@ -73,8 +80,12 @@ class DiscretePointsCalculatorSpec extends Specification {
 
         DiscretePointsCalculator calculator = new DiscretePointsCalculator("Volume Discount", points)
         Parameters params = Parameters.empty()
-        and:
-        shouldFail(IllegalArgumentException) { calculator.calculate(params) }
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
     }
     def "calculator type is discrete points"() {
         given:
@@ -110,15 +121,5 @@ class DiscretePointsCalculatorSpec extends Specification {
         Money result = calculator.calculate(params)
         and:
         assert new BigDecimal("50.00").compareTo(result.value()) == 0
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

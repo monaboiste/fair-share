@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-interface Calculator {
+public interface Calculator {
 
     Money calculate(Parameters parameters);
 
@@ -25,9 +25,7 @@ interface Calculator {
 
     String formula();
 
-    default Interpretation interpretation() {
-        return Interpretation.TOTAL;
-    }
+    Interpretation interpretation();
 
     /**
      * Simulates calculation for multiple points in parameter space.
@@ -125,6 +123,11 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
     @Override
     public String formula() {
         return "f(base, unit) = base × (rate/100) × (1/unitsPerYear(unit))\nwhere rate = %s%%".formatted(annualRate);
+    }
+
+    @Override
+    public Interpretation interpretation() {
+        return Interpretation.TOTAL;
     }
 
     @Override
@@ -966,6 +969,11 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
     @Override
     public String formula() {
         return "baseAmount × " + percentageRate + "%";
+    }
+
+    @Override
+    public Interpretation interpretation() {
+        return Interpretation.TOTAL;
     }
 
     @Override

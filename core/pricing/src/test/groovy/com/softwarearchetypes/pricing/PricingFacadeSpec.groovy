@@ -75,52 +75,52 @@ class PricingFacadeSpec extends Specification {
         ])
     }
     def "calculate throws when calculator name is not found"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) {
-            facade.calculate("nonexistent", Parameters.empty())
-        }
-        and:
-        assert ex.getMessage().contains("nonexistent")
+        when:
+        facade.calculate("nonexistent", Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("nonexistent")
     }
     def "calculateTotal throws when calculator name is not found"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) {
-            facade.calculateTotal("nonexistent", Parameters.empty())
-        }
-        and:
-        assert ex.getMessage().contains("nonexistent")
+        when:
+        facade.calculateTotal("nonexistent", Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("nonexistent")
     }
     def "calculateUnitPrice throws when calculator name is not found"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) {
-            facade.calculateUnitPrice("nonexistent", Parameters.empty())
-        }
-        and:
-        assert ex.getMessage().contains("nonexistent")
+        when:
+        facade.calculateUnitPrice("nonexistent", Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("nonexistent")
     }
     def "calculateMarginal throws when calculator name is not found"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) {
-            facade.calculateMarginal("nonexistent", Parameters.empty())
-        }
-        and:
-        assert ex.getMessage().contains("nonexistent")
+        when:
+        facade.calculateMarginal("nonexistent", Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("nonexistent")
     }
     def "calculateComponent throws when component name is not found"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) {
-            facade.calculateComponent("nonexistent", Parameters.empty())
-        }
-        and:
-        assert ex.getMessage().contains("nonexistent")
+        when:
+        facade.calculateComponent("nonexistent", Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("nonexistent")
     }
     def "calculateComponentBreakdown throws when component name is not found"() {
-        given:
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) {
-            facade.calculateComponentBreakdown("nonexistent", Parameters.empty())
-        }
-        and:
-        assert ex.getMessage().contains("nonexistent")
+        when:
+        facade.calculateComponentBreakdown("nonexistent", Parameters.empty())
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("nonexistent")
     }
     def "addCalculator returns the created calculator"() {
         given:
@@ -139,15 +139,5 @@ class PricingFacadeSpec extends Specification {
         Money result = facade.calculate("flat-100", Parameters.empty())
         and:
         assert result == Money.of(100, "PLN")
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }

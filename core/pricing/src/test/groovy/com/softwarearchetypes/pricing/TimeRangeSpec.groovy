@@ -181,18 +181,10 @@ class TimeRangeSpec extends Specification {
             java.math.BigDecimal.TEN,
                 CalculatorId.generate()
         )
-        and:
-        shouldFail(IllegalArgumentException) {
-            timeRange.overlaps(numericRange) }
-    }
+        when:
+        timeRange.overlaps(numericRange)
 
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
+        then:
+        thrown(IllegalArgumentException)
     }
 }

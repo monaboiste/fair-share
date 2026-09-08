@@ -1,4 +1,4 @@
-package com.softwarearchetypes.pricing
+package com.softwarearchetypes.pricing.scenarios
 
 import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThanOrEqualTo
 import static com.softwarearchetypes.pricing.ComponentBreakdownAssert.assertThat
@@ -98,7 +98,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "oversized-component",
                 "oversized-rate",
                 Map.of(),
-                greaterThanOrEqualTo("weight", 30),
+                ApplicabilityConstraint.greaterThanOrEqualTo("weight", 30),
                 Validity.from(januaryFirst))
         facade.createSimpleComponent(
                 "time-window-component",

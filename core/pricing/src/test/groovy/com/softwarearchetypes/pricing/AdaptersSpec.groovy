@@ -25,8 +25,13 @@ class AdaptersSpec extends Specification {
                 Money.of(100, "PLN"),
                 Interpretation.TOTAL
         )
-        IllegalArgumentException ex = shouldFail(IllegalArgumentException) { UnitToTotalAdapter.wrap("adapter", totalCalc) }
-        assert ex.getMessage().contains("UNIT")
+
+        when:
+        UnitToTotalAdapter.wrap("adapter", totalCalc)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("UNIT")
     }
     def "unit-to-marginal adapter returns the same price regardless of quantity"() {
         given:
@@ -138,15 +143,5 @@ class AdaptersSpec extends Specification {
         String formula = totalAdapter.formula()
         assert formula.contains("quantity \u00d7")
         assert formula.contains("f(x) = PLN 10")
-    }
-
-    private static Throwable shouldFail(Class<? extends Throwable> type, Closure action) {
-        try {
-            action.call()
-        } catch (Throwable exception) {
-            assert type.isInstance(exception)
-            return exception
-        }
-        throw new AssertionError("Expected " + type.simpleName)
     }
 }
