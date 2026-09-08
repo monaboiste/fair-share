@@ -12,32 +12,33 @@ class SelectedInstanceSpec extends Specification {
     private ProductInstance laptopInstance
     private ProductInstance mouseInstance
     private PackageInstance bundleInstance
+
     def setup() {
         laptop = Product.builder(
-                                UuidProductIdentifier.random(),
-                                ProductName.of("Business Laptop"),
-                                ProductDescription.of("Professional laptop"))
-                        .asProductType(
-                                Unit.pieces(),
-                                ProductTrackingStrategy.INDIVIDUALLY_TRACKED
-                        ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Business Laptop"),
+                ProductDescription.of("Professional laptop"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.INDIVIDUALLY_TRACKED
+                ).build()
 
         mouse = Product.builder(
-                               UuidProductIdentifier.random(),
-                               ProductName.of("Wireless Mouse"),
-                               ProductDescription.of("Ergonomic mouse"))
-                       .asProductType(
-                               Unit.pieces(),
-                               ProductTrackingStrategy.BATCH_TRACKED)
-                       .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Wireless Mouse"),
+                ProductDescription.of("Ergonomic mouse"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.BATCH_TRACKED)
+                .build()
 
         bundle = Product.builder(
-                                UuidProductIdentifier.random(),
-                                ProductName.of("Workstation Bundle"),
-                                ProductDescription.of("Complete setup")
-                        ).asPackageType()
-                        .withRequiredChoice("laptop", laptop.id())
-                        .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Workstation Bundle"),
+                ProductDescription.of("Complete setup")
+        ).asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .build()
 
         laptopInstance = new InstanceBuilder(InstanceId.newOne())
                 .withSerial(SerialNumber.of("LAPTOP-001"))

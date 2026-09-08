@@ -84,12 +84,12 @@ class ProductRelationshipsFacadeSpec extends Specification {
         ProductType smallCoffee = thereIsProduct()
         ProductType largeCoffee = thereIsProduct()
         ProductRelationshipId relationshipId = facade.handle(
-                        new DefineRelationship(
-                                smallCoffee.identifier(),
-                                largeCoffee.identifier(),
-                                ProductRelationshipType.UPGRADABLE_TO
-                        )
+                new DefineRelationship(
+                        smallCoffee.identifier(),
+                        largeCoffee.identifier(),
+                        ProductRelationshipType.UPGRADABLE_TO
                 )
+        )
                 .getSuccess()
 
         when:
@@ -108,12 +108,12 @@ class ProductRelationshipsFacadeSpec extends Specification {
         ProductType smallCoffee = thereIsProduct()
         ProductType largeCoffee = thereIsProduct()
         ProductRelationshipId relationshipId = facade.handle(
-                        new DefineRelationship(
-                                smallCoffee.identifier(),
-                                largeCoffee.identifier(),
-                                ProductRelationshipType.UPGRADABLE_TO
-                        )
+                new DefineRelationship(
+                        smallCoffee.identifier(),
+                        largeCoffee.identifier(),
+                        ProductRelationshipType.UPGRADABLE_TO
                 )
+        )
                 .getSuccess()
 
         when:

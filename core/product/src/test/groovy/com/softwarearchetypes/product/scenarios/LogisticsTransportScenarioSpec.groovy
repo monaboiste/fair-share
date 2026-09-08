@@ -35,8 +35,8 @@ class LogisticsTransportScenarioSpec extends Specification {
         result.isValid() == valid
 
         where:
-        transport      | insurance | outcome    | valid
-        "domestic"     | "standard" | "accepted" | true
+        transport       | insurance  | outcome    | valid
+        "domestic"      | "standard" | "accepted" | true
         "international" | "standard" | "rejected" | false
         "international" | "extended" | "accepted" | true
     }

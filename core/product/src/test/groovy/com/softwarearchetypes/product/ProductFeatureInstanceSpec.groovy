@@ -40,12 +40,12 @@ class ProductFeatureInstanceSpec extends Specification {
         ProductFeatureInstance.of(featureType, value).valueAsString() == expected
 
         where:
-        featureType                                                        | value                  | expected
-        ProductFeatureType.withAllowedValues("color", "red")             | "red"                  | "red"
-        ProductFeatureType.withNumericRange("count", 1, 10)              | 3                      | "3"
-        ProductFeatureType.withDecimalRange("price", "1", "10")         | new BigDecimal("2.50") | "2.50"
-        ProductFeatureType.withDateRange("date", "2025-01-01", "2025-12-31") | LocalDate.of(2025, 1, 2) | "2025-01-02"
-        ProductFeatureType.unconstrained("enabled", FeatureValueType.BOOLEAN) | true                   | "true"
+        featureType                                                           | value                    | expected
+        ProductFeatureType.withAllowedValues("color", "red")                  | "red"                    | "red"
+        ProductFeatureType.withNumericRange("count", 1, 10)                   | 3                        | "3"
+        ProductFeatureType.withDecimalRange("price", "1", "10")               | new BigDecimal("2.50")   | "2.50"
+        ProductFeatureType.withDateRange("date", "2025-01-01", "2025-12-31")  | LocalDate.of(2025, 1, 2) | "2025-01-02"
+        ProductFeatureType.unconstrained("enabled", FeatureValueType.BOOLEAN) | true                     | "true"
     }
 
     def "returns typed values through accessors"() {
@@ -56,12 +56,12 @@ class ProductFeatureInstanceSpec extends Specification {
         accessor.call(instance) == value
 
         where:
-        featureType                                                        | value                  | accessor
-        ProductFeatureType.withAllowedValues("color", "red")             | "red"                  | { it.asString() }
-        ProductFeatureType.withNumericRange("count", 1, 10)              | 3                      | { it.asInt() }
-        ProductFeatureType.withDecimalRange("price", "1", "10")         | new BigDecimal("2.50") | { it.asDecimal() }
-        ProductFeatureType.withDateRange("date", "2025-01-01", "2025-12-31") | LocalDate.of(2025, 1, 2) | { it.asDate() }
-        ProductFeatureType.unconstrained("enabled", FeatureValueType.BOOLEAN) | true                   | { it.asBoolean() }
+        featureType                                                           | value                    | accessor
+        ProductFeatureType.withAllowedValues("color", "red")                  | "red"                    | { it.asString() }
+        ProductFeatureType.withNumericRange("count", 1, 10)                   | 3                        | { it.asInt() }
+        ProductFeatureType.withDecimalRange("price", "1", "10")               | new BigDecimal("2.50")   | { it.asDecimal() }
+        ProductFeatureType.withDateRange("date", "2025-01-01", "2025-12-31")  | LocalDate.of(2025, 1, 2) | { it.asDate() }
+        ProductFeatureType.unconstrained("enabled", FeatureValueType.BOOLEAN) | true                     | { it.asBoolean() }
     }
 
     def "rejects wrong types through typed accessors"() {
@@ -75,12 +75,12 @@ class ProductFeatureInstanceSpec extends Specification {
         thrown(IllegalStateException)
 
         where:
-        featureType                                                        | value                  | accessor
-        ProductFeatureType.withNumericRange("count", 1, 10)              | 3                      | { it.asString() }
-        ProductFeatureType.withAllowedValues("color", "red")             | "red"                  | { it.asInt() }
-        ProductFeatureType.withAllowedValues("color", "red")             | "red"                  | { it.asDecimal() }
-        ProductFeatureType.withAllowedValues("color", "red")             | "red"                  | { it.asDate() }
-        ProductFeatureType.withAllowedValues("color", "red")             | "red"                  | { it.asBoolean() }
+        featureType                                          | value | accessor
+        ProductFeatureType.withNumericRange("count", 1, 10)  | 3     | { it.asString() }
+        ProductFeatureType.withAllowedValues("color", "red") | "red" | { it.asInt() }
+        ProductFeatureType.withAllowedValues("color", "red") | "red" | { it.asDecimal() }
+        ProductFeatureType.withAllowedValues("color", "red") | "red" | { it.asDate() }
+        ProductFeatureType.withAllowedValues("color", "red") | "red" | { it.asBoolean() }
     }
 
     def "supports equality type checks and string representation"() {

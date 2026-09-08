@@ -3,14 +3,15 @@ package com.softwarearchetypes.product
 import com.softwarearchetypes.quantity.Quantity
 import com.softwarearchetypes.quantity.Unit
 import spock.lang.Specification
+
 class ProductTrackingStrategySpec extends Specification {
     def "should track unique product"() {
         given:
         ProductType hetfieldsGuitar = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Hetfield's EET FUK Guitar"),
-                        ProductDescription.of("1968 Gibson Explorer - one of a kind")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Hetfield's EET FUK Guitar"),
+                ProductDescription.of("1968 Gibson Explorer - one of a kind")
+        )
                 .asProductType(Unit.pieces(), ProductTrackingStrategy.UNIQUE)
                 .build()
 
@@ -29,13 +30,14 @@ class ProductTrackingStrategySpec extends Specification {
         hetfieldsGuitar.trackingStrategy().isTrackedIndividually()
         !hetfieldsGuitar.trackingStrategy().isTrackedByBatch()
     }
+
     def "should track individually tracked product"() {
         given:
         ProductType iphone = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("iPhone 15 Pro"),
-                        ProductDescription.of("256GB Space Gray")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("iPhone 15 Pro"),
+                ProductDescription.of("256GB Space Gray")
+        )
                 .asProductType(Unit.pieces(), ProductTrackingStrategy.INDIVIDUALLY_TRACKED)
                 .build()
 
@@ -60,13 +62,14 @@ class ProductTrackingStrategySpec extends Specification {
         iphone.trackingStrategy().isTrackedIndividually()
         !iphone.trackingStrategy().isTrackedByBatch()
     }
+
     def "should track batch tracked product"() {
         given:
         ProductType milk = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Fresh Milk"),
-                        ProductDescription.of("1L whole milk")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Fresh Milk"),
+                ProductDescription.of("1L whole milk")
+        )
                 .asProductType(Unit.liters(), ProductTrackingStrategy.BATCH_TRACKED)
                 .build()
 
@@ -85,13 +88,14 @@ class ProductTrackingStrategySpec extends Specification {
         !milk.trackingStrategy().isTrackedIndividually()
         milk.trackingStrategy().isTrackedByBatch()
     }
+
     def "should track product with both methods"() {
         given:
         ProductType tv = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Samsung QLED 65\""),
-                        ProductDescription.of("4K Smart TV")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Samsung QLED 65\""),
+                ProductDescription.of("4K Smart TV")
+        )
                 .asProductType(Unit.pieces(), ProductTrackingStrategy.INDIVIDUALLY_AND_BATCH_TRACKED)
                 .build()
 
@@ -111,13 +115,14 @@ class ProductTrackingStrategySpec extends Specification {
         tv.trackingStrategy().isTrackedByBatch()
         tv.trackingStrategy().requiresBothTrackingMethods()
     }
+
     def "should track identical product"() {
         given:
         ProductType screws = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("M6x20 Screws"),
-                        ProductDescription.of("Stainless steel screws")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("M6x20 Screws"),
+                ProductDescription.of("Stainless steel screws")
+        )
                 .asProductType(Unit.pieces(), ProductTrackingStrategy.IDENTICAL)
                 .build()
 
@@ -135,13 +140,14 @@ class ProductTrackingStrategySpec extends Specification {
         !screws.trackingStrategy().isTrackedByBatch()
         screws.trackingStrategy().isInterchangeable()
     }
+
     def "should reject #invalidConfiguration for #trackingStrategy products"() {
         given:
         ProductType product = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Tracked Product"),
-                        ProductDescription.of("Product with tracking requirements")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Tracked Product"),
+                ProductDescription.of("Product with tracking requirements")
+        )
                 .asProductType(Unit.pieces(), trackingStrategy)
                 .build()
         InstanceBuilder configuredBuilder = configureTracking(new InstanceBuilder(InstanceId.newOne()))
@@ -156,12 +162,12 @@ class ProductTrackingStrategySpec extends Specification {
         thrown(IllegalArgumentException)
 
         where:
-        invalidConfiguration  | trackingStrategy                                        | configureTracking
-        "missing serial"      | ProductTrackingStrategy.INDIVIDUALLY_TRACKED            | { InstanceBuilder builder -> builder }
-        "missing batch"       | ProductTrackingStrategy.BATCH_TRACKED                   | { InstanceBuilder builder -> builder }
+        invalidConfiguration   | trackingStrategy                                       | configureTracking
+        "missing serial"       | ProductTrackingStrategy.INDIVIDUALLY_TRACKED           | { InstanceBuilder builder -> builder }
+        "missing batch"        | ProductTrackingStrategy.BATCH_TRACKED                  | { InstanceBuilder builder -> builder }
         "batch without serial" | ProductTrackingStrategy.INDIVIDUALLY_AND_BATCH_TRACKED | { InstanceBuilder builder -> builder.withBatch(BatchId.newOne()) }
         "serial without batch" | ProductTrackingStrategy.INDIVIDUALLY_AND_BATCH_TRACKED | { InstanceBuilder builder -> builder.withSerial(SerialNumber.of("PHONE-123")) }
-        "batch tracking"      | ProductTrackingStrategy.IDENTICAL                       | { InstanceBuilder builder -> builder.withBatch(BatchId.newOne()) }
-        "individual tracking" | ProductTrackingStrategy.IDENTICAL                       | { InstanceBuilder builder -> builder.withSerial(SerialNumber.of("RICE-001")) }
+        "batch tracking"       | ProductTrackingStrategy.IDENTICAL                      | { InstanceBuilder builder -> builder.withBatch(BatchId.newOne()) }
+        "individual tracking"  | ProductTrackingStrategy.IDENTICAL                      | { InstanceBuilder builder -> builder.withSerial(SerialNumber.of("RICE-001")) }
     }
 }

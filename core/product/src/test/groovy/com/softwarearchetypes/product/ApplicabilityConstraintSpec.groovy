@@ -17,10 +17,10 @@ class ApplicabilityConstraintSpec extends Specification {
         result == expected
 
         where:
-        scenario            | applicabilityContext                                  | expected | satisfied
-        "value matches"     | ApplicabilityContext.of(Map.of("country", "PL"))     | true     | "satisfied"
-        "value differs"     | ApplicabilityContext.of(Map.of("country", "UK"))     | false    | "not satisfied"
-        "parameter missing" | ApplicabilityContext.empty()                          | false    | "not satisfied"
+        scenario            | applicabilityContext                             | expected | satisfied
+        "value matches"     | ApplicabilityContext.of(Map.of("country", "PL")) | true     | "satisfied"
+        "value differs"     | ApplicabilityContext.of(Map.of("country", "UK")) | false    | "not satisfied"
+        "parameter missing" | ApplicabilityContext.empty()                     | false    | "not satisfied"
     }
 
     def "in constraint is #satisfied when value is #value"() {
@@ -200,12 +200,12 @@ class ApplicabilityConstraintSpec extends Specification {
     def "product applicability constraint is #satisfied for #channel channel"() {
         given:
         ProductType mobileOnlyProduct = ProductType.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Mobile App Premium"),
-                        ProductDescription.of("Premium feature available only on mobile"),
-                        Unit.pieces(),
-                        ProductTrackingStrategy.IDENTICAL
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Mobile App Premium"),
+                ProductDescription.of("Premium feature available only on mobile"),
+                Unit.pieces(),
+                ProductTrackingStrategy.IDENTICAL
+        )
                 .withApplicabilityConstraint(ApplicabilityConstraint.equalsTo("channel", "mobile"))
                 .build()
         ApplicabilityContext context = ApplicabilityContext.of(Map.of("channel", channel))
@@ -225,12 +225,12 @@ class ApplicabilityConstraintSpec extends Specification {
     def "complex product applicability constraint is #satisfied for #scenario"() {
         given:
         ProductType pediatricProduct = ProductType.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Pediatric Service"),
-                        ProductDescription.of("Service for children"),
-                        Unit.pieces(),
-                        ProductTrackingStrategy.IDENTICAL
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Pediatric Service"),
+                ProductDescription.of("Service for children"),
+                Unit.pieces(),
+                ProductTrackingStrategy.IDENTICAL
+        )
                 .withApplicabilityConstraint(
                         ApplicabilityConstraint.and(
                                 ApplicabilityConstraint.or(ApplicabilityConstraint.equalsTo("country", "PL"), ApplicabilityConstraint.equalsTo("country", "UK")),
@@ -248,7 +248,7 @@ class ApplicabilityConstraintSpec extends Specification {
         result == expected
 
         where:
-        scenario          | parameters                                                    | expected | satisfied
+        scenario          | parameters                                                | expected | satisfied
         "eligible user"   | Map.of("country", "PL", "channel", "mobile", "age", "10") | true     | "satisfied"
         "adult user"      | Map.of("country", "PL", "channel", "mobile", "age", "18") | false    | "not satisfied"
         "invalid country" | Map.of("country", "DE", "channel", "mobile", "age", "10") | false    | "not satisfied"
@@ -271,9 +271,9 @@ class ApplicabilityConstraintSpec extends Specification {
         result
 
         where:
-        scenario           | applicabilityContext
-        "empty"            | ApplicabilityContext.empty()
-        "with country"     | ApplicabilityContext.of(Map.of("country", "PL"))
+        scenario            | applicabilityContext
+        "empty"             | ApplicabilityContext.empty()
+        "with country"      | ApplicabilityContext.of(Map.of("country", "PL"))
         "with user details" | ApplicabilityContext.of(Map.of("channel", "mobile", "age", "99"))
     }
 
@@ -303,12 +303,12 @@ class ApplicabilityConstraintSpec extends Specification {
     def "range constrained product is #satisfied for age #age"() {
         given:
         ProductType ageRestrictedProduct = ProductType.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Teen Product"),
-                        ProductDescription.of("For teenagers only"),
-                        Unit.pieces(),
-                        ProductTrackingStrategy.IDENTICAL
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Teen Product"),
+                ProductDescription.of("For teenagers only"),
+                Unit.pieces(),
+                ProductTrackingStrategy.IDENTICAL
+        )
                 .withApplicabilityConstraint(ApplicabilityConstraint.between("age", 13, 19))
                 .build()
         ApplicabilityContext context = ApplicabilityContext.of(Map.of("age", age))

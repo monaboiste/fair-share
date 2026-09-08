@@ -29,9 +29,9 @@ class SerialNumberSpec extends Specification {
         SerialNumber.imei(value).type() == "IMEI"
 
         where:
-        value                 | normalized
-        "490154203237518"     | "490154203237518"
-        "49015-420323-7518"   | "490154203237518"
+        value               | normalized
+        "490154203237518"   | "490154203237518"
+        "49015-420323-7518" | "490154203237518"
     }
 
     def "null textual serial number is rejected"() {

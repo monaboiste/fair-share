@@ -12,62 +12,63 @@ class PackageInstanceSpec extends Specification {
     private ProductType simCard
     private PackageType laptopBundle
     private PackageType telecomPackage
+
     def setup() {
         laptop = Product.builder(
-                                UuidProductIdentifier.random(),
-                                ProductName.of("Business Laptop"),
-                                ProductDescription.of("Professional laptop"))
-                        .asProductType(
-                                Unit.pieces(),
-                                ProductTrackingStrategy.INDIVIDUALLY_TRACKED
-                        ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Business Laptop"),
+                ProductDescription.of("Professional laptop"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.INDIVIDUALLY_TRACKED
+                ).build()
 
         mouse = Product.builder(
-                               UuidProductIdentifier.random(),
-                               ProductName.of("Wireless Mouse"),
-                               ProductDescription.of("Ergonomic mouse"))
-                       .asProductType(
-                               Unit.pieces(),
-                               ProductTrackingStrategy.BATCH_TRACKED
-                       ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Wireless Mouse"),
+                ProductDescription.of("Ergonomic mouse"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.BATCH_TRACKED
+                ).build()
 
         keyboard = Product.builder(
-                                  UuidProductIdentifier.random(),
-                                  ProductName.of("Mechanical Keyboard"),
-                                  ProductDescription.of("RGB keyboard"))
-                          .asProductType(
-                                  Unit.pieces(),
-                                  ProductTrackingStrategy.BATCH_TRACKED
-                          ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Mechanical Keyboard"),
+                ProductDescription.of("RGB keyboard"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.BATCH_TRACKED
+                ).build()
 
         simCard = Product.builder(
-                                 UuidProductIdentifier.random(),
-                                 ProductName.of("5G SIM Card"),
-                                 ProductDescription.of("Prepaid SIM"))
-                         .asProductType(
-                                 Unit.pieces(),
-                                 ProductTrackingStrategy.INDIVIDUALLY_TRACKED
-                         ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("5G SIM Card"),
+                ProductDescription.of("Prepaid SIM"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.INDIVIDUALLY_TRACKED
+                ).build()
 
         laptopBundle = Product.builder(
-                                      UuidProductIdentifier.random(),
-                                      ProductName.of("Laptop Bundle"),
-                                      ProductDescription.of("Complete workstation")
-                              )
-                              .asPackageType()
-                              .withRequiredChoice("laptop", laptop.id())
-                              .withRequiredChoice("mouse", mouse.id())
-                              .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Laptop Bundle"),
+                ProductDescription.of("Complete workstation")
+        )
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .withRequiredChoice("mouse", mouse.id())
+                .build()
 
         telecomPackage = Product.builder(
-                                        UuidProductIdentifier.random(),
-                                        ProductName.of("5G Starter Pack"),
-                                        ProductDescription.of("SIM with accessories")
-                                ).asPackageType()
-                                .withTrackingStrategy(ProductTrackingStrategy.BATCH_TRACKED)
-                                .withRequiredChoice("sim", simCard.id())
-                                .withChoice("accessories", 1, 2, mouse.id(), keyboard.id())
-                                .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("5G Starter Pack"),
+                ProductDescription.of("SIM with accessories")
+        ).asPackageType()
+                .withTrackingStrategy(ProductTrackingStrategy.BATCH_TRACKED)
+                .withRequiredChoice("sim", simCard.id())
+                .withChoice("accessories", 1, 2, mouse.id(), keyboard.id())
+                .build()
     }
 
     def "should create package instance with valid selection"() {
@@ -273,9 +274,9 @@ class PackageInstanceSpec extends Specification {
                 ))
                 .build()
         SelectedInstance mouseSelection = packageInstance.selection().stream()
-                                            .filter(s -> s.product().id() == mouse.id())
-                                            .findFirst()
-                                            .orElseThrow()
+                .filter(s -> s.product().id() == mouse.id())
+                .findFirst()
+                .orElseThrow()
 
         then:
         packageInstance != null
@@ -286,14 +287,14 @@ class PackageInstanceSpec extends Specification {
     def "should create nested package instance"() {
         given:
         PackageType innerBundle = Product.builder(
-                                                 UuidProductIdentifier.random(),
-                                                 ProductName.of("Peripherals Bundle"),
-                                                 ProductDescription.of("Mouse and keyboard")
-                                         ).asPackageType()
-                                         .withTrackingStrategy(ProductTrackingStrategy.BATCH_TRACKED)
-                                         .withRequiredChoice("mouse", mouse.id())
-                                         .withRequiredChoice("keyboard", keyboard.id())
-                                         .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Peripherals Bundle"),
+                ProductDescription.of("Mouse and keyboard")
+        ).asPackageType()
+                .withTrackingStrategy(ProductTrackingStrategy.BATCH_TRACKED)
+                .withRequiredChoice("mouse", mouse.id())
+                .withRequiredChoice("keyboard", keyboard.id())
+                .build()
 
         ProductInstance mouseInstance = new InstanceBuilder(InstanceId.newOne())
                 .withBatch(BatchId.newOne())
@@ -317,14 +318,14 @@ class PackageInstanceSpec extends Specification {
                 .build()
 
         PackageType outerBundle = Product.builder(
-                                                 UuidProductIdentifier.random(),
-                                                 ProductName.of("Complete Workstation"),
-                                                 ProductDescription.of("Laptop with peripherals bundle")
-                                         )
-                                         .asPackageType()
-                                         .withRequiredChoice("laptop", laptop.id())
-                                         .withRequiredChoice("innerBundle", innerBundle.id())
-                                         .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Complete Workstation"),
+                ProductDescription.of("Laptop with peripherals bundle")
+        )
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .withRequiredChoice("innerBundle", innerBundle.id())
+                .build()
 
         ProductInstance laptopInstance = new InstanceBuilder(InstanceId.newOne())
                 .withSerial(SerialNumber.of("LAPTOP-001"))
@@ -342,9 +343,9 @@ class PackageInstanceSpec extends Specification {
                 ))
                 .build()
         SelectedInstance nestedPackageSelection = outerPackageInstance.selection().stream()
-                                                         .filter(s -> s.instance() instanceof PackageInstance)
-                                                         .findFirst()
-                                                         .orElseThrow()
+                .filter(s -> s.instance() instanceof PackageInstance)
+                .findFirst()
+                .orElseThrow()
         PackageInstance nestedPackage = (PackageInstance) nestedPackageSelection.instance()
 
         then:

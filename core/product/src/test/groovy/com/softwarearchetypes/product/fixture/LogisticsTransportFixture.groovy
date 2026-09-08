@@ -51,26 +51,26 @@ record LogisticsTransportFixture(
         ProductType pickupService = product("Pickup Service", "Pickup from the customer location")
 
         PackageType trackingPackage = Product.builder(
-                        ProductIdentifier.uuid(),
-                        ProductName.of("Tracking Package"),
-                        ProductDescription.of("Tracking options"))
+                ProductIdentifier.uuid(),
+                ProductName.of("Tracking Package"),
+                ProductDescription.of("Tracking options"))
                 .asPackageType()
                 .withSingleChoice("TrackingOption", systemTracking.id(), activeMonitoring.id())
                 .build()
 
         PackageType notificationPackage = Product.builder(
-                        ProductIdentifier.uuid(),
-                        ProductName.of("Notification Package"),
-                        ProductDescription.of("Shipment notification options"))
+                ProductIdentifier.uuid(),
+                ProductName.of("Notification Package"),
+                ProductDescription.of("Shipment notification options"))
                 .asPackageType()
                 .withOptionalChoice(
                         "NotificationChannel", smsNotification.id(), emailNotification.id(), webhookNotification.id())
                 .build()
 
         PackageType transportPremium = Product.builder(
-                        ProductIdentifier.uuid(),
-                        ProductName.of("Transport Premium Package"),
-                        ProductDescription.of("Transport with insurance and monitoring"))
+                ProductIdentifier.uuid(),
+                ProductName.of("Transport Premium Package"),
+                ProductDescription.of("Transport with insurance and monitoring"))
                 .asPackageType()
                 .withSingleChoice("Transport", domesticExpress.id(), internationalExpress.id())
                 .withSingleChoice("Insurance", standardCargo.id(), extendedCargo.id(), partnerInsurance.id())

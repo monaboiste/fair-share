@@ -40,11 +40,11 @@ class ProductIdentifierSpec extends Specification {
         GtinProductIdentifier.of(value).type() == type
 
         where:
-        value                    | normalized          | type
-        "96385074"              | "96385074"          | "GTIN-8"
-        "123456789012"       | "123456789012"      | "GTIN-12"
-        "4006381333931"         | "4006381333931"    | "GTIN-13"
-        "1 23456 78901 231"       | "12345678901231"    | "GTIN-14"
+        value               | normalized       | type
+        "96385074"          | "96385074"       | "GTIN-8"
+        "123456789012"      | "123456789012"   | "GTIN-12"
+        "4006381333931"     | "4006381333931"  | "GTIN-13"
+        "1 23456 78901 231" | "12345678901231" | "GTIN-14"
     }
 
     def "valid isbn-10 values are accepted"() {
@@ -52,9 +52,9 @@ class ProductIdentifierSpec extends Specification {
         Isbn10ProductIdentifier.of(value).toString() == normalized
 
         where:
-        value              | normalized
-        "0201770601"       | "0201770601"
-        "0-471-95869-7"    | "0471958697"
+        value           | normalized
+        "0201770601"    | "0201770601"
+        "0-471-95869-7" | "0471958697"
     }
 
     def "null text identifier is rejected"() {

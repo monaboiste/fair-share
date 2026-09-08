@@ -11,70 +11,71 @@ class PackageTypeSpec extends Specification {
     private ProductType monitor
     private ProductType warranty
     private ProductType insurance
+
     def setup() {
         laptop = Product.builder(
-                                UuidProductIdentifier.random(),
-                                ProductName.of("Business Laptop"),
-                                ProductDescription.of("Professional laptop"))
-                        .asProductType(
-                                Unit.pieces(),
-                                ProductTrackingStrategy.INDIVIDUALLY_TRACKED
-                        ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Business Laptop"),
+                ProductDescription.of("Professional laptop"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.INDIVIDUALLY_TRACKED
+                ).build()
 
         mouse = Product.builder(
-                               UuidProductIdentifier.random(),
-                               ProductName.of("Wireless Mouse"),
-                               ProductDescription.of("Ergonomic mouse"))
-                       .asProductType(
-                               Unit.pieces(),
-                               ProductTrackingStrategy.IDENTICAL
-                       ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Wireless Mouse"),
+                ProductDescription.of("Ergonomic mouse"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.IDENTICAL
+                ).build()
 
         keyboard = Product.builder(
-                                  UuidProductIdentifier.random(),
-                                  ProductName.of("Mechanical Keyboard"),
-                                  ProductDescription.of("RGB keyboard"))
-                          .asProductType(
-                                  Unit.pieces(),
-                                  ProductTrackingStrategy.IDENTICAL
-                          ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Mechanical Keyboard"),
+                ProductDescription.of("RGB keyboard"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.IDENTICAL
+                ).build()
 
         monitor = Product.builder(
-                                 UuidProductIdentifier.random(),
-                                 ProductName.of("4K Monitor"),
-                                 ProductDescription.of("27-inch display"))
-                         .asProductType(
-                                 Unit.pieces(),
-                                 ProductTrackingStrategy.INDIVIDUALLY_TRACKED
-                         ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("4K Monitor"),
+                ProductDescription.of("27-inch display"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.INDIVIDUALLY_TRACKED
+                ).build()
 
         warranty = Product.builder(
-                                  UuidProductIdentifier.random(),
-                                  ProductName.of("Extended Warranty"),
-                                  ProductDescription.of("3-year warranty"))
-                          .asProductType(
-                                  Unit.pieces(),
-                                  ProductTrackingStrategy.IDENTICAL
-                          ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Extended Warranty"),
+                ProductDescription.of("3-year warranty"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.IDENTICAL
+                ).build()
 
         insurance = Product.builder(
-                                   UuidProductIdentifier.random(),
-                                   ProductName.of("Device Insurance"),
-                                   ProductDescription.of("Accidental damage coverage"))
-                           .asProductType(
-                                   Unit.pieces(),
-                                   ProductTrackingStrategy.IDENTICAL
-                           ).build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Device Insurance"),
+                ProductDescription.of("Accidental damage coverage"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.IDENTICAL
+                ).build()
     }
 
     def "should create simple package with required product"() {
         when:
         PackageType bundle = Product.builder(UuidProductIdentifier.random(),
-                                            ProductName.of("Laptop Bundle"),
-                                            ProductDescription.of("Basic laptop package"))
-                                    .asPackageType()
-                                    .withRequiredChoice("laptop", laptop.id())
-                                    .build()
+                ProductName.of("Laptop Bundle"),
+                ProductDescription.of("Basic laptop package"))
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .build()
 
         then:
         bundle != null
@@ -85,11 +86,11 @@ class PackageTypeSpec extends Specification {
     def "required rule returns #expectedValidity for #selectionName"() {
         given:
         PackageType bundle = Product.builder(UuidProductIdentifier.random(),
-                                            ProductName.of("Laptop Bundle"),
-                                            ProductDescription.of("Basic laptop package"))
-                                    .asPackageType()
-                                    .withRequiredChoice("laptop", laptop.id())
-                                    .build()
+                ProductName.of("Laptop Bundle"),
+                ProductDescription.of("Basic laptop package"))
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .build()
 
         expect:
         PackageValidationResult result = bundle.validateSelection(selection(this))
@@ -97,20 +98,20 @@ class PackageTypeSpec extends Specification {
         result.errors().isEmpty() == expectedValidity
 
         where:
-        selectionName     | selection                                                    || expectedValidity
+        selectionName     | selection                                                     || expectedValidity
         "selected laptop" | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) } || true
-        "empty selection" | { spec -> List.of() }                                        || false
+        "empty selection" | { spec -> List.of() }                                         || false
     }
 
     def "optional rule returns valid for #selectionName"() {
         given:
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Laptop with Optional Warranty"),
-                                            ProductDescription.of("Laptop package"))
-                                    .asPackageType()
-                                    .withOptionalChoice("warranty", warranty.id())
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Laptop with Optional Warranty"),
+                ProductDescription.of("Laptop package"))
+                .asPackageType()
+                .withOptionalChoice("warranty", warranty.id())
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid()
@@ -124,23 +125,23 @@ class PackageTypeSpec extends Specification {
     def "and rule returns #expectedValidity for #selectionName"() {
         given:
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Laptop + Mouse Bundle"),
-                                            ProductDescription.of("Complete workstation")
-                                    )
-                                    .asPackageType()
-                                    .withRequiredChoice("laptop", laptop.id())
-                                    .withRequiredChoice("mouse", mouse.id())
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Laptop + Mouse Bundle"),
+                ProductDescription.of("Complete workstation")
+        )
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .withRequiredChoice("mouse", mouse.id())
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid() == expectedValidity
 
         where:
-        selectionName        | selection                                                                                                    || expectedValidity
-        "laptop and mouse"   | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.mouse.id(), 1)) }         || true
-        "laptop without mouse" | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) }                                                || false
-        "mouse without laptop" | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                                 || false
+        selectionName          | selection                                                                                              || expectedValidity
+        "laptop and mouse"     | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.mouse.id(), 1)) } || true
+        "laptop without mouse" | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) }                                          || false
+        "mouse without laptop" | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                           || false
     }
 
     def "or rule returns #expectedValidity for #selectionName"() {
@@ -152,24 +153,24 @@ class PackageTypeSpec extends Specification {
                 SelectionRule.required(keyboardSet)
         )
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Input Device Bundle"),
-                                            ProductDescription.of("Choose mouse or keyboard")
-                                    )
-                                    .asPackageType()
-                                    .withProductSets(mouseSet, keyboardSet)
-                                    .withRule(rule)
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Input Device Bundle"),
+                ProductDescription.of("Choose mouse or keyboard")
+        )
+                .asPackageType()
+                .withProductSets(mouseSet, keyboardSet)
+                .withRule(rule)
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid() == expectedValidity
 
         where:
-        selectionName         | selection                                                                                              || expectedValidity
-        "selected mouse"      | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                            || true
-        "selected keyboard"   | { spec -> List.of(new SelectedProduct(spec.keyboard.id(), 1)) }                                         || true
-        "both input devices"  | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1)) } || true
-        "empty selection"     | { spec -> List.of() }                                                                                   || false
+        selectionName        | selection                                                                                                || expectedValidity
+        "selected mouse"     | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                             || true
+        "selected keyboard"  | { spec -> List.of(new SelectedProduct(spec.keyboard.id(), 1)) }                                          || true
+        "both input devices" | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1)) } || true
+        "empty selection"    | { spec -> List.of() }                                                                                    || false
     }
 
     def "not rule returns #expectedValidity for #selectionName"() {
@@ -179,21 +180,21 @@ class PackageTypeSpec extends Specification {
                 SelectionRule.required(insuranceSet)
         )
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("No Insurance Bundle"),
-                                            ProductDescription.of("Insurance not allowed")
-                                    )
-                                    .asPackageType()
-                                    .withProductSet(insuranceSet)
-                                    .withRule(rule)
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("No Insurance Bundle"),
+                ProductDescription.of("Insurance not allowed")
+        )
+                .asPackageType()
+                .withProductSet(insuranceSet)
+                .withRule(rule)
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid() == expectedValidity
 
         where:
-        selectionName        | selection                                                       || expectedValidity
-        "empty selection"    | { spec -> List.of() }                                           || true
+        selectionName        | selection                                                        || expectedValidity
+        "empty selection"    | { spec -> List.of() }                                            || true
         "selected insurance" | { spec -> List.of(new SelectedProduct(spec.insurance.id(), 1)) } || false
     }
 
@@ -206,23 +207,23 @@ class PackageTypeSpec extends Specification {
                 SelectionRule.required(warrantySet)
         )
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Laptop with Mandatory Warranty"),
-                                            ProductDescription.of("Warranty required for laptop")
-                                    )
-                                    .asPackageType()
-                                    .withProductSets(laptopSet, warrantySet)
-                                    .withRule(rule)
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Laptop with Mandatory Warranty"),
+                ProductDescription.of("Warranty required for laptop")
+        )
+                .asPackageType()
+                .withProductSets(laptopSet, warrantySet)
+                .withRule(rule)
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid() == expectedValidity
 
         where:
-        selectionName             | selection                                                                                                       || expectedValidity
-        "empty selection"         | { spec -> List.of() }                                                                                           || true
-        "laptop with warranty"    | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.warranty.id(), 1)) }         || true
-        "laptop without warranty" | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) }                                                     || false
+        selectionName             | selection                                                                                                 || expectedValidity
+        "empty selection"         | { spec -> List.of() }                                                                                     || true
+        "laptop with warranty"    | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.warranty.id(), 1)) } || true
+        "laptop without warranty" | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) }                                             || false
     }
 
     def "multiple rules return #expectedValidity for #selectionName"() {
@@ -236,24 +237,24 @@ class PackageTypeSpec extends Specification {
                 SelectionRule.optional(warrantySet)
         )
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Complete Workstation"),
-                                            ProductDescription.of("Laptop with accessories")
-                                    )
-                                    .asPackageType()
-                                    .withProductSets(laptopSet, accessoriesSet, warrantySet)
-                                    .withRule(rule)
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Complete Workstation"),
+                ProductDescription.of("Laptop with accessories")
+        )
+                .asPackageType()
+                .withProductSets(laptopSet, accessoriesSet, warrantySet)
+                .withRule(rule)
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid() == expectedValidity
 
         where:
-        selectionName                    | selection                                                                                                                                                                                                    || expectedValidity
-        "laptop and one accessory"       | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.mouse.id(), 1)) }                                                                                                        || true
-        "laptop, accessories, warranty"  | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1), new SelectedProduct(spec.warranty.id(), 1)) }                   || true
-        "laptop without accessories"     | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) }                                                                                                                                                || false
-        "accessory without laptop"       | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                                                                                                                                 || false
+        selectionName                   | selection                                                                                                                                                                                      || expectedValidity
+        "laptop and one accessory"      | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.mouse.id(), 1)) }                                                                                         || true
+        "laptop, accessories, warranty" | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1), new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1), new SelectedProduct(spec.warranty.id(), 1)) } || true
+        "laptop without accessories"    | { spec -> List.of(new SelectedProduct(spec.laptop.id(), 1)) }                                                                                                                                  || false
+        "accessory without laptop"      | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                                                                                                                   || false
     }
 
     def "subset quantity rule returns #expectedValidity for #selectionName"() {
@@ -261,48 +262,48 @@ class PackageTypeSpec extends Specification {
         ProductSet accessoriesSet = ProductSet.of("accessories", mouse.id(), keyboard.id(), monitor.id())
         SelectionRule rule = SelectionRule.isSubsetOf(accessoriesSet, 2, 3)
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Accessories Bundle"),
-                                            ProductDescription.of("Choose 2-3 accessories")
-                                    )
-                                    .asPackageType()
-                                    .withProductSet(accessoriesSet)
-                                    .withRule(rule)
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Accessories Bundle"),
+                ProductDescription.of("Choose 2-3 accessories")
+        )
+                .asPackageType()
+                .withProductSet(accessoriesSet)
+                .withRule(rule)
+                .build()
 
         expect:
         bundle.validateSelection(selection(this)).isValid() == expectedValidity
 
         where:
-        selectionName          | selection                                                                                                                                                                    || expectedValidity
-        "one accessory"        | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                                                                                                  || false
-        "two accessories"      | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1)) }                                                                       || true
-        "three accessories"    | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1), new SelectedProduct(spec.monitor.id(), 1)) }                              || true
-        "four total quantity"  | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 2), new SelectedProduct(spec.keyboard.id(), 1), new SelectedProduct(spec.monitor.id(), 1)) }                              || false
+        selectionName         | selection                                                                                                                                           || expectedValidity
+        "one accessory"       | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1)) }                                                                                        || false
+        "two accessories"     | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1)) }                                            || true
+        "three accessories"   | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 1), new SelectedProduct(spec.keyboard.id(), 1), new SelectedProduct(spec.monitor.id(), 1)) } || true
+        "four total quantity" | { spec -> List.of(new SelectedProduct(spec.mouse.id(), 2), new SelectedProduct(spec.keyboard.id(), 1), new SelectedProduct(spec.monitor.id(), 1)) } || false
     }
 
     def "should create nested package"() {
         given:
         PackageType innerBundle = Product.builder(
-                                                 UuidProductIdentifier.random(),
-                                                 ProductName.of("Basic Bundle"),
-                                                 ProductDescription.of("Laptop and mouse")
-                                         )
-                                         .asPackageType()
-                                         .withRequiredChoice("laptop", laptop.id())
-                                         .withRequiredChoice("mouse", mouse.id())
-                                         .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Basic Bundle"),
+                ProductDescription.of("Laptop and mouse")
+        )
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .withRequiredChoice("mouse", mouse.id())
+                .build()
 
         when:
         PackageType outerBundle = Product.builder(
-                                                 UuidProductIdentifier.random(),
-                                                 ProductName.of("Premium Bundle"),
-                                                 ProductDescription.of("Basic bundle with optional monitor")
-                                         )
-                                         .asPackageType()
-                                         .withRequiredChoice("inner", innerBundle.id())
-                                         .withOptionalChoice("monitor", monitor.id())
-                                         .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Premium Bundle"),
+                ProductDescription.of("Basic bundle with optional monitor")
+        )
+                .asPackageType()
+                .withRequiredChoice("inner", innerBundle.id())
+                .withOptionalChoice("monitor", monitor.id())
+                .build()
 
         then:
         outerBundle != null
@@ -381,15 +382,15 @@ class PackageTypeSpec extends Specification {
 
         when:
         PackageType bundle = Product.builder(
-                                            UuidProductIdentifier.random(),
-                                            ProductName.of("Laptop Bundle"),
-                                            ProductDescription.of("Laptop with optional warranty")
-                                    )
-                                    .asPackageType()
-                                    .withProductSet(laptopSet)
-                                    .withRule(rule1)
-                                    .withRule(rule2)
-                                    .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Laptop Bundle"),
+                ProductDescription.of("Laptop with optional warranty")
+        )
+                .asPackageType()
+                .withProductSet(laptopSet)
+                .withRule(rule1)
+                .withRule(rule2)
+                .build()
 
         then:
         PackageStructure structure = bundle.structure()

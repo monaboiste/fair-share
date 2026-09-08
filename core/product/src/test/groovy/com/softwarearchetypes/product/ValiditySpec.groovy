@@ -94,12 +94,12 @@ class ValiditySpec extends Specification {
             valid == expected
 
             where:
-            date                              | expected
-            LocalDate.of(2023, 12, 31)        | false
-            LocalDate.of(2024, 1, 1)          | true
-            LocalDate.of(2024, 6, 15)         | true
-            LocalDate.of(2024, 12, 31)        | true
-            LocalDate.of(2025, 1, 1)          | false
+            date                       | expected
+            LocalDate.of(2023, 12, 31) | false
+            LocalDate.of(2024, 1, 1)   | true
+            LocalDate.of(2024, 6, 15)  | true
+            LocalDate.of(2024, 12, 31) | true
+            LocalDate.of(2025, 1, 1)   | false
         }
 
         def "should determine validity after from date"() {
@@ -113,11 +113,11 @@ class ValiditySpec extends Specification {
             valid == expected
 
             where:
-            date                              | expected
-            LocalDate.of(2023, 12, 31)        | false
-            LocalDate.of(2024, 1, 1)          | true
-            LocalDate.of(2024, 6, 15)         | true
-            LocalDate.of(2100, 12, 31)        | true
+            date                       | expected
+            LocalDate.of(2023, 12, 31) | false
+            LocalDate.of(2024, 1, 1)   | true
+            LocalDate.of(2024, 6, 15)  | true
+            LocalDate.of(2100, 12, 31) | true
         }
 
         def "should determine validity before to date"() {
@@ -131,11 +131,11 @@ class ValiditySpec extends Specification {
             valid == expected
 
             where:
-            date                              | expected
-            LocalDate.of(1900, 1, 1)          | true
-            LocalDate.of(2024, 6, 15)         | true
-            LocalDate.of(2024, 12, 31)        | true
-            LocalDate.of(2025, 1, 1)          | false
+            date                       | expected
+            LocalDate.of(1900, 1, 1)   | true
+            LocalDate.of(2024, 6, 15)  | true
+            LocalDate.of(2024, 12, 31) | true
+            LocalDate.of(2025, 1, 1)   | false
         }
 
         def "should always be valid with no boundaries"() {
@@ -179,10 +179,10 @@ class ValiditySpec extends Specification {
             valid == expected
 
             where:
-            date                              | expected
-            LocalDate.of(2024, 6, 14)         | false
-            LocalDate.of(2024, 6, 15)         | true
-            LocalDate.of(2024, 6, 16)         | false
+            date                      | expected
+            LocalDate.of(2024, 6, 14) | false
+            LocalDate.of(2024, 6, 15) | true
+            LocalDate.of(2024, 6, 16) | false
         }
     }
 

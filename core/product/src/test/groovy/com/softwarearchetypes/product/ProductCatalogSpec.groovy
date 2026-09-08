@@ -11,7 +11,6 @@ import com.softwarearchetypes.product.ProductQueries.FindCatalogEntryCriteria
 import com.softwarearchetypes.product.ProductQueries.SearchCatalogCriteria
 import com.softwarearchetypes.product.ProductViews.CatalogEntryView
 import com.softwarearchetypes.quantity.Unit
-
 import java.time.LocalDate
 import spock.lang.Specification
 
@@ -120,9 +119,9 @@ class ProductCatalogSpec extends Specification {
         expectedNames == availableEntries.collect({ entry -> entry.displayName() }).toSet()
 
         where:
-        availableAt                 | expectedNames
-        LocalDate.of(2024, 6, 15)   | Set.of("2024 Laptop", "Always Phone")
-        LocalDate.of(2025, 6, 15)   | Set.of("Always Phone")
+        availableAt               | expectedNames
+        LocalDate.of(2024, 6, 15) | Set.of("2024 Laptop", "Always Phone")
+        LocalDate.of(2025, 6, 15) | Set.of("Always Phone")
     }
 
     def "should find #expectedNames on #availableAt after product is discontinued"() {
@@ -138,9 +137,9 @@ class ProductCatalogSpec extends Specification {
         expectedNames == availableEntries.collect({ entry -> entry.displayName() }).toSet()
 
         where:
-        availableAt                 | expectedNames
-        LocalDate.of(2024, 6, 15)   | Set.of()
-        LocalDate.of(2023, 6, 15)   | Set.of("Old Laptop")
+        availableAt               | expectedNames
+        LocalDate.of(2024, 6, 15) | Set.of()
+        LocalDate.of(2023, 6, 15) | Set.of("Old Laptop")
     }
 
     def "should find #expectedNames by metadata #key=#value"() {
@@ -261,9 +260,9 @@ class ProductCatalogSpec extends Specification {
         matchingEntries*.displayName() as Set == expectedNames
 
         where:
-        categories                    | expectedNames
+        categories                   | expectedNames
         Set.of("gaming", "business") | Set.of("Gaming Laptop", "Business Phone")
-        Set.of("missing")             | Set.of()
+        Set.of("missing")            | Set.of()
     }
 
     def "should search catalog by feature constraints"() {
@@ -271,12 +270,12 @@ class ProductCatalogSpec extends Specification {
         ProductFeatureType color = ProductFeatureType.withAllowedValues("color", "blue", "black")
         ProductFeatureType storage = ProductFeatureType.withAllowedValues("storage", "256GB", "512GB")
         ProductType phone = ProductType.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Phone"),
-                        ProductDescription.of("Configurable phone"),
-                        Unit.pieces(),
-                        ProductTrackingStrategy.IDENTICAL
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Phone"),
+                ProductDescription.of("Configurable phone"),
+                Unit.pieces(),
+                ProductTrackingStrategy.IDENTICAL
+        )
                 .withMandatoryFeature(color)
                 .withOptionalFeature(storage)
                 .build()
@@ -290,22 +289,22 @@ class ProductCatalogSpec extends Specification {
         matchingEntries*.displayName() as Set == expectedNames
 
         where:
-        features                                                        | expectedNames
-        Map.of("color", Set.of("blue"))                                 | Set.of("Configurable Phone")
-        Map.of("storage", Set.of("128GB", "512GB"))                     | Set.of("Configurable Phone")
-        Map.of("color", Set.of("blue"), "storage", Set.of("512GB"))   | Set.of("Configurable Phone")
-        Map.of("color", Set.of("green"))                                | Set.of()
-        Map.of("unknown", Set.of("blue"))                               | Set.of()
+        features                                                    | expectedNames
+        Map.of("color", Set.of("blue"))                             | Set.of("Configurable Phone")
+        Map.of("storage", Set.of("128GB", "512GB"))                 | Set.of("Configurable Phone")
+        Map.of("color", Set.of("blue"), "storage", Set.of("512GB")) | Set.of("Configurable Phone")
+        Map.of("color", Set.of("green"))                            | Set.of()
+        Map.of("unknown", Set.of("blue"))                           | Set.of()
     }
 
     def "should exclude package types from feature searches"() {
         given:
         ProductType component = thereIsProduct("Component")
         PackageType bundle = Product.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Bundle"),
-                        ProductDescription.of("Bundle description")
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Bundle"),
+                ProductDescription.of("Bundle description")
+        )
                 .asPackageType()
                 .withSingleChoice("component", component.id())
                 .build()

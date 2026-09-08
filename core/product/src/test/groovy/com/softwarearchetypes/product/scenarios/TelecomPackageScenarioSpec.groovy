@@ -31,23 +31,23 @@ class TelecomPackageScenarioSpec extends Specification {
         result.isValid() == valid
 
         where:
-        accessoryScenario    | outcome    | accessoryCount | valid
-        "two accessories"    | "accepted" | 2              | true
-        "no accessories"     | "accepted" | 0              | true
-        "three accessories"  | "rejected" | 3              | false
+        accessoryScenario   | outcome    | accessoryCount | valid
+        "two accessories"   | "accepted" | 2              | true
+        "no accessories"    | "accepted" | 0              | true
+        "three accessories" | "rejected" | 3              | false
     }
 
     def "#phoneName phone with #planName plan is #outcome"() {
         given:
         ProductType phone = [
-                "budget": catalog.budgetPhone(),
+                "budget"   : catalog.budgetPhone(),
                 "mid-range": catalog.midRangePhone(),
-                "flagship": catalog.flagshipPhone()
+                "flagship" : catalog.flagshipPhone()
         ][phoneName]
         ProductType plan = [
-                "basic": catalog.basicPlan(),
+                "basic"   : catalog.basicPlan(),
                 "standard": catalog.standardPlan(),
-                "premium": catalog.premiumPlan()
+                "premium" : catalog.premiumPlan()
         ][planName]
         List<SelectedProduct> selection = selectedProducts(plan, phone, catalog.starterPack())
 

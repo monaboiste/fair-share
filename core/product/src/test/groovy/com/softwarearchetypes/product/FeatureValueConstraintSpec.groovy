@@ -173,7 +173,7 @@ class FeatureValueConstraintSpec extends Specification {
             result == expected
 
             where:
-            value                    | expected
+            value                  | expected
             new BigDecimal("42.5") | true
             new BigDecimal("42.4") | false
             new BigDecimal("42.6") | false
@@ -278,7 +278,7 @@ class FeatureValueConstraintSpec extends Specification {
             result == expected
 
             where:
-            value                       | expected
+            value                     | expected
             LocalDate.of(2024, 6, 15) | true
             LocalDate.of(2024, 6, 14) | false
             LocalDate.of(2024, 6, 16) | false
@@ -738,14 +738,14 @@ class FeatureValueConstraintSpec extends Specification {
             result == expected
 
             where:
-            valueType                | value                    | expected
-            FeatureValueType.TEXT    | "hello"                  | true
-            FeatureValueType.INTEGER | 42                       | true
+            valueType                | value                  | expected
+            FeatureValueType.TEXT    | "hello"                | true
+            FeatureValueType.INTEGER | 42                     | true
             FeatureValueType.DECIMAL | new BigDecimal("42.5") | true
-            FeatureValueType.DATE    | LocalDate.now()          | true
-            FeatureValueType.BOOLEAN | true                     | true
-            FeatureValueType.TEXT    | 42                       | false
-            FeatureValueType.INTEGER | "42"                     | false
+            FeatureValueType.DATE    | LocalDate.now()        | true
+            FeatureValueType.BOOLEAN | true                   | true
+            FeatureValueType.TEXT    | 42                     | false
+            FeatureValueType.INTEGER | "42"                   | false
         }
     }
 }

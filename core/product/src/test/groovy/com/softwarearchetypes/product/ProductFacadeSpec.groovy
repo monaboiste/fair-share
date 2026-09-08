@@ -227,7 +227,7 @@ class ProductFacadeSpec extends Specification {
         expectedConfig.every { key, value -> feature.constraintConfig().get(key) == value }
 
         where:
-        featureName | mandatory | valueType | constraintType  | expectedConfig
+        featureName | mandatory | valueType | constraintType   | expectedConfig
         "color"     | true      | "TEXT"    | "ALLOWED_VALUES" | [allowedValues: Set.of("Red", "Blue")]
         "size"      | false     | "INTEGER" | "NUMERIC_RANGE"  | [min: 1, max: 10]
     }

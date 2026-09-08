@@ -88,12 +88,12 @@ class ProductMetadataSpec extends Specification {
     def "should use metadata in product type"() {
         when:
         ProductType productType = ProductType.builder(
-                        UuidProductIdentifier.random(),
-                        ProductName.of("Pumpkin Spice Latte"),
-                        ProductDescription.of("Seasonal coffee"),
-                        Unit.pieces(),
-                        ProductTrackingStrategy.IDENTICAL
-                )
+                UuidProductIdentifier.random(),
+                ProductName.of("Pumpkin Spice Latte"),
+                ProductDescription.of("Seasonal coffee"),
+                Unit.pieces(),
+                ProductTrackingStrategy.IDENTICAL
+        )
                 .withMetadata("category", "coffee")
                 .withMetadata("seasonal", "true")
                 .withMetadata("season", "autumn")

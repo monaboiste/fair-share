@@ -11,20 +11,21 @@ class InstanceBuilderSpec extends Specification {
     private PackageType bundle
     private ProductFeatureType colorFeature
     private ProductFeatureType storageFeature
+
     def setup() {
         colorFeature = ProductFeatureType.withAllowedValues("Color", "Silver", "Space Gray", "Black")
         storageFeature = ProductFeatureType.withAllowedValues("Storage", "512GB", "1024GB")
 
         laptop = Product.builder(
-                                UuidProductIdentifier.random(),
-                                ProductName.of("Business Laptop"),
-                                ProductDescription.of("Professional laptop"))
-                        .asProductType(
-                                Unit.pieces(),
-                                ProductTrackingStrategy.INDIVIDUALLY_TRACKED)
-                        .withOptionalFeature(colorFeature)
-                        .withOptionalFeature(storageFeature)
-                        .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Business Laptop"),
+                ProductDescription.of("Professional laptop"))
+                .asProductType(
+                        Unit.pieces(),
+                        ProductTrackingStrategy.INDIVIDUALLY_TRACKED)
+                .withOptionalFeature(colorFeature)
+                .withOptionalFeature(storageFeature)
+                .build()
 
         mouse = ProductType.builder(
                 UuidProductIdentifier.random(),
@@ -35,13 +36,13 @@ class InstanceBuilderSpec extends Specification {
         ).build()
 
         bundle = Product.builder(
-                                UuidProductIdentifier.random(),
-                                ProductName.of("Workstation Bundle"),
-                                ProductDescription.of("Complete setup"))
-                        .asPackageType()
-                        .withRequiredChoice("laptop", laptop.id())
-                        .withRequiredChoice("mouse", mouse.id())
-                        .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Workstation Bundle"),
+                ProductDescription.of("Complete setup"))
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .withRequiredChoice("mouse", mouse.id())
+                .build()
 
     }
 
@@ -211,15 +212,15 @@ class InstanceBuilderSpec extends Specification {
                 .build()
 
         PackageType batchBundle = Product.builder(
-                                                 UuidProductIdentifier.random(),
-                                                 ProductName.of("Batch Bundle"),
-                                                 ProductDescription.of("Batch tracked")
-                                         )
-                                         .asPackageType()
-                                         .withTrackingStrategy(ProductTrackingStrategy.BATCH_TRACKED)
-                                         .withRequiredChoice("laptop", laptop.id())
-                                         .withRequiredChoice("mouse", mouse.id())
-                                         .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Batch Bundle"),
+                ProductDescription.of("Batch tracked")
+        )
+                .asPackageType()
+                .withTrackingStrategy(ProductTrackingStrategy.BATCH_TRACKED)
+                .withRequiredChoice("laptop", laptop.id())
+                .withRequiredChoice("mouse", mouse.id())
+                .build()
 
         BatchId packageBatch = BatchId.newOne()
 
@@ -348,13 +349,13 @@ class InstanceBuilderSpec extends Specification {
     def "should demonstrate parallel structure with product builder"() {
         given:
         PackageType packageType = Product.builder(
-                                                 UuidProductIdentifier.random(),
-                                                 ProductName.of("Test Package"),
-                                                 ProductDescription.of("Test")
-                                         )
-                                         .asPackageType()
-                                         .withRequiredChoice("laptop", laptop.id())
-                                         .build()
+                UuidProductIdentifier.random(),
+                ProductName.of("Test Package"),
+                ProductDescription.of("Test")
+        )
+                .asPackageType()
+                .withRequiredChoice("laptop", laptop.id())
+                .build()
 
         packageType != null
 

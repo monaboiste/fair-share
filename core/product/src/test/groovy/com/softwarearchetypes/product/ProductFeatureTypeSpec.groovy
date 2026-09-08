@@ -15,13 +15,13 @@ class ProductFeatureTypeSpec extends Specification {
         feature.toString().contains(name)
 
         where:
-        name      | factory                                                                          | validValue                    | invalidValue
-        "color"   | { ProductFeatureType.withAllowedValues("color", "blue") }                       | "blue"                        | "red"
-        "year"    | { ProductFeatureType.withNumericRange("year", 2020, 2030) }                       | 2025                          | 2031
-        "price"   | { ProductFeatureType.withDecimalRange("price", "1.00", "10.00") }              | new BigDecimal("2.00")       | new BigDecimal("11.00")
-        "code"    | { ProductFeatureType.withRegex("code", "[A-Z]+") }                              | "ABC"                         | "abc"
-        "date"    | { ProductFeatureType.withDateRange("date", "2025-01-01", "2025-12-31") }      | LocalDate.of(2025, 6, 1)      | LocalDate.of(2026, 1, 1)
-        "enabled" | { ProductFeatureType.unconstrained("enabled", FeatureValueType.BOOLEAN) }        | true                          | "true"
+        name      | factory                                                                   | validValue               | invalidValue
+        "color"   | { ProductFeatureType.withAllowedValues("color", "blue") }                 | "blue"                   | "red"
+        "year"    | { ProductFeatureType.withNumericRange("year", 2020, 2030) }               | 2025                     | 2031
+        "price"   | { ProductFeatureType.withDecimalRange("price", "1.00", "10.00") }         | new BigDecimal("2.00")   | new BigDecimal("11.00")
+        "code"    | { ProductFeatureType.withRegex("code", "[A-Z]+") }                        | "ABC"                    | "abc"
+        "date"    | { ProductFeatureType.withDateRange("date", "2025-01-01", "2025-12-31") }  | LocalDate.of(2025, 6, 1) | LocalDate.of(2026, 1, 1)
+        "enabled" | { ProductFeatureType.unconstrained("enabled", FeatureValueType.BOOLEAN) } | true                     | "true"
     }
 
     def "should reject #scenario value"() {

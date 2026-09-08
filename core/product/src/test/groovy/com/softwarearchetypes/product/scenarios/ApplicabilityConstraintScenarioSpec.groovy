@@ -163,9 +163,9 @@ class ApplicabilityConstraintScenarioSpec extends Specification {
 
     private static ProductType product(String name, ApplicabilityConstraint constraint) {
         return Product.builder(
-                        ProductIdentifier.uuid(),
-                        ProductName.of(name),
-                        ProductDescription.of(name))
+                ProductIdentifier.uuid(),
+                ProductName.of(name),
+                ProductDescription.of(name))
                 .asProductType(Unit.pieces(), ProductTrackingStrategy.IDENTICAL)
                 .withApplicabilityConstraint(constraint)
                 .build()

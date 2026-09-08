@@ -42,9 +42,9 @@ record TelecomPackageFixture(
         ProductType charger = identical("Fast Charger 65W", "USB-C fast charging")
 
         PackageType starterPack = Product.builder(
-                        ProductIdentifier.uuid(),
-                        ProductName.of("5G Starter Pack"),
-                        ProductDescription.of("SIM card with optional accessories"))
+                ProductIdentifier.uuid(),
+                ProductName.of("5G Starter Pack"),
+                ProductDescription.of("SIM card with optional accessories"))
                 .asPackageType()
                 .withTrackingStrategy(ProductTrackingStrategy.IDENTICAL)
                 .withRequiredChoice("SIM", simCard.id())
@@ -52,9 +52,9 @@ record TelecomPackageFixture(
                 .build()
 
         PackageType phoneBundle = Product.builder(
-                        ProductIdentifier.uuid(),
-                        ProductName.of("Phone Bundle"),
-                        ProductDescription.of("Mobile package with phone and plan"))
+                ProductIdentifier.uuid(),
+                ProductName.of("Phone Bundle"),
+                ProductDescription.of("Mobile package with phone and plan"))
                 .asPackageType()
                 .withSingleChoice("Plan", basicPlan.id(), standardPlan.id(), premiumPlan.id())
                 .withSingleChoice("Phone", budgetPhone.id(), midRangePhone.id(), flagshipPhone.id())
