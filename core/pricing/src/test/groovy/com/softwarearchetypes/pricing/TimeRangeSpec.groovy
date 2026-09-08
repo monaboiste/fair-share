@@ -6,7 +6,8 @@ import spock.lang.Specification
 
 
 class TimeRangeSpec extends Specification {
-    def "should support local time values"() {        given:
+    def "should support local time values"() {
+        given:
         TimeRange range = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
@@ -47,7 +48,8 @@ class TimeRangeSpec extends Specification {
         assert !(range.contains(LocalTime.of(12, 0)))
         assert !(range.contains(LocalTime.of(18, 0)))
     }
-    def "should not contain time of wrong type"() {        given:
+    def "should not contain time of wrong type"() {
+        given:
         TimeRange range = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
@@ -57,7 +59,8 @@ class TimeRangeSpec extends Specification {
         assert !(range.contains("12:00"))
         assert !(range.contains(12))
     }
-    def "should detect overlap when both ranges normal and overlap"() {        given:
+    def "should detect overlap when both ranges normal and overlap"() {
+        given:
         TimeRange range1 = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
@@ -72,7 +75,8 @@ class TimeRangeSpec extends Specification {
         assert range1.overlaps(range2)
         assert range2.overlaps(range1)
     }
-    def "should not detect overlap when both ranges normal and adjacent"() {        given:
+    def "should not detect overlap when both ranges normal and adjacent"() {
+        given:
         TimeRange range1 = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
@@ -87,7 +91,8 @@ class TimeRangeSpec extends Specification {
         assert !(range1.overlaps(range2))
         assert !(range2.overlaps(range1))
     }
-    def "should not detect overlap when one crosses midnight and other fits in gap"() {        given:
+    def "should not detect overlap when one crosses midnight and other fits in gap"() {
+        given:
         TimeRange night = CalculatorRange.time(
             LocalTime.of(22, 0),
             LocalTime.of(6, 0),
@@ -102,7 +107,8 @@ class TimeRangeSpec extends Specification {
         assert !(night.overlaps(day))
         assert !(day.overlaps(night))
     }
-    def "should detect overlap when one crosses midnight and other overlaps"() {        given:
+    def "should detect overlap when one crosses midnight and other overlaps"() {
+        given:
         TimeRange night = CalculatorRange.time(
             LocalTime.of(22, 0),
             LocalTime.of(6, 0),
@@ -117,7 +123,8 @@ class TimeRangeSpec extends Specification {
         assert night.overlaps(lateEvening)
         assert lateEvening.overlaps(night)
     }
-    def "should detect overlap when both cross midnight"() {        given:
+    def "should detect overlap when both cross midnight"() {
+        given:
         TimeRange night1 = CalculatorRange.time(
             LocalTime.of(22, 0),
             LocalTime.of(6, 0),
@@ -132,7 +139,8 @@ class TimeRangeSpec extends Specification {
         assert night1.overlaps(night2)
         assert night2.overlaps(night1)
     }
-    def "should be compatible with other time ranges"() {        given:
+    def "should be compatible with other time ranges"() {
+        given:
         TimeRange range1 = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
@@ -146,7 +154,8 @@ class TimeRangeSpec extends Specification {
         and:
         assert range1.isCompatibleWith(range2)
     }
-    def "should not be compatible with numeric range"() {        given:
+    def "should not be compatible with numeric range"() {
+        given:
         TimeRange timeRange = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),
@@ -160,7 +169,8 @@ class TimeRangeSpec extends Specification {
         and:
         assert !(timeRange.isCompatibleWith(numericRange))
     }
-    def "should throw when checking overlap with incompatible range"() {        given:
+    def "should throw when checking overlap with incompatible range"() {
+        given:
         TimeRange timeRange = CalculatorRange.time(
             LocalTime.of(8, 0),
             LocalTime.of(18, 0),

@@ -6,7 +6,8 @@ import spock.lang.Specification
 
 
 class ValiditySpec extends Specification {
-    def "shouldCreateValidityFromDate"() {        given:
+    def "shouldCreateValidityFromDate"() {
+        given:
         LocalDateTime from = LocalDateTime.of(2024, 1, 1, 0, 0)
         and:
         Validity validity = Validity.from(from)
@@ -14,7 +15,8 @@ class ValiditySpec extends Specification {
         assert validity.validFrom() == from
         assert validity.validTo() == LocalDateTime.MAX
     }
-    def "shouldCreateValidityBetweenDates"() {        given:
+    def "shouldCreateValidityBetweenDates"() {
+        given:
         LocalDateTime from = LocalDateTime.of(2024, 1, 1, 0, 0)
         LocalDateTime to = LocalDateTime.of(2024, 2, 1, 0, 0)
         and:
@@ -23,13 +25,15 @@ class ValiditySpec extends Specification {
         assert validity.validFrom() == from
         assert validity.validTo() == to
     }
-    def "shouldRejectInvalidRange"() {        given:
+    def "shouldRejectInvalidRange"() {
+        given:
         LocalDateTime from = LocalDateTime.of(2024, 2, 1, 0, 0)
         LocalDateTime to = LocalDateTime.of(2024, 1, 1, 0, 0)
         and:
         shouldFail(IllegalArgumentException) { Validity.between(from, to) }.message.contains("validFrom must be before validTo")
     }
-    def "shouldCheckIfValidAt"() {        given:
+    def "shouldCheckIfValidAt"() {
+        given:
         Validity validity = Validity.between(
                 LocalDateTime.of(2024, 2, 1, 0, 0),
                 LocalDateTime.of(2024, 3, 1, 0, 0)
@@ -42,7 +46,8 @@ class ValiditySpec extends Specification {
         assert !(validity.isValidAt(LocalDateTime.of(2024, 3, 1, 0, 0)))
         assert !(validity.isValidAt(LocalDateTime.of(2024, 3, 2, 0, 0)))
     }
-    def "shouldDetectOverlappingPeriods"() {        given:
+    def "shouldDetectOverlappingPeriods"() {
+        given:
         Validity v1 = Validity.between(
                 LocalDateTime.of(2024, 1, 1, 0, 0),
                 LocalDateTime.of(2024, 3, 1, 0, 0)
@@ -55,7 +60,8 @@ class ValiditySpec extends Specification {
         assert v1.overlaps(v2)
         assert v2.overlaps(v1)
     }
-    def "shouldDetectNonOverlappingPeriods"() {        given:
+    def "shouldDetectNonOverlappingPeriods"() {
+        given:
         Validity v1 = Validity.between(
                 LocalDateTime.of(2024, 1, 1, 0, 0),
                 LocalDateTime.of(2024, 2, 1, 0, 0)
@@ -68,7 +74,8 @@ class ValiditySpec extends Specification {
         assert !(v1.overlaps(v2))
         assert !(v2.overlaps(v1))
     }
-    def "shouldHandleOpenEndedValidity"() {        given:
+    def "shouldHandleOpenEndedValidity"() {
+        given:
         Validity openEnded = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))
         Validity limited = Validity.between(
                 LocalDateTime.of(2024, 2, 1, 0, 0),
@@ -79,7 +86,8 @@ class ValiditySpec extends Specification {
         assert limited.overlaps(openEnded)
         assert openEnded.isValidAt(LocalDateTime.of(2100, 1, 1, 0, 0))
     }
-    def "shouldCheckIfExpired"() {        given:
+    def "shouldCheckIfExpired"() {
+        given:
         Validity validity = Validity.between(
                 LocalDateTime.of(2024, 1, 1, 0, 0),
                 LocalDateTime.of(2024, 2, 1, 0, 0)
@@ -89,14 +97,16 @@ class ValiditySpec extends Specification {
         assert validity.hasExpired(LocalDateTime.of(2024, 2, 1, 0, 0))
         assert validity.hasExpired(LocalDateTime.of(2024, 3, 1, 0, 0))
     }
-    def "shouldCheckIfNotStartedYet"() {        given:
+    def "shouldCheckIfNotStartedYet"() {
+        given:
         Validity validity = Validity.from(LocalDateTime.of(2024, 2, 1, 0, 0))
         and:
         assert validity.hasNotStartedYet(LocalDateTime.of(2024, 1, 15, 0, 0))
         assert !(validity.hasNotStartedYet(LocalDateTime.of(2024, 2, 1, 0, 0)))
         assert !(validity.hasNotStartedYet(LocalDateTime.of(2024, 3, 1, 0, 0)))
     }
-    def "shouldCreateAlwaysValidity"() {        given:
+    def "shouldCreateAlwaysValidity"() {
+        given:
         Validity always = Validity.always()
         and:
         assert always.isValidAt(LocalDateTime.MIN)

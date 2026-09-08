@@ -9,7 +9,8 @@ import spock.lang.Specification
 
 
 class RangesSpec extends Specification {
-    def "should create ranges with valid non overlapping ranges"() {        given:
+    def "should create ranges with valid non overlapping ranges"() {
+        given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
             CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), CalculatorId.generate()),
@@ -20,11 +21,13 @@ class RangesSpec extends Specification {
         and:
         assert ranges.size() == 3
     }
-    def "should throw when ranges are empty"() {        given:
+    def "should throw when ranges are empty"() {
+        given:
         shouldFail(IllegalArgumentException) {
             new Ranges("quantity", List.of()) }
     }
-    def "should throw when range selector is null"() {        given:
+    def "should throw when range selector is null"() {
+        given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate())
         )
@@ -32,7 +35,8 @@ class RangesSpec extends Specification {
         shouldFail(IllegalArgumentException) {
             new Ranges(null, rangesList) }
     }
-    def "should throw when range selector is blank"() {        given:
+    def "should throw when range selector is blank"() {
+        given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate())
         )
@@ -40,7 +44,8 @@ class RangesSpec extends Specification {
         shouldFail(IllegalArgumentException) {
             new Ranges("  ", rangesList) }
     }
-    def "should throw when ranges overlap"() {        given:
+    def "should throw when ranges overlap"() {
+        given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
             CalculatorRange.numeric(new BigDecimal("5"), new BigDecimal("15"), CalculatorId.generate())
@@ -50,7 +55,8 @@ class RangesSpec extends Specification {
 
         assert exception.getMessage().contains("overlap")
     }
-    def "should throw when ranges have incompatible types"() {        given:
+    def "should throw when ranges have incompatible types"() {
+        given:
         List<CalculatorRange> rangesList = List.of(
             CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
             CalculatorRange.time(LocalTime.of(8, 0), LocalTime.of(18, 0), CalculatorId.generate())
@@ -60,7 +66,8 @@ class RangesSpec extends Specification {
 
         assert exception.getMessage().contains("same type")
     }
-    def "should find matching range for numeric value"() {        given:
+    def "should find matching range for numeric value"() {
+        given:
         CalculatorId matchingRangeCalculatorId = CalculatorId.generate()
 
         Ranges ranges = new Ranges(
@@ -78,7 +85,8 @@ class RangesSpec extends Specification {
         and:
         assert matchingRange.calculatorId() == matchingRangeCalculatorId
     }
-    def "should find matching range for time value"() {        given:
+    def "should find matching range for time value"() {
+        given:
         CalculatorId matchingRangeCalculatorId = CalculatorId.generate()
 
         Ranges ranges = new Ranges(
@@ -95,7 +103,8 @@ class RangesSpec extends Specification {
         and:
         assert matchingRange.calculatorId() == matchingRangeCalculatorId
     }
-    def "should return empty when no matching range"() {        given:
+    def "should return empty when no matching range"() {
+        given:
         Ranges ranges = new Ranges(
             "quantity",
             List.of(
@@ -109,7 +118,8 @@ class RangesSpec extends Specification {
         and:
         assert result.isEmpty()
     }
-    def "should throw when parameter not found"() {        given:
+    def "should throw when parameter not found"() {
+        given:
         Ranges ranges = new Ranges(
             "quantity",
             List.of(
@@ -124,7 +134,8 @@ class RangesSpec extends Specification {
         assert exception.getMessage().contains("quantity")
         assert exception.getMessage().contains("required")
     }
-    def "should find first matching range when adjacent"() {        given:
+    def "should find first matching range when adjacent"() {
+        given:
         CalculatorId matchingRangeCalculatorId = CalculatorId.generate()
 
         Ranges ranges = new Ranges(
