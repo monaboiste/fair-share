@@ -1,0 +1,34 @@
+plugins {
+    id("org.jetbrains.qodana")
+}
+
+if (project != rootProject) {
+    throw new GradleException("'quality-conventions' must only be applied to the root project")
+}
+
+qodana {
+    projectPath = rootProject.projectDir.absolutePath
+    resultsPath = rootProject.layout.buildDirectory
+            .dir("qodana/results")
+            .get()
+            .asFile
+            .absolutePath
+
+    cachePath = new File(gradle.gradleUserHomeDir, "caches/qodana/${rootProject.name}").absolutePath
+}
+
+tasks.named("qodanaScan") {
+    mustRunAfter(tasks.named("check"))
+
+    arguments = [
+            "--linter", "qodana-jvm-community",
+            "--within-docker", "false"
+    ]
+}
+
+tasks.register("scan") {
+    group = "quality"
+    description = "Run code quality linter"
+
+    dependsOn(tasks.named("qodanaScan"))
+}

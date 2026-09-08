@@ -1,6 +1,7 @@
 plugins {
     id("idea")
     id("dependency-analysis-conventions")
+    id("quality-conventions")
     id("markdown-quality-conventions")
 }
 

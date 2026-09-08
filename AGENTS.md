@@ -10,9 +10,15 @@
 - Use double-quoted strings and four-space indentation in Groovy and Gradle Groovy DSL files.
 - Keep shared Gradle configuration in convention plugins under `buildSrc`.
 - Declare dependency versions and aliases in `gradle/libs.versions.toml`.
-- Run `./gradlew format compileJava` before finishing a change.
 - Use conventional commits (`feat`, `fix`, `docs`, `chore`) with scopes. Prefer lowercase imperative subjects ≤50 chars
   and 72-char bodies.
+
+## Quality checks
+
+Run `./gradlew format check` during development.
+
+Run `./gradlew scan` before completing non-trivial code changes and during code review.
+Do not run it after every intermediate edit.
 
 ## Agent skills
 
