@@ -1,28 +1,21 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.pricing.CalculatorType
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
 import com.softwarearchetypes.pricing.ParameterValue
 import com.softwarearchetypes.pricing.Parameters
-import com.softwarearchetypes.pricing.PricingConfiguration
 import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.PricingTestConfiguration
 import com.softwarearchetypes.pricing.StepBoundary
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import spock.lang.Specification
 
 class EMobilityComponentScenarioSpec extends Specification {
 
-    static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
-    static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-    private final PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def setup() {
         facade.addCalculator("energy-wholesale", CalculatorType.STEP_FUNCTION,

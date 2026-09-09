@@ -5,8 +5,8 @@ import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
 import com.softwarearchetypes.pricing.ParameterValue
 import com.softwarearchetypes.pricing.Parameters
-import com.softwarearchetypes.pricing.PricingConfiguration
 import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.PricingTestConfiguration
 import com.softwarearchetypes.pricing.SumOf
 import com.softwarearchetypes.pricing.Validity
 import com.softwarearchetypes.pricing.ValueOf
@@ -28,7 +28,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 ZoneId.systemDefault()
         )
 
-        facade = PricingConfiguration.inMemory(fixedClock).pricingFacade()
+        facade = PricingTestConfiguration.inMemory(fixedClock)
         registerCalculators()
         createInitialComponents()
     }

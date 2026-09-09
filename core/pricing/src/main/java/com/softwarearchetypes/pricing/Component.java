@@ -178,7 +178,8 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
         return versions.stream()
                 .filter(v -> v.validity().isValidAt(time))
                 .max(Comparator.comparing(
-                                (SimpleComponentVersion v) -> v.validity().validFrom())
+                                (SimpleComponentVersion v) -> v.validity().from(),
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(SimpleComponentVersion::definedAt))
                 .orElseThrow(() -> new IllegalStateException(
                         "No version of component '%s' (%s) valid at %s".formatted(name, id, time)));
@@ -415,7 +416,8 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
         return versions.stream()
                 .filter(v -> v.validity().isValidAt(time))
                 .max(Comparator.comparing(
-                                (CompositeComponentVersion v) -> v.validity().validFrom())
+                                (CompositeComponentVersion v) -> v.validity().from(),
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(CompositeComponentVersion::definedAt))
                 .orElseThrow(() -> new IllegalStateException(
                         "No version of component '%s' (%s) valid at %s".formatted(name, id, time)));

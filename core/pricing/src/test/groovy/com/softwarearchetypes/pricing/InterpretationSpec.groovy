@@ -3,8 +3,6 @@ package com.softwarearchetypes.pricing
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 import spock.lang.Specification
 
 class InterpretationSpec extends Specification {
@@ -110,9 +108,9 @@ class InterpretationSpec extends Specification {
         given:
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "test",
-                instant(2024, 1, 1, 0, 0),
+                Instant.parse("2024-01-01T00:00:00Z"),
                 Money.of(100, "PLN"),
-                instant(2024, 1, 10, 0, 0),
+                Instant.parse("2024-01-10T00:00:00Z"),
                 Money.of(200, "PLN")
         )
 
@@ -124,9 +122,9 @@ class InterpretationSpec extends Specification {
         given:
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "test",
-                instant(2024, 1, 1, 0, 0),
+                Instant.parse("2024-01-01T00:00:00Z"),
                 Money.of(100, "PLN"),
-                instant(2024, 1, 10, 0, 0),
+                Instant.parse("2024-01-10T00:00:00Z"),
                 Money.of(200, "PLN"),
                 Interpretation.UNIT
         )
@@ -142,13 +140,4 @@ class InterpretationSpec extends Specification {
         Interpretation.UNIT.describe() == "Average price per single unit"
         Interpretation.MARGINAL.describe() == "Price of n-th specific unit"
     }
-
-    private static Instant instant(int year, int month, int day, int hour, int minute) {
-        LocalDateTime.of(year, month, day, hour, minute).toInstant(ZoneOffset.UTC)
-    }
-
-    private static Instant instant(int year, int month, int day, int hour, int minute, int second) {
-        LocalDateTime.of(year, month, day, hour, minute, second).toInstant(ZoneOffset.UTC)
-    }
-
 }

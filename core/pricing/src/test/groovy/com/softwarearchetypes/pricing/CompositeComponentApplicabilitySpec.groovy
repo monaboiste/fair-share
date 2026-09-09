@@ -1,8 +1,5 @@
 package com.softwarearchetypes.pricing
 
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.equalsTo
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThanOrEqualTo
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.lessThan
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.quantity.money.Money
@@ -17,7 +14,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
     static final Instant NOW = LocalDateTime.of(2025, 6, 1, 12, 0).atZone(ZoneId.systemDefault()).toInstant()
     static final Clock clock = fixed(NOW, ZoneId.systemDefault())
 
-    private PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+    private PricingFacade facade = PricingTestConfiguration.inMemory(clock)
 
     def setup() {
         facade.addCalculator("fixed-100", CalculatorType.SIMPLE_FIXED,
@@ -40,7 +37,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
 
         facade.createCompositeComponent("premium-bundle",
                 Map.of(),
-                equalsTo("customer-type", "premium"),
+                ApplicabilityConstraint.equalsTo("customer-type", "premium"),
                 "premium-feature", "loyalty-bonus")
 
         facade.createCompositeComponent("total",
@@ -63,7 +60,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
 
         facade.createCompositeComponent("premium-bundle",
                 Map.of(),
-                equalsTo("customer-type", "premium"),
+                ApplicabilityConstraint.equalsTo("customer-type", "premium"),
                 "premium-feature", "loyalty-bonus")
 
         facade.createCompositeComponent("total",
@@ -84,12 +81,12 @@ class CompositeComponentApplicabilitySpec extends Specification {
 
         facade.createCompositeComponent("light-delivery",
                 Map.of(),
-                lessThan("weight", 5),
+                ApplicabilityConstraint.lessThan("weight", 5),
                 "light-fee")
 
         facade.createCompositeComponent("heavy-delivery",
                 Map.of(),
-                greaterThanOrEqualTo("weight", 5),
+                ApplicabilityConstraint.greaterThanOrEqualTo("weight", 5),
                 "heavy-fee")
 
         facade.createCompositeComponent("delivery-cost",
@@ -110,9 +107,9 @@ class CompositeComponentApplicabilitySpec extends Specification {
         facade.createSimpleComponent("heavy-fee", "fixed-50")
 
         facade.createCompositeComponent("light-delivery",
-                Map.of(), lessThan("weight", 5), "light-fee")
+                Map.of(), ApplicabilityConstraint.lessThan("weight", 5), "light-fee")
         facade.createCompositeComponent("heavy-delivery",
-                Map.of(), greaterThanOrEqualTo("weight", 5), "heavy-fee")
+                Map.of(), ApplicabilityConstraint.greaterThanOrEqualTo("weight", 5), "heavy-fee")
         facade.createCompositeComponent("delivery-cost",
                 Map.of(), "light-delivery", "heavy-delivery")
 
@@ -126,11 +123,11 @@ class CompositeComponentApplicabilitySpec extends Specification {
         given:
         facade.createSimpleComponent("handling-fee", "fixed-100")
         facade.createSimpleComponent("inspection-fee", "fixed-50",
-                equalsTo("zone", "restricted"))
+                ApplicabilityConstraint.equalsTo("zone", "restricted"))
 
         facade.createCompositeComponent("hazmat-package",
                 Map.of(),
-                equalsTo("cargo", "hazmat"),
+                ApplicabilityConstraint.equalsTo("cargo", "hazmat"),
                 "handling-fee", "inspection-fee")
 
         facade.createCompositeComponent("contract",
@@ -154,7 +151,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
 
         facade.createCompositeComponent("promo-bundle",
                 Map.of(),
-                equalsTo("member", "gold"),
+                ApplicabilityConstraint.equalsTo("member", "gold"),
                 Validity.between(
                         LocalDateTime.of(2025, 1, 1, 0, 0),
                         LocalDateTime.of(2025, 7, 1, 0, 0)),
@@ -180,7 +177,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
 
         facade.createCompositeComponent("surcharge-bundle",
                 Map.of(),
-                equalsTo("tier", "enterprise"),
+                ApplicabilityConstraint.equalsTo("tier", "enterprise"),
                 "surcharge")
 
         Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(

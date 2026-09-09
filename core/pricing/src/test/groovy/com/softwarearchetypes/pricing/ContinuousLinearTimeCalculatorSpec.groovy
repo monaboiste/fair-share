@@ -8,8 +8,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "start price is returned at start time"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -30,8 +30,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "end price is returned at end time"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -52,8 +52,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "time before the start boundary raises an exception"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -62,7 +62,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(3399, "PLN")
         )
-        Instant queryTime = instant(2024, 5, 31, 12, 0)
+        Instant queryTime = Instant.parse("2024-05-31T12:00:00Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         when:
@@ -74,8 +74,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "time after the end boundary raises an exception"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -84,7 +84,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(3399, "PLN")
         )
-        Instant queryTime = instant(2024, 6, 16, 12, 0)
+        Instant queryTime = Instant.parse("2024-06-16T12:00:00Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         when:
@@ -96,8 +96,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "price is interpolated at the midpoint"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -106,7 +106,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(3399, "PLN")
         )
-        Instant midTime = instant(2024, 6, 8, 0, 0)
+        Instant midTime = Instant.parse("2024-06-08T00:00:00Z")
         Parameters params = new Parameters(Map.of("time", midTime))
 
         and:
@@ -118,8 +118,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "price is interpolated at a half-day offset with precision"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -128,7 +128,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(3399, "PLN")
         )
-        Instant queryTime = instant(2024, 6, 1, 12, 0)
+        Instant queryTime = Instant.parse("2024-06-01T12:00:00Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
@@ -141,8 +141,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "price is interpolated at the quarter point"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -151,7 +151,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(3399, "PLN")
         )
-        Instant queryTime = instant(2024, 6, 4, 12, 0)
+        Instant queryTime = Instant.parse("2024-06-04T12:00:00Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
@@ -164,8 +164,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "price is interpolated at the three-quarters point"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -174,7 +174,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(3399, "PLN")
         )
-        Instant queryTime = instant(2024, 6, 11, 12, 0)
+        Instant queryTime = Instant.parse("2024-06-11T12:00:00Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
@@ -187,8 +187,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "price is interpolated with minute precision"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 10, 0)
-        Instant endTime = instant(2024, 6, 1, 11, 0)
+        Instant startTime = Instant.parse("2024-06-01T10:00:00Z")
+        Instant endTime = Instant.parse("2024-06-01T11:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "minute-precision-test",
@@ -197,7 +197,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(200, "PLN")
         )
-        Instant queryTime = instant(2024, 6, 1, 10, 30)
+        Instant queryTime = Instant.parse("2024-06-01T10:30:00Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
@@ -209,8 +209,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "interpolation works with different currencies"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing-eur",
@@ -219,7 +219,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(339, "EUR")
         )
-        Instant midTime = instant(2024, 6, 8, 0, 0)
+        Instant midTime = Instant.parse("2024-06-08T00:00:00Z")
         Parameters params = new Parameters(Map.of("time", midTime))
 
         and:
@@ -232,8 +232,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "decreasing price is interpolated correctly"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "clearance-auction",
@@ -242,7 +242,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(1000, "PLN")
         )
-        Instant midTime = instant(2024, 6, 8, 0, 0)
+        Instant midTime = Instant.parse("2024-06-08T00:00:00Z")
         Parameters params = new Parameters(Map.of("time", midTime))
 
         and:
@@ -254,8 +254,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "missing time parameter raises an exception"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -276,8 +276,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "calculator type is continuous linear time"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -293,8 +293,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "description includes start and end price and dates"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -317,8 +317,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "very short time intervals are interpolated correctly"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 10, 0, 0)
-        Instant endTime = instant(2024, 6, 1, 10, 1, 0)
+        Instant startTime = Instant.parse("2024-06-01T10:00:00Z")
+        Instant endTime = Instant.parse("2024-06-01T10:01:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "fast-auction",
@@ -327,7 +327,7 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
                 endTime,
                 Money.of(200, "PLN")
         )
-        Instant queryTime = instant(2024, 6, 1, 10, 0, 30)
+        Instant queryTime = Instant.parse("2024-06-01T10:00:30Z")
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
@@ -339,8 +339,8 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
 
     def "formula shows linear interpolation expression"() {
         given:
-        Instant startTime = instant(2024, 6, 1, 0, 0)
-        Instant endTime = instant(2024, 6, 15, 0, 0)
+        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
+        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
 
         ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
                 "auction-pricing",
@@ -361,13 +361,4 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         expect:
         formula == expected
     }
-
-    private static Instant instant(int year, int month, int day, int hour, int minute) {
-        LocalDateTime.of(year, month, day, hour, minute).toInstant(ZoneOffset.UTC)
-    }
-
-    private static Instant instant(int year, int month, int day, int hour, int minute, int second) {
-        LocalDateTime.of(year, month, day, hour, minute, second).toInstant(ZoneOffset.UTC)
-    }
-
 }

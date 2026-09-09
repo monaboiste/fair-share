@@ -1,19 +1,12 @@
 package com.softwarearchetypes.pricing
 
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import spock.lang.Specification
 
 class PricingFacadeAdaptersSpec extends Specification {
 
-    static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
-    static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-    private final PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def "calculateTotal returns directly when the calculator already returns total"() {
         given:
@@ -159,7 +152,6 @@ class PricingFacadeAdaptersSpec extends Specification {
     }
 
     def "facade rejects direct creation of adapter calculator types"() {
-
         when:
         facade.addCalculator(
                 "adapter",

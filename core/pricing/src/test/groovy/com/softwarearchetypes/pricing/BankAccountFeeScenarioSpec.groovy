@@ -1,5 +1,6 @@
 package com.softwarearchetypes.pricing
 
+
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.quantity.money.Money
@@ -13,7 +14,7 @@ class BankAccountFeeScenarioSpec extends Specification {
 
     static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
     static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-    private final PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(clock)
     private CompositeFunctionCalculator accountFeeCalculator
 
     def setup() {

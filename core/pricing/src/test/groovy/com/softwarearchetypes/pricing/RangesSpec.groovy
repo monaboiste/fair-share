@@ -21,7 +21,6 @@ class RangesSpec extends Specification {
     }
 
     def "throws when ranges are empty"() {
-
         when:
         new Ranges("quantity", List.of())
 

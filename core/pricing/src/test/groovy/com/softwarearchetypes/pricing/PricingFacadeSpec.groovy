@@ -1,22 +1,25 @@
 package com.softwarearchetypes.pricing
 
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import spock.lang.Specification
 
 class PricingFacadeSpec extends Specification {
 
-    static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
-    static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-    private final PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def "available calculators includes the pre-registered default calculators"() {
         given:
+        facade.addCalculator(
+                "simple-fixed-20",
+                CalculatorType.SIMPLE_FIXED,
+                Parameters.of("amount", Money.of(BigDecimal.valueOf(20), "PLN")))
+        facade.addCalculator(
+                "simple-interest-6",
+                CalculatorType.SIMPLE_INTEREST,
+                Parameters.of("annualRate", BigDecimal.valueOf(6)))
+
+        and:
         List<CalculatorView> views = facade.availableCalculators()
 
         expect:
@@ -87,7 +90,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "calculate throws when calculator name is not found"() {
-
         when:
         facade.calculate("nonexistent", Parameters.empty())
 
@@ -97,7 +99,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "calculateTotal throws when calculator name is not found"() {
-
         when:
         facade.calculateTotal("nonexistent", Parameters.empty())
 
@@ -107,7 +108,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "calculateUnitPrice throws when calculator name is not found"() {
-
         when:
         facade.calculateUnitPrice("nonexistent", Parameters.empty())
 
@@ -117,7 +117,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "calculateMarginal throws when calculator name is not found"() {
-
         when:
         facade.calculateMarginal("nonexistent", Parameters.empty())
 
@@ -127,7 +126,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "calculateComponent throws when component name is not found"() {
-
         when:
         facade.calculateComponent("nonexistent", Parameters.empty())
 
@@ -137,7 +135,6 @@ class PricingFacadeSpec extends Specification {
     }
 
     def "calculateComponentBreakdown throws when component name is not found"() {
-
         when:
         facade.calculateComponentBreakdown("nonexistent", Parameters.empty())
 

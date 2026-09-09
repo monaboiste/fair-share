@@ -1,5 +1,6 @@
 package com.softwarearchetypes.pricing
 
+
 import static java.time.Clock.fixed
 
 import com.softwarearchetypes.quantity.money.Money
@@ -13,7 +14,7 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import spock.lang.Specification
 
-class SimulationSpec extends Specification {
+class CalculationSimulationSpec extends Specification {
 
     def "step function calculator can be simulated over a quantity range"() {
         given:
@@ -27,6 +28,7 @@ class SimulationSpec extends Specification {
         for (int qty in (0..30).step(5)) {
             points.add(Parameters.of("quantity", new BigDecimal(qty)))
         }
+
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
 
@@ -55,6 +57,7 @@ class SimulationSpec extends Specification {
         for (int day in (0..14).step(2)) {
             points.add(Parameters.of("date", startDate.plusDays(day)))
         }
+
         and:
         Map<Parameters, Money> results = calculator.simulate(points)
 
@@ -169,7 +172,7 @@ class SimulationSpec extends Specification {
         given:
         Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
         Clock clock = fixed(NOW, ZoneId.systemDefault())
-        PricingFacade facade = PricingConfiguration.inMemory(clock).pricingFacade()
+        PricingFacade facade = PricingTestConfiguration.inMemory(clock)
 
         Calculator lowTier = facade.addCalculator(
                 "low-tier",

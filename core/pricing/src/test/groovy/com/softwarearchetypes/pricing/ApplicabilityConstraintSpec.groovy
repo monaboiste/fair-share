@@ -1,16 +1,5 @@
 package com.softwarearchetypes.pricing
 
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.alwaysTrue
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.and
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.between
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.equalsTo
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThan
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.greaterThanOrEqualTo
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.lessThan
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.lessThanOrEqualTo
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.not
-import static com.softwarearchetypes.pricing.ApplicabilityConstraint.or
-
 import spock.lang.Specification
 
 class ApplicabilityConstraintSpec extends Specification {
@@ -18,13 +7,13 @@ class ApplicabilityConstraintSpec extends Specification {
     def "always-true constraint is satisfied by any context"() {
 
         expect:
-        alwaysTrue().isSatisfiedBy(emptyCtx())
-        alwaysTrue().isSatisfiedBy(ctx("anything", "value"))
+        ApplicabilityConstraint.alwaysTrue().isSatisfiedBy(emptyCtx())
+        ApplicabilityConstraint.alwaysTrue().isSatisfiedBy(ctx("anything", "value"))
     }
 
     def "equals-to constraint matches an exact string value"() {
         given:
-        ApplicabilityConstraint constraint = equalsTo("cargo-type", "hazmat")
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.equalsTo("cargo-type", "hazmat")
 
         expect:
         constraint.isSatisfiedBy(ctx("cargo-type", "hazmat"))
@@ -34,7 +23,7 @@ class ApplicabilityConstraintSpec extends Specification {
     def "equals-to constraint returns false when the parameter is absent"() {
 
         expect:
-        !(equalsTo("cargo-type", "hazmat").isSatisfiedBy(emptyCtx()))
+        !(ApplicabilityConstraint.equalsTo("cargo-type", "hazmat").isSatisfiedBy(emptyCtx()))
     }
 
     def "in constraint matches any value from the allowed set"() {
@@ -54,7 +43,7 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "greater-than constraint is satisfied strictly above the threshold"() {
         given:
-        ApplicabilityConstraint constraint = greaterThan("weight", 10)
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.greaterThan("weight", 10)
 
         expect:
         constraint.isSatisfiedBy(ctx("weight", BigDecimal.valueOf(11)))
@@ -65,17 +54,17 @@ class ApplicabilityConstraintSpec extends Specification {
     def "greater-than constraint returns false when the parameter is absent"() {
 
         expect:
-        !(greaterThan("weight", 10).isSatisfiedBy(emptyCtx()))
+        !(ApplicabilityConstraint.greaterThan("weight", 10).isSatisfiedBy(emptyCtx()))
     }
 
     def "greater-than constraint returns false for a non-numeric value"() {
         expect:
-        !(greaterThan("weight", 10).isSatisfiedBy(ctx("weight", "heavy")))
+        !(ApplicabilityConstraint.greaterThan("weight", 10).isSatisfiedBy(ctx("weight", "heavy")))
     }
 
     def "greater-than-or-equal-to constraint is satisfied at and above the threshold"() {
         given:
-        ApplicabilityConstraint constraint = greaterThanOrEqualTo("quantity", 5)
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.greaterThanOrEqualTo("quantity", 5)
 
         expect:
         constraint.isSatisfiedBy(ctx("quantity", BigDecimal.valueOf(5)))
@@ -85,7 +74,7 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "less-than constraint is satisfied strictly below the threshold"() {
         given:
-        ApplicabilityConstraint constraint = lessThan("sessions", 5)
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.lessThan("sessions", 5)
 
         expect:
         constraint.isSatisfiedBy(ctx("sessions", BigDecimal.valueOf(4)))
@@ -95,7 +84,7 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "less-than-or-equal-to constraint is satisfied at and below the threshold"() {
         given:
-        ApplicabilityConstraint constraint = lessThanOrEqualTo("quantity", 100)
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.lessThanOrEqualTo("quantity", 100)
 
         expect:
         constraint.isSatisfiedBy(ctx("quantity", BigDecimal.valueOf(100)))
@@ -105,7 +94,7 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "between constraint is satisfied within inclusive bounds"() {
         given:
-        ApplicabilityConstraint constraint = between("weight", 5, 30)
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.between("weight", 5, 30)
 
         expect:
         constraint.isSatisfiedBy(ctx("weight", BigDecimal.valueOf(5)))
@@ -118,14 +107,14 @@ class ApplicabilityConstraintSpec extends Specification {
     def "between constraint returns false when the parameter is absent"() {
 
         expect:
-        !(between("weight", 5, 30).isSatisfiedBy(emptyCtx()))
+        !(ApplicabilityConstraint.between("weight", 5, 30).isSatisfiedBy(emptyCtx()))
     }
 
     def "and constraint requires all nested constraints to be satisfied"() {
         given:
-        ApplicabilityConstraint constraint = and(
-                equalsTo("type", "B2C"),
-                greaterThan("sessions", 10)
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.and(
+                ApplicabilityConstraint.equalsTo("type", "B2C"),
+                ApplicabilityConstraint.greaterThan("sessions", 10)
         )
 
         expect:
@@ -136,9 +125,9 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "or constraint is satisfied when at least one nested constraint is satisfied"() {
         given:
-        ApplicabilityConstraint constraint = or(
-                equalsTo("status", "gold"),
-                equalsTo("status", "platinum")
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.or(
+                ApplicabilityConstraint.equalsTo("status", "gold"),
+                ApplicabilityConstraint.equalsTo("status", "platinum")
         )
 
         expect:
@@ -149,7 +138,7 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "not constraint negates the wrapped constraint"() {
         given:
-        ApplicabilityConstraint constraint = not(equalsTo("excluded", "true"))
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.not(ApplicabilityConstraint.equalsTo("excluded", "true"))
 
         expect:
         constraint.isSatisfiedBy(ctx("excluded", "false"))
@@ -159,9 +148,9 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "or-of-ands deep composition evaluates correctly"() {
         given:
-        ApplicabilityConstraint constraint = or(
-                and(equalsTo("type", "B2C"), greaterThanOrEqualTo("weight", 5)),
-                and(equalsTo("type", "B2B"), greaterThanOrEqualTo("weight", 3))
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.or(
+                ApplicabilityConstraint.and(ApplicabilityConstraint.equalsTo("type", "B2C"), ApplicabilityConstraint.greaterThanOrEqualTo("weight", 5)),
+                ApplicabilityConstraint.and(ApplicabilityConstraint.equalsTo("type", "B2B"), ApplicabilityConstraint.greaterThanOrEqualTo("weight", 3))
         )
 
         expect:
@@ -173,9 +162,9 @@ class ApplicabilityConstraintSpec extends Specification {
 
     def "not-of-and combination evaluates correctly"() {
         given:
-        ApplicabilityConstraint constraint = not(and(
-                equalsTo("status", "gold"),
-                greaterThanOrEqualTo("quantity", BigDecimal.valueOf(100))
+        ApplicabilityConstraint constraint = ApplicabilityConstraint.not(ApplicabilityConstraint.and(
+                ApplicabilityConstraint.equalsTo("status", "gold"),
+                ApplicabilityConstraint.greaterThanOrEqualTo("quantity", BigDecimal.valueOf(100))
         ))
 
         expect:

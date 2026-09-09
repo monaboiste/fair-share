@@ -7,7 +7,7 @@ class TimeRangeSpec extends Specification {
 
     def "supports local time values"() {
         given:
-        TimeRange range = CalculatorRange.time(
+        CalculatorRange range = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
@@ -20,7 +20,7 @@ class TimeRangeSpec extends Specification {
     }
 
     def "contains time in normal range"() {
-        TimeRange range = CalculatorRange.time(
+        CalculatorRange range = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
@@ -36,7 +36,7 @@ class TimeRangeSpec extends Specification {
     }
 
     def "contains time in range crossing midnight"() {
-        TimeRange range = CalculatorRange.time(
+        CalculatorRange range = CalculatorRange.time(
                 LocalTime.of(22, 0),
                 LocalTime.of(6, 0),
                 CalculatorId.generate()
@@ -55,7 +55,7 @@ class TimeRangeSpec extends Specification {
 
     def "does not contain time of wrong type"() {
         given:
-        TimeRange range = CalculatorRange.time(
+        CalculatorRange range = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
@@ -68,12 +68,12 @@ class TimeRangeSpec extends Specification {
 
     def "detects overlap when both ranges normal and overlap"() {
         given:
-        TimeRange range1 = CalculatorRange.time(
+        CalculatorRange range1 = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        TimeRange range2 = CalculatorRange.time(
+        CalculatorRange range2 = CalculatorRange.time(
                 LocalTime.of(15, 0),
                 LocalTime.of(20, 0),
                 CalculatorId.generate()
@@ -86,12 +86,12 @@ class TimeRangeSpec extends Specification {
 
     def "does not detect overlap when both ranges normal and adjacent"() {
         given:
-        TimeRange range1 = CalculatorRange.time(
+        CalculatorRange range1 = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        TimeRange range2 = CalculatorRange.time(
+        CalculatorRange range2 = CalculatorRange.time(
                 LocalTime.of(18, 0),
                 LocalTime.of(22, 0),
                 CalculatorId.generate()
@@ -104,12 +104,12 @@ class TimeRangeSpec extends Specification {
 
     def "does not detect overlap when one crosses midnight and other fits in gap"() {
         given:
-        TimeRange night = CalculatorRange.time(
+        CalculatorRange night = CalculatorRange.time(
                 LocalTime.of(22, 0),
                 LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
-        TimeRange day = CalculatorRange.time(
+        CalculatorRange day = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
@@ -122,12 +122,12 @@ class TimeRangeSpec extends Specification {
 
     def "detects overlap when one crosses midnight and other overlaps"() {
         given:
-        TimeRange night = CalculatorRange.time(
+        CalculatorRange night = CalculatorRange.time(
                 LocalTime.of(22, 0),
                 LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
-        TimeRange lateEvening = CalculatorRange.time(
+        CalculatorRange lateEvening = CalculatorRange.time(
                 LocalTime.of(20, 0),
                 LocalTime.of(23, 0),
                 CalculatorId.generate()
@@ -140,12 +140,12 @@ class TimeRangeSpec extends Specification {
 
     def "detects overlap when both cross midnight"() {
         given:
-        TimeRange night1 = CalculatorRange.time(
+        CalculatorRange night1 = CalculatorRange.time(
                 LocalTime.of(22, 0),
                 LocalTime.of(6, 0),
                 CalculatorId.generate()
         )
-        TimeRange night2 = CalculatorRange.time(
+        CalculatorRange night2 = CalculatorRange.time(
                 LocalTime.of(20, 0),
                 LocalTime.of(8, 0),
                 CalculatorId.generate()
@@ -158,12 +158,12 @@ class TimeRangeSpec extends Specification {
 
     def "is compatible with other time ranges"() {
         given:
-        TimeRange range1 = CalculatorRange.time(
+        CalculatorRange range1 = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        TimeRange range2 = CalculatorRange.time(
+        CalculatorRange range2 = CalculatorRange.time(
                 LocalTime.of(18, 0),
                 LocalTime.of(22, 0),
                 CalculatorId.generate()
@@ -175,7 +175,7 @@ class TimeRangeSpec extends Specification {
 
     def "is not compatible with numeric range"() {
         given:
-        TimeRange timeRange = CalculatorRange.time(
+        CalculatorRange timeRange = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
@@ -192,12 +192,12 @@ class TimeRangeSpec extends Specification {
 
     def "throws when checking overlap with incompatible range"() {
         given:
-        TimeRange timeRange = CalculatorRange.time(
+        CalculatorRange timeRange = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        NumericRange numericRange = CalculatorRange.numeric(
+        CalculatorRange numericRange = CalculatorRange.numeric(
                 BigDecimal.ZERO,
                 BigDecimal.TEN,
                 CalculatorId.generate()

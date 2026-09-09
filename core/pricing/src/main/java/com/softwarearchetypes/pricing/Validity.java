@@ -1,58 +1,61 @@
 package com.softwarearchetypes.pricing;
 
 import java.time.LocalDateTime;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
-/**
- * Represents a pricing validity period with an inclusive start and exclusive end.
- *
- * <p>When periods overlap, the version with the latest {@code validFrom} takes precedence.
- */
-public record Validity(LocalDateTime validFrom, LocalDateTime validTo) {
+/** A pricing validity period with optional inclusive start and end timestamps. */
+public record Validity(
+        @Nullable LocalDateTime from, @Nullable LocalDateTime to) {
 
-    public static final Validity ALWAYS_VALID = new Validity(LocalDateTime.MIN, LocalDateTime.MAX);
+    public static final Validity ALWAYS_VALID = new Validity(null, null);
 
-    public static Validity until(LocalDateTime validTo) {
-        return new Validity(LocalDateTime.MIN, validTo);
+    public Validity {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new IllegalArgumentException("Start date must not be after end date");
+        }
     }
 
-    public static Validity from(LocalDateTime validFrom) {
-        return new Validity(validFrom, LocalDateTime.MAX);
+    /** Creates a period beginning on the given inclusive timestamp. */
+    public static Validity from(LocalDateTime from) {
+        return new Validity(from, null);
     }
 
-    public static Validity between(LocalDateTime validFrom, LocalDateTime validTo) {
-        if (validFrom == null && validTo == null) {
-            return ALWAYS_VALID;
-        }
-        if (validFrom == null) {
-            return until(validTo);
-        }
-        if (validTo == null) {
-            return from(validFrom);
-        }
-        if (!validFrom.isBefore(validTo)) {
-            throw new IllegalArgumentException(
-                    "validFrom must be before validTo: [%s, %s)".formatted(validFrom, validTo));
-        }
-        return new Validity(validFrom, validTo);
+    /** Creates a period ending on the given inclusive timestamp. */
+    public static Validity until(LocalDateTime to) {
+        return new Validity(null, to);
+    }
+
+    /** Creates a period with inclusive boundaries. */
+    public static Validity between(LocalDateTime from, LocalDateTime to) {
+        return new Validity(from, to);
     }
 
     public static Validity always() {
         return ALWAYS_VALID;
     }
 
-    public boolean isValidAt(LocalDateTime pointInTime) {
-        return !pointInTime.isBefore(validFrom) && pointInTime.isBefore(validTo);
+    /** Returns whether the given timestamp falls within this period. */
+    public boolean isValidAt(@Nullable LocalDateTime pointInTime) {
+        if (pointInTime == null) {
+            return false;
+        }
+        if (from != null && pointInTime.isBefore(from)) {
+            return false;
+        }
+        return to == null || !pointInTime.isAfter(to);
     }
 
-    public boolean hasExpired(LocalDateTime pointInTime) {
-        return !pointInTime.isBefore(validTo);
+    public boolean hasExpired(@Nullable LocalDateTime pointInTime) {
+        return pointInTime != null && to != null && pointInTime.isAfter(to);
     }
 
-    public boolean hasNotStartedYet(LocalDateTime pointInTime) {
-        return pointInTime.isBefore(validFrom);
+    public boolean hasNotStartedYet(@Nullable LocalDateTime pointInTime) {
+        return pointInTime != null && from != null && pointInTime.isBefore(from);
     }
 
-    public boolean overlaps(Validity other) {
-        return this.validFrom.isBefore(other.validTo) && other.validFrom.isBefore(this.validTo);
+    public boolean overlaps(@NonNull Validity other) {
+        return (from == null || other.to == null || !from.isAfter(other.to))
+                && (other.from == null || to == null || !other.from.isAfter(to));
     }
 }

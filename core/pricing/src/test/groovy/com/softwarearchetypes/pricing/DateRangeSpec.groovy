@@ -8,7 +8,7 @@ class DateRangeSpec extends Specification {
 
     def "supports local date values"() {
         given:
-        DateRange range = CalculatorRange.date(
+        CalculatorRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
@@ -21,7 +21,7 @@ class DateRangeSpec extends Specification {
     }
 
     def "contains date in range"() {
-        DateRange range = CalculatorRange.date(
+        CalculatorRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
@@ -38,7 +38,7 @@ class DateRangeSpec extends Specification {
 
     def "does not contain date of wrong type"() {
         given:
-        DateRange range = CalculatorRange.date(
+        CalculatorRange range = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
@@ -50,7 +50,6 @@ class DateRangeSpec extends Specification {
     }
 
     def "throws when from not before to"() {
-
         when:
         CalculatorRange.date(
                 LocalDate.of(2024, 9, 1),
@@ -63,7 +62,6 @@ class DateRangeSpec extends Specification {
     }
 
     def "throws when from equals to"() {
-
         when:
         CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
@@ -77,12 +75,12 @@ class DateRangeSpec extends Specification {
 
     def "detects overlap when ranges overlap"() {
         given:
-        DateRange summer = CalculatorRange.date(
+        CalculatorRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
         )
-        DateRange lateSummer = CalculatorRange.date(
+        CalculatorRange lateSummer = CalculatorRange.date(
                 LocalDate.of(2024, 8, 1),
                 LocalDate.of(2024, 10, 1),
                 CalculatorId.generate()
@@ -95,12 +93,12 @@ class DateRangeSpec extends Specification {
 
     def "does not detect overlap when ranges adjacent"() {
         given:
-        DateRange summer = CalculatorRange.date(
+        CalculatorRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
         )
-        DateRange fall = CalculatorRange.date(
+        CalculatorRange fall = CalculatorRange.date(
                 LocalDate.of(2024, 9, 1),
                 LocalDate.of(2024, 12, 1),
                 CalculatorId.generate()
@@ -113,12 +111,12 @@ class DateRangeSpec extends Specification {
 
     def "detects overlap when one range contains another"() {
         given:
-        DateRange year = CalculatorRange.date(
+        CalculatorRange year = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
                 LocalDate.of(2025, 1, 1),
                 CalculatorId.generate()
         )
-        DateRange summer = CalculatorRange.date(
+        CalculatorRange summer = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 9, 1),
                 CalculatorId.generate()
@@ -131,12 +129,12 @@ class DateRangeSpec extends Specification {
 
     def "is compatible with other date ranges"() {
         given:
-        DateRange range1 = CalculatorRange.date(
+        CalculatorRange range1 = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
                 LocalDate.of(2024, 6, 1),
                 CalculatorId.generate()
         )
-        DateRange range2 = CalculatorRange.date(
+        CalculatorRange range2 = CalculatorRange.date(
                 LocalDate.of(2024, 6, 1),
                 LocalDate.of(2024, 12, 1),
                 CalculatorId.generate()
@@ -148,12 +146,12 @@ class DateRangeSpec extends Specification {
 
     def "is not compatible with time range"() {
         given:
-        DateRange dateRange = CalculatorRange.date(
+        CalculatorRange dateRange = CalculatorRange.date(
                 LocalDate.of(2024, 1, 1),
                 LocalDate.of(2024, 12, 1),
                 CalculatorId.generate()
         )
-        TimeRange timeRange = CalculatorRange.time(
+        CalculatorRange timeRange = CalculatorRange.time(
                 LocalTime.of(8, 0),
                 LocalTime.of(18, 0),
                 CalculatorId.generate()

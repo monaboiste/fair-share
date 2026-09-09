@@ -6,7 +6,7 @@ class NumericRangeSpec extends Specification {
 
     def "supports big decimal values"() {
         given:
-        NumericRange range = CalculatorRange.numeric(
+        CalculatorRange range = CalculatorRange.numeric(
                 new BigDecimal("0"),
                 new BigDecimal("10"),
                 CalculatorId.generate()
@@ -21,7 +21,7 @@ class NumericRangeSpec extends Specification {
 
     def "contains value in range"() {
         given:
-        NumericRange range = CalculatorRange.numeric(
+        CalculatorRange range = CalculatorRange.numeric(
                 new BigDecimal("10"),
                 new BigDecimal("20"),
                 CalculatorId.generate()
@@ -37,7 +37,7 @@ class NumericRangeSpec extends Specification {
 
     def "does not contain value of wrong type"() {
         given:
-        NumericRange range = CalculatorRange.numeric(
+        CalculatorRange range = CalculatorRange.numeric(
                 new BigDecimal("0"),
                 new BigDecimal("10"),
                 CalculatorId.generate()
@@ -49,7 +49,6 @@ class NumericRangeSpec extends Specification {
     }
 
     def "throws when min greater than max"() {
-
         when:
         CalculatorRange.numeric(
                 new BigDecimal("20"),
@@ -62,7 +61,6 @@ class NumericRangeSpec extends Specification {
     }
 
     def "throws when min equals max"() {
-
         when:
         CalculatorRange.numeric(
                 new BigDecimal("10"),
@@ -76,12 +74,12 @@ class NumericRangeSpec extends Specification {
 
     def "detects overlap when ranges overlap"() {
         given:
-        NumericRange range1 = CalculatorRange.numeric(
+        CalculatorRange range1 = CalculatorRange.numeric(
                 new BigDecimal("0"),
                 new BigDecimal("10"),
                 CalculatorId.generate()
         )
-        NumericRange range2 = CalculatorRange.numeric(
+        CalculatorRange range2 = CalculatorRange.numeric(
                 new BigDecimal("5"),
                 new BigDecimal("15"),
                 CalculatorId.generate()
@@ -94,12 +92,12 @@ class NumericRangeSpec extends Specification {
 
     def "does not detect overlap when ranges adjacent"() {
         given:
-        NumericRange range1 = CalculatorRange.numeric(
+        CalculatorRange range1 = CalculatorRange.numeric(
                 new BigDecimal("0"),
                 new BigDecimal("10"),
                 CalculatorId.generate()
         )
-        NumericRange range2 = CalculatorRange.numeric(
+        CalculatorRange range2 = CalculatorRange.numeric(
                 new BigDecimal("10"),
                 new BigDecimal("20"),
                 CalculatorId.generate()
@@ -112,12 +110,12 @@ class NumericRangeSpec extends Specification {
 
     def "detects overlap when one range contains another"() {
         given:
-        NumericRange larger = CalculatorRange.numeric(
+        CalculatorRange larger = CalculatorRange.numeric(
                 new BigDecimal("0"),
                 new BigDecimal("100"),
                 CalculatorId.generate()
         )
-        NumericRange smaller = CalculatorRange.numeric(
+        CalculatorRange smaller = CalculatorRange.numeric(
                 new BigDecimal("20"),
                 new BigDecimal("30"),
                 CalculatorId.generate()
@@ -130,12 +128,12 @@ class NumericRangeSpec extends Specification {
 
     def "is compatible with other numeric ranges"() {
         given:
-        NumericRange range1 = CalculatorRange.numeric(
+        CalculatorRange range1 = CalculatorRange.numeric(
                 new BigDecimal("0"),
                 new BigDecimal("10"),
                 CalculatorId.generate()
         )
-        NumericRange range2 = CalculatorRange.numeric(
+        CalculatorRange range2 = CalculatorRange.numeric(
                 new BigDecimal("20"),
                 new BigDecimal("30"),
                 CalculatorId.generate()

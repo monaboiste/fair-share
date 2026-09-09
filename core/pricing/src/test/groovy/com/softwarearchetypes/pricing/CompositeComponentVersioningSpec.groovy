@@ -1,16 +1,17 @@
 package com.softwarearchetypes.pricing
 
-import static com.softwarearchetypes.pricing.ClockFixture.someFixedClock
 import static java.time.LocalDateTime.now
 
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import spock.lang.Specification
 
 class CompositeComponentVersioningSpec extends Specification {
 
-    Clock clock = someFixedClock()
+    private final Clock clock = Clock.fixed(Instant.parse("2025-01-15T12:50:00Z"), ZoneOffset.UTC)
 
     def "composite is created with an initial version"() {
         given:
