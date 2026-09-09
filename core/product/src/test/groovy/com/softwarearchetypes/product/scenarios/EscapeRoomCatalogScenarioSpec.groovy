@@ -4,6 +4,7 @@ import com.softwarearchetypes.product.ApplicabilityContext
 import com.softwarearchetypes.product.CatalogEntry
 import com.softwarearchetypes.product.CatalogEntryId
 import com.softwarearchetypes.product.ProductIdentifier
+import com.softwarearchetypes.product.ProductRelationshipType
 import com.softwarearchetypes.product.Validity
 import com.softwarearchetypes.product.fixture.EscapeRoomCatalogFixture
 import java.time.LocalDate
@@ -123,5 +124,78 @@ class EscapeRoomCatalogScenarioSpec extends Specification {
 
         then:
         !available
+    }
+
+    def "rooms form a difficulty upgrade path"() {
+        given:
+        def relationships = EscapeRoomCatalogFixture.relationships()
+
+        expect:
+        relationships.any {
+            it.from() == from &&
+                    it.to() == to &&
+                    it.type() == ProductRelationshipType.UPGRADABLE_TO
+        }
+
+        where:
+        from                                          | to
+        EscapeRoomCatalogFixture.ID_EGYPTIAN_TOMB     | EscapeRoomCatalogFixture.ID_MAD_SCIENTIST_LAB
+        EscapeRoomCatalogFixture.ID_MAD_SCIENTIST_LAB | EscapeRoomCatalogFixture.ID_ALCATRAZ
+        EscapeRoomCatalogFixture.ID_ALCATRAZ          | EscapeRoomCatalogFixture.ID_CYBERPUNK_2077
+    }
+
+    def "every room is complemented by every add-on"() {
+        given:
+        def relationships = EscapeRoomCatalogFixture.relationships()
+
+        def rooms = [
+                EscapeRoomCatalogFixture.ID_MAD_SCIENTIST_LAB,
+                EscapeRoomCatalogFixture.ID_ALCATRAZ,
+                EscapeRoomCatalogFixture.ID_EGYPTIAN_TOMB,
+                EscapeRoomCatalogFixture.ID_CYBERPUNK_2077
+        ]
+
+        def addOns = [
+                EscapeRoomCatalogFixture.ID_ACTOR,
+                EscapeRoomCatalogFixture.ID_PHOTO_VIDEO,
+                EscapeRoomCatalogFixture.ID_CATERING,
+                EscapeRoomCatalogFixture.ID_DEDICATED_GM
+        ]
+
+        expect:
+        rooms.every { room ->
+            addOns.every { addOn ->
+                relationships.any {
+                    it.from() == room &&
+                            it.to() == addOn &&
+                            it.type() == ProductRelationshipType.COMPLEMENTED_BY
+                }
+            }
+        }
+    }
+
+    def "cyberpunk is incompatible with the other rooms"() {
+        given:
+        def relationships = EscapeRoomCatalogFixture.relationships()
+
+        when:
+        def incompatible = relationships.findAll {
+            it.from() == EscapeRoomCatalogFixture.ID_CYBERPUNK_2077 &&
+                    it.type() == ProductRelationshipType.INCOMPATIBLE_WITH
+        }
+
+        then:
+        incompatible*.to() as Set == [
+                EscapeRoomCatalogFixture.ID_EGYPTIAN_TOMB,
+                EscapeRoomCatalogFixture.ID_MAD_SCIENTIST_LAB,
+                EscapeRoomCatalogFixture.ID_ALCATRAZ
+        ].toSet()
+    }
+
+    def "no relationship ever relates a product to itself"() {
+        expect:
+        EscapeRoomCatalogFixture.relationships().every {
+            it.from() != it.to()
+        }
     }
 }

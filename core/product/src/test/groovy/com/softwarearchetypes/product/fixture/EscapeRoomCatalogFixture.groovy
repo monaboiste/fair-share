@@ -163,6 +163,7 @@ final class EscapeRoomCatalogFixture {
                 define(factory, ID_EGYPTIAN_TOMB, ID_MAD_SCIENTIST_LAB, ProductRelationshipType.UPGRADABLE_TO),
                 define(factory, ID_MAD_SCIENTIST_LAB, ID_ALCATRAZ, ProductRelationshipType.UPGRADABLE_TO),
                 define(factory, ID_ALCATRAZ, ID_CYBERPUNK_2077, ProductRelationshipType.UPGRADABLE_TO),
+
                 define(factory, ID_MAD_SCIENTIST_LAB, ID_ACTOR, ProductRelationshipType.COMPLEMENTED_BY),
                 define(factory, ID_MAD_SCIENTIST_LAB, ID_CATERING, ProductRelationshipType.COMPLEMENTED_BY),
                 define(factory, ID_MAD_SCIENTIST_LAB, ID_PHOTO_VIDEO, ProductRelationshipType.COMPLEMENTED_BY),
@@ -175,9 +176,16 @@ final class EscapeRoomCatalogFixture {
                 define(factory, ID_CYBERPUNK_2077, ID_ACTOR, ProductRelationshipType.COMPLEMENTED_BY),
                 define(factory, ID_CYBERPUNK_2077, ID_CATERING, ProductRelationshipType.COMPLEMENTED_BY),
                 define(factory, ID_CYBERPUNK_2077, ID_PHOTO_VIDEO, ProductRelationshipType.COMPLEMENTED_BY),
+
+                define(factory, ID_MAD_SCIENTIST_LAB, ID_DEDICATED_GM, ProductRelationshipType.COMPLEMENTED_BY),
+                define(factory, ID_ALCATRAZ, ID_DEDICATED_GM, ProductRelationshipType.COMPLEMENTED_BY),
+                define(factory, ID_EGYPTIAN_TOMB, ID_DEDICATED_GM, ProductRelationshipType.COMPLEMENTED_BY),
+                define(factory, ID_CYBERPUNK_2077, ID_DEDICATED_GM, ProductRelationshipType.COMPLEMENTED_BY),
+
                 define(factory, ID_CYBERPUNK_2077, ID_EGYPTIAN_TOMB, ProductRelationshipType.INCOMPATIBLE_WITH),
                 define(factory, ID_CYBERPUNK_2077, ID_MAD_SCIENTIST_LAB, ProductRelationshipType.INCOMPATIBLE_WITH),
-                define(factory, ID_CYBERPUNK_2077, ID_ALCATRAZ, ProductRelationshipType.INCOMPATIBLE_WITH))
+                define(factory, ID_CYBERPUNK_2077, ID_ALCATRAZ, ProductRelationshipType.INCOMPATIBLE_WITH)
+        )
     }
 
     static List<CatalogEntry> catalogEntriesFor(String city) {
