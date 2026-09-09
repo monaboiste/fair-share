@@ -14,7 +14,12 @@ class VersionSpec extends Specification {
         Version.of(value).value() == value
 
         where:
-        value << [42L, 0L, -1L, Long.MAX_VALUE, Long.MIN_VALUE]
+        value | _
+        42L   | _
+        0L    | _
+        -1L   | _
+        Long.MAX_VALUE | _
+        Long.MIN_VALUE | _
     }
 
     def "versions with the same value are equal"() {

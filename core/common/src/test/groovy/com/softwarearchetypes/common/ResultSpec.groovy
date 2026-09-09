@@ -191,58 +191,6 @@ class ResultSpec extends Specification {
         Result.failure("Error").fold({ it.length() }, { 0 }) | 5
     }
 
-    def "mapping operations reject null functions"() {
-        when:
-        operation()
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        operation << [
-                { Result.success(10).map(null) },
-                { Result.failure("error").mapFailure(null) },
-                { Result.success(10).flatMap(null) },
-                { Result.success(10).fold(null, { it * 2 }) },
-                { Result.success(10).fold({ -1 }, null) },
-                { Result.success(10).biMap(null, { "" }) },
-                { Result.success(10).biMap({ "" }, null) },
-                { Result.success(10).ifSuccessOrElse(null, { "" }) },
-                { Result.success(10).ifSuccessOrElse({ "" }, null) }
-        ]
-    }
-
-    def "peek operations reject null consumers"() {
-        when:
-        operation()
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        operation << [
-                { Result.success(10).peek(null, {}) },
-                { Result.success(10).peek({}, null) },
-                { Result.success(10).peekSuccess(null) },
-                { Result.failure("error").peekFailure(null) }
-        ]
-    }
-
-    def "combine rejects null arguments"() {
-        when:
-        operation()
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        operation << [
-                { Result.success(10).combine(null, { "" }, { 0 }) },
-                { Result.success(10).combine(Result.success(20), null, { first, second -> first + second }) },
-                { Result.success(10).combine(Result.success(20), { "" }, null) }
-        ]
-    }
-
     def "creates an empty list composite"() {
         when:
         def result = Result.composite().toResult()
@@ -312,17 +260,6 @@ class ResultSpec extends Specification {
         then:
         result.failure()
         result.getFailure() == "First error"
-    }
-
-    def "composites reject null results"() {
-        when:
-        composite.accumulate(null)
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        composite << [Result.composite(), Result.compositeSet()]
     }
 
     def "list composite reports its state"() {

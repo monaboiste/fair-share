@@ -6,12 +6,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.jspecify.annotations.Nullable;
 
 public final class CollectionTransformations {
 
     private CollectionTransformations() {}
 
-    public static Map<String, String> keyValueMapFrom(String[] parameters) {
+    public static Map<String, String> keyValueMapFrom(String @Nullable [] parameters) {
         if (parameters == null) {
             return new HashMap<>();
         }
@@ -26,13 +27,13 @@ public final class CollectionTransformations {
     }
 
     private static String requireValidKey(String key, int index) {
-        if (key == null || key.isBlank()) {
+        if (key.isBlank()) {
             throw new IllegalArgumentException("Key [idx: %d] cannot be empty or null".formatted(index));
         }
         return key;
     }
 
-    public static <T> Set<T> subtract(Set<T> minuend, Set<T> subtrahend) {
+    public static <T extends @Nullable Object> Set<T> subtract(Set<T> minuend, Set<T> subtrahend) {
         Set<T> result = new HashSet<>(minuend);
         result.removeAll(subtrahend);
         return result;

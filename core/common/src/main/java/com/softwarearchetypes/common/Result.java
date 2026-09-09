@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
 public sealed interface Result<F, S> permits Result.Success, Result.Failure {
 
@@ -60,12 +61,6 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
 
     default <L, R> Result<L, R> biMap(
             Function<? super S, ? extends R> successMapper, Function<? super F, ? extends L> failureMapper) {
-        if (successMapper == null) {
-            throw new IllegalArgumentException("successMapper cannot be null");
-        }
-        if (failureMapper == null) {
-            throw new IllegalArgumentException("failureMapper cannot be null");
-        }
         if (success()) {
             return new Success<>(successMapper.apply(getSuccess()));
         } else {
@@ -74,9 +69,6 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <R> Result<F, R> map(Function<? super S, ? extends R> mapper) {
-        if (mapper == null) {
-            throw new IllegalArgumentException("mapper cannot be null");
-        }
         if (success()) {
             return new Success<>(mapper.apply(getSuccess()));
         } else {
@@ -85,9 +77,6 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <L> Result<L, S> mapFailure(Function<? super F, ? extends L> mapper) {
-        if (mapper == null) {
-            throw new IllegalArgumentException("mapper cannot be null");
-        }
         if (success()) {
             return new Success<>(getSuccess());
         } else {
@@ -96,12 +85,6 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default Result<F, S> peek(Consumer<? super S> successConsumer, Consumer<? super F> failureConsumer) {
-        if (successConsumer == null) {
-            throw new IllegalArgumentException("successConsumer cannot be null");
-        }
-        if (failureConsumer == null) {
-            throw new IllegalArgumentException("failureConsumer cannot be null");
-        }
         if (success()) {
             successConsumer.accept(getSuccess());
         } else {
@@ -111,26 +94,14 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default Result<F, S> peekSuccess(Consumer<? super S> successConsumer) {
-        if (successConsumer == null) {
-            throw new IllegalArgumentException("successConsumer cannot be null");
-        }
-        return peek(successConsumer, it -> {});
+        return peek(successConsumer, _ -> {});
     }
 
     default Result<F, S> peekFailure(Consumer<? super F> failureConsumer) {
-        if (failureConsumer == null) {
-            throw new IllegalArgumentException("failureConsumer cannot be null");
-        }
-        return peek(it -> {}, failureConsumer);
+        return peek(_ -> {}, failureConsumer);
     }
 
     default <R> R ifSuccessOrElse(Function<S, R> successMapping, Function<F, R> failureMapping) {
-        if (successMapping == null) {
-            throw new IllegalArgumentException("successMapping cannot be null");
-        }
-        if (failureMapping == null) {
-            throw new IllegalArgumentException("failureMapping cannot be null");
-        }
         if (success()) {
             return successMapping.apply(getSuccess());
         } else {
@@ -139,9 +110,6 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <R> Result<F, R> flatMap(Function<S, Result<F, R>> mapping) {
-        if (mapping == null) {
-            throw new IllegalArgumentException("mapping cannot be null");
-        }
         if (success()) {
             return mapping.apply(getSuccess());
         } else {
@@ -152,12 +120,6 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <U> U fold(Function<? super F, ? extends U> leftMapper, Function<? super S, ? extends U> rightMapper) {
-        if (leftMapper == null) {
-            throw new IllegalArgumentException("leftMapper cannot be null");
-        }
-        if (rightMapper == null) {
-            throw new IllegalArgumentException("rightMapper cannot be null");
-        }
         if (success()) {
             return rightMapper.apply(getSuccess());
         } else {
@@ -166,16 +128,9 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
     }
 
     default <F2, S2> Result<F2, S2> combine(
-            Result<F, S> secondResult, BiFunction<F, F, F2> failureCombiner, BiFunction<S, S, S2> successCombiner) {
-        if (secondResult == null) {
-            throw new IllegalArgumentException("secondResult cannot be null");
-        }
-        if (failureCombiner == null) {
-            throw new IllegalArgumentException("failureCombiner cannot be null");
-        }
-        if (successCombiner == null) {
-            throw new IllegalArgumentException("successCombiner cannot be null");
-        }
+            Result<F, S> secondResult,
+            BiFunction<@Nullable F, @Nullable F, F2> failureCombiner,
+            BiFunction<S, S, S2> successCombiner) {
         if (success() && secondResult.success()) {
             return new Success<>(successCombiner.apply(getSuccess(), secondResult.getSuccess()));
         } else {
@@ -204,7 +159,7 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
      * Creates an empty composite Result accumulator with an empty list. Use with accumulate() to progressively build up
      * a Result containing multiple values.
      *
-     * @return CompositeResult with empty list
+     * @return CompositeResult with an empty list
      */
     static <F, S> CompositeResult<F, S> composite() {
         return new CompositeResult<>(new ArrayList<>());
@@ -214,7 +169,7 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
      * Creates an empty composite Result accumulator with an empty set. Use with accumulate() to progressively build up
      * a Result containing multiple values.
      *
-     * @return CompositeSetResult with empty set
+     * @return CompositeSetResult with an empty set
      */
     static <F, S> CompositeSetResult<F, S> compositeSet() {
         return new CompositeSetResult<>(new HashSet<>());
@@ -236,16 +191,13 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
         }
 
         /**
-         * Accumulates a new Result into this composite. If already failed, returns the existing failure. If new Result
-         * fails, returns new failure. If both succeed, adds the new value to the list.
+         * Accumulates a new Result into this composite. If already failed, returns the existing failure. If a new
+         * Result fails, it returns a new failure. If both succeed, adds the new value to the list.
          *
          * @param newResult the Result to accumulate
          * @return CompositeResult with accumulated values or failure
          */
         public CompositeResult<F, S> accumulate(Result<F, S> newResult) {
-            if (newResult == null) {
-                throw new IllegalArgumentException("newResult cannot be null");
-            }
             if (result.failure()) {
                 return this;
             }
@@ -258,7 +210,7 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
         }
 
         /**
-         * Checks if this composite is in success state.
+         * Checks if this composite is in a success state.
          *
          * @return true if success, false if failure
          */
@@ -267,7 +219,7 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
         }
 
         /**
-         * Checks if this composite is in failure state.
+         * Checks if this composite is in a failure state.
          *
          * @return true if failure, false if success
          */
@@ -300,16 +252,13 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
         }
 
         /**
-         * Accumulates a new Result into this composite. If already failed, returns the existing failure. If new Result
-         * fails, returns new failure. If both succeed, adds the new value to the set.
+         * Accumulates a new Result into this composite. If already failed, returns the existing failure. If a new
+         * Result fails, it returns a new failure. If both succeed, adds the new value to the set.
          *
          * @param newResult the Result to accumulate
          * @return CompositeSetResult with accumulated values or failure
          */
         public CompositeSetResult<F, S> accumulate(Result<F, S> newResult) {
-            if (newResult == null) {
-                throw new IllegalArgumentException("newResult cannot be null");
-            }
             if (result.failure()) {
                 return this;
             }
@@ -322,7 +271,7 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
         }
 
         /**
-         * Checks if this composite is in success state.
+         * Checks if this composite is in a success state.
          *
          * @return true if success, false if failure
          */
@@ -331,7 +280,7 @@ public sealed interface Result<F, S> permits Result.Success, Result.Failure {
         }
 
         /**
-         * Checks if this composite is in failure state.
+         * Checks if this composite is in a failure state.
          *
          * @return true if failure, false if success
          */
