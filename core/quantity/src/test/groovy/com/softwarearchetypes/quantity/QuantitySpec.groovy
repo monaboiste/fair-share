@@ -28,8 +28,6 @@ class QuantitySpec extends Specification {
 
         where:
         amount                | unit
-        (BigDecimal) null     | Unit.kilograms()
-        new BigDecimal("100") | null
         new BigDecimal("-10") | Unit.kilograms()
     }
 

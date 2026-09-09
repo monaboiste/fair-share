@@ -4,7 +4,6 @@ import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
 
 import java.math.BigDecimal;
-import org.jspecify.annotations.NonNull;
 
 public record Percentage(BigDecimal value) {
 
@@ -44,7 +43,7 @@ public record Percentage(BigDecimal value) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value.setScale(2, HALF_UP).stripTrailingZeros().toPlainString() + "%";
     }
 }

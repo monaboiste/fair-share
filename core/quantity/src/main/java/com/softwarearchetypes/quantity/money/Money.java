@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 import javax.money.CurrencyUnit;
 import javax.money.MonetaryException;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public class Money implements Comparable<Money> {
 
@@ -121,7 +121,7 @@ public class Money implements Comparable<Money> {
     }
 
     @Override
-    public int compareTo(@NonNull Money other) {
+    public int compareTo(Money other) {
         if (!value.getCurrency().equals(other.value.getCurrency())) {
             throw new MonetaryException(
                     "Currency mismatch: %s/%s".formatted(value.getCurrency(), other.value.getCurrency()));
@@ -130,7 +130,7 @@ public class Money implements Comparable<Money> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) {
             return true;
         }
@@ -146,7 +146,7 @@ public class Money implements Comparable<Money> {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value.getCurrency().getCurrencyCode() + " "
                 + value.getNumberStripped().toPlainString();
     }

@@ -1,15 +1,13 @@
 package com.softwarearchetypes.quantity;
 
-import org.jspecify.annotations.NonNull;
-
 /** Unit of measurement for quantities. Examples: kg, l, pcs, m3, m2, hours, etc. */
 public record Unit(String symbol, String name) {
 
     public Unit {
-        if (symbol == null || symbol.isBlank()) {
+        if (symbol.isBlank()) {
             throw new IllegalArgumentException("Unit symbol cannot be null or blank");
         }
-        if (name == null || name.isBlank()) {
+        if (name.isBlank()) {
             throw new IllegalArgumentException("Unit name cannot be null or blank");
         }
     }
@@ -59,7 +57,7 @@ public record Unit(String symbol, String name) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return symbol;
     }
 }

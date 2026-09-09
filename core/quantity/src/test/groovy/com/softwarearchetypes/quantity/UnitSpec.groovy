@@ -22,10 +22,8 @@ class UnitSpec extends Specification {
 
         where:
         symbol | name
-        null   | "kilograms"
         ""     | "kilograms"
         "   "  | "kilograms"
-        "kg"   | null
         "kg"   | ""
         "kg"   | "   "
     }
