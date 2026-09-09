@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 public interface Calculator {
 
@@ -104,8 +105,8 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
                     .formatted(getType().requiredCalculationFields()));
         }
 
-        Money base = (Money) parameters.get("base");
-        ChronoUnit unit = (ChronoUnit) parameters.get("unit");
+        Money base = parameters.getMoney("base");
+        ChronoUnit unit = (ChronoUnit) parameters.require("unit");
 
         BigDecimal rate = annualRate.divide(BigDecimal.valueOf(100), SCALE, RoundingMode.HALF_UP);
         BigDecimal unitRate = rate.divide(unitsPerYear(unit), SCALE, RoundingMode.HALF_UP);
@@ -161,13 +162,21 @@ record StepFunctionCalculator(
         StepBoundary stepBoundary)
         implements Calculator {
 
-    public StepFunctionCalculator {
-        if (interpretation == null) {
-            interpretation = Interpretation.TOTAL;
-        }
-        if (stepBoundary == null) {
-            stepBoundary = StepBoundary.EXCLUSIVE;
-        }
+    public StepFunctionCalculator(
+            CalculatorId id,
+            String name,
+            Money basePrice,
+            BigDecimal stepSize,
+            BigDecimal stepIncrement,
+            @Nullable Interpretation interpretation,
+            @Nullable StepBoundary stepBoundary) {
+        this.id = id;
+        this.name = name;
+        this.basePrice = basePrice;
+        this.stepSize = stepSize;
+        this.stepIncrement = stepIncrement;
+        this.interpretation = interpretation == null ? Interpretation.TOTAL : interpretation;
+        this.stepBoundary = stepBoundary == null ? StepBoundary.EXCLUSIVE : stepBoundary;
     }
 
     public StepFunctionCalculator(String name, Money basePrice, BigDecimal stepSize, BigDecimal stepIncrement) {
@@ -188,8 +197,8 @@ record StepFunctionCalculator(
             Money basePrice,
             BigDecimal stepSize,
             BigDecimal stepIncrement,
-            Interpretation interpretation,
-            StepBoundary stepBoundary) {
+            @Nullable Interpretation interpretation,
+            @Nullable StepBoundary stepBoundary) {
         this(CalculatorId.generate(), name, basePrice, stepSize, stepIncrement, interpretation, stepBoundary);
     }
 
@@ -200,6 +209,13 @@ record StepFunctionCalculator(
                     .formatted(getType().requiredCalculationFields()));
         }
 
+        BigDecimal totalIncrementValue = calculateTotalIncrementValue(parameters);
+        Money incrementTotal = Money.of(totalIncrementValue, basePrice.currency());
+
+        return basePrice.add(incrementTotal);
+    }
+
+    private BigDecimal calculateTotalIncrementValue(Parameters parameters) {
         BigDecimal quantity = parameters.getBigDecimal("quantity");
 
         BigDecimal steps;
@@ -209,12 +225,7 @@ record StepFunctionCalculator(
             steps = quantity.divide(stepSize, 0, RoundingMode.DOWN);
         }
 
-        BigDecimal totalIncrementValue =
-                stepIncrement.multiply(steps).setScale(10, RoundingMode.HALF_UP).stripTrailingZeros();
-
-        Money incrementTotal = Money.of(totalIncrementValue, basePrice.currency());
-
-        return basePrice.add(incrementTotal);
+        return stepIncrement.multiply(steps).setScale(10, RoundingMode.HALF_UP).stripTrailingZeros();
     }
 
     @Override
@@ -341,7 +352,7 @@ record DailyIncrementCalculator(
                     .formatted(getType().requiredCalculationFields()));
         }
 
-        LocalDate date = (LocalDate) parameters.get("date");
+        LocalDate date = parameters.getLocalDate("date");
 
         long daysFromStart = DAYS.between(startDate, date);
 

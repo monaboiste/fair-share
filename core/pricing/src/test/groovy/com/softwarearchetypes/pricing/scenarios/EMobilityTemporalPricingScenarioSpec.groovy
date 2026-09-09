@@ -12,23 +12,14 @@ import com.softwarearchetypes.pricing.Validity
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
-import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import spock.lang.Specification
 
 class EMobilityTemporalPricingScenarioSpec extends Specification {
 
-    private Clock fixedClock
-    private PricingFacade facade
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def setup() {
-        fixedClock = Clock.fixed(
-                Instant.parse("2024-01-01T00:00:00Z"),
-                ZoneId.systemDefault()
-        )
-
-        facade = PricingTestConfiguration.inMemory(fixedClock)
         registerCalculators()
         createInitialComponents()
     }

@@ -3,7 +3,7 @@ package com.softwarearchetypes.pricing;
 import com.softwarearchetypes.quantity.money.Money;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public record SumOf(List<String> componentNames) implements ParameterValue {
 
@@ -16,11 +16,12 @@ public record SumOf(List<String> componentNames) implements ParameterValue {
     }
 
     @Override
-    public Money evaluate(Map<Component, Money> componentResults) {
+    public Money evaluate(Map<Component, @Nullable Money> componentResults) {
         if (componentNames.isEmpty()) {
             throw new IllegalArgumentException("SumOf requires at least one component name");
         }
 
+        // TODO: fix - cannot return zero or annotate as nullable
         Money sum = null;
         for (String name : componentNames) {
             Component component = componentResults.keySet().stream()
@@ -41,7 +42,7 @@ public record SumOf(List<String> componentNames) implements ParameterValue {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "SumOf{componentNames=%s}".formatted(componentNames);
     }
 }

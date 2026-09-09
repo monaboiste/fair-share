@@ -3,18 +3,19 @@ package com.softwarearchetypes.pricing;
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /** Computes a parameter value from component results. */
 public sealed interface ParameterValue permits ValueOf, SumOf, DifferenceOf, ProductOf {
 
     /** Returns this expression's value. */
-    Money evaluate(Map<Component, Money> componentResults);
+    Money evaluate(Map<Component, @Nullable Money> componentResults);
 }
 
 record DifferenceOf(String minuendComponent, String subtrahendComponent) implements ParameterValue {
 
     @Override
-    public Money evaluate(Map<Component, Money> componentResults) {
+    public Money evaluate(Map<Component, @Nullable Money> componentResults) {
         Component minuend = componentResults.keySet().stream()
                 .filter(c -> c.name().equals(minuendComponent))
                 .findFirst()
@@ -45,7 +46,7 @@ record DifferenceOf(String minuendComponent, String subtrahendComponent) impleme
 record ProductOf(String componentName, BigDecimal factor) implements ParameterValue {
 
     @Override
-    public Money evaluate(Map<Component, Money> componentResults) {
+    public Money evaluate(Map<Component, @Nullable Money> componentResults) {
         Component component = componentResults.keySet().stream()
                 .filter(c -> c.name().equals(componentName))
                 .findFirst()

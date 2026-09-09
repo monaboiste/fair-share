@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringTokenizer;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public record Parameters(Map<String, Object> values) {
     public Parameters() {
@@ -149,17 +149,25 @@ public record Parameters(Map<String, Object> values) {
         return values.keySet().containsAll(keys);
     }
 
-    public Object get(String key) {
+    public @Nullable Object get(String key) {
         return values.get(key);
     }
 
+    Object require(String key) {
+        Object value = values.get(key);
+        if (value == null) {
+            throw new IllegalArgumentException("Required parameter '%s' is absent".formatted(key));
+        }
+        return value;
+    }
+
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "Parameters" + values;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) {
             return true;
         }

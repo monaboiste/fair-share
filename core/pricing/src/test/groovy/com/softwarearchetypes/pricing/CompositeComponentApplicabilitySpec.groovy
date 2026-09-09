@@ -1,19 +1,15 @@
 package com.softwarearchetypes.pricing
 
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 import spock.lang.Specification
 
 class CompositeComponentApplicabilitySpec extends Specification {
 
-    static final Instant NOW = LocalDateTime.of(2025, 6, 1, 12, 0).atZone(ZoneId.systemDefault()).toInstant()
-    static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-
+    private final Clock clock = Clock.fixed(Instant.parse("2025-01-15T12:50:00Z"), ZoneOffset.UTC)
     private PricingFacade facade = PricingTestConfiguration.inMemory(clock)
 
     def setup() {

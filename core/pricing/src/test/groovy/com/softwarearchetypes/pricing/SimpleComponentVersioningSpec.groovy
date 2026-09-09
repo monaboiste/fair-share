@@ -76,7 +76,7 @@ class SimpleComponentVersioningSpec extends Specification {
         updated.calculate(mar15) == Money.of(100, "PLN")
     }
 
-    def "when versions overlap the one with the youngest validFrom wins"() {
+    def "when versions overlap the one with the youngest valid.from wins"() {
         given:
         Calculator baseCalculator = new SimpleFixedCalculator("base", Money.of(100, "PLN"))
         Validity baseValidity = Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0))

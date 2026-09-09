@@ -2,7 +2,6 @@ package com.softwarearchetypes.pricing;
 
 import java.util.List;
 import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 
 /**
  * Aggregate of CalculatorRange objects with validation. Knows which parameter to check and ensures all ranges are
@@ -10,6 +9,7 @@ import org.jspecify.annotations.NonNull;
  */
 record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
 
+    @SuppressWarnings("ConstantValue")
     public Ranges {
         if (rangeSelector == null || rangeSelector.isBlank()) {
             throw new IllegalArgumentException("Range selector cannot be null or blank");
@@ -101,7 +101,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "Ranges[selector='%s', ranges=%s]".formatted(rangeSelector, ranges);
     }
 }

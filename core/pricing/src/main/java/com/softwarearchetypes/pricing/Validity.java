@@ -1,7 +1,6 @@
 package com.softwarearchetypes.pricing;
 
 import java.time.LocalDateTime;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** A pricing validity period with optional inclusive start and end timestamps. */
@@ -54,7 +53,7 @@ public record Validity(
         return pointInTime != null && from != null && pointInTime.isBefore(from);
     }
 
-    public boolean overlaps(@NonNull Validity other) {
+    public boolean overlaps(Validity other) {
         return (from == null || other.to == null || !from.isAfter(other.to))
                 && (other.from == null || to == null || !other.from.isAfter(to));
     }

@@ -180,7 +180,7 @@ class TimeRangeSpec extends Specification {
                 LocalTime.of(18, 0),
                 CalculatorId.generate()
         )
-        NumericRange numericRange = CalculatorRange.numeric(
+        CalculatorRange numericRange = CalculatorRange.numeric(
                 BigDecimal.ZERO,
                 BigDecimal.TEN,
                 CalculatorId.generate()

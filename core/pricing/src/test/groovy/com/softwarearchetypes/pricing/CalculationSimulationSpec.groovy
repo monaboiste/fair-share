@@ -1,15 +1,11 @@
 package com.softwarearchetypes.pricing
 
-
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.quantity.money.Money
 import java.math.RoundingMode
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import spock.lang.Specification
@@ -170,9 +166,7 @@ class CalculationSimulationSpec extends Specification {
 
     def "composite calculator can be simulated"() {
         given:
-        Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
-        Clock clock = fixed(NOW, ZoneId.systemDefault())
-        PricingFacade facade = PricingTestConfiguration.inMemory(clock)
+        PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
         Calculator lowTier = facade.addCalculator(
                 "low-tier",

@@ -1,7 +1,6 @@
 package com.softwarearchetypes.pricing;
 
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
 
 public record ComponentId(UUID id) {
 
@@ -10,7 +9,7 @@ public record ComponentId(UUID id) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return id.toString();
     }
 }

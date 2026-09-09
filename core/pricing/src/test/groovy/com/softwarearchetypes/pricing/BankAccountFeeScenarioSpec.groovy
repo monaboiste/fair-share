@@ -1,20 +1,12 @@
 package com.softwarearchetypes.pricing
 
-
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import spock.lang.Specification
 
 class BankAccountFeeScenarioSpec extends Specification {
 
-    static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
-    static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-    private final PricingFacade facade = PricingTestConfiguration.inMemory(clock)
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
     private CompositeFunctionCalculator accountFeeCalculator
 
     def setup() {

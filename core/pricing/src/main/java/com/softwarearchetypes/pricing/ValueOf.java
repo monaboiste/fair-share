@@ -2,11 +2,12 @@ package com.softwarearchetypes.pricing;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public record ValueOf(String componentName) implements ParameterValue {
 
     @Override
-    public Money evaluate(Map<Component, Money> componentResults) {
+    public Money evaluate(Map<Component, @Nullable Money> componentResults) {
         Component component = componentResults.keySet().stream()
                 .filter(c -> c.name().equals(componentName))
                 .findFirst()

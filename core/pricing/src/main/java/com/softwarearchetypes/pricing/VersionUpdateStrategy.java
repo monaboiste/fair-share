@@ -12,7 +12,7 @@ public enum VersionUpdateStrategy {
             for (ComponentVersion version : existingVersions) {
                 if (version.validity().equals(newValidity)) {
                     throw new IllegalArgumentException(("Version with identical validity period already exists: %s. "
-                                    + "Use different validFrom/validTo to create temporal overlaps.")
+                                    + "Use different validity.from/to to create temporal overlaps.")
                             .formatted(newValidity));
                 }
             }

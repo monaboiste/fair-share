@@ -1,7 +1,5 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import static java.time.Clock.fixed
-
 import com.softwarearchetypes.pricing.ApplicabilityConstraint
 import com.softwarearchetypes.pricing.CalculatorRange
 import com.softwarearchetypes.pricing.CalculatorType
@@ -15,17 +13,12 @@ import com.softwarearchetypes.pricing.Validity
 import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
-import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import spock.lang.Specification
 
 class LogisticsShipmentScenarioSpec extends Specification {
 
-    static final Instant NOW = LocalDateTime.of(2025, 1, 15, 12, 50).atZone(ZoneId.systemDefault()).toInstant()
-    static final Clock clock = fixed(NOW, ZoneId.systemDefault())
-
-    private PricingFacade facade = PricingTestConfiguration.inMemory(clock)
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def setup() {
         LocalDateTime januaryFirst = LocalDateTime.of(2025, 1, 1, 0, 0)

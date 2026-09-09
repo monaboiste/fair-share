@@ -3,7 +3,7 @@ package com.softwarearchetypes.pricing;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** Maps values in an interval to a calculator. Numeric, time, and date ranges are supported. */
 public interface CalculatorRange {
@@ -110,7 +110,7 @@ record DateRange(LocalDate from, LocalDate to, CalculatorId calculatorId) implem
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "[%s, %s) → %s".formatted(from, to, calculatorId);
     }
 }
@@ -125,7 +125,7 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
     }
 
     @Override
-    public boolean supports(Object value) {
+    public boolean supports(@Nullable Object value) {
         return value instanceof BigDecimal;
     }
 
@@ -134,8 +134,8 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
         if (!supports(value)) {
             return false;
         }
-        BigDecimal bd = (BigDecimal) value;
-        return bd.compareTo(min) >= 0 && bd.compareTo(max) < 0;
+        BigDecimal bigDecimal = (BigDecimal) value;
+        return bigDecimal.compareTo(min) >= 0 && bigDecimal.compareTo(max) < 0;
     }
 
     @Override
@@ -161,7 +161,7 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "[%s, %s) → %s".formatted(min, max, calculatorId);
     }
 }
@@ -170,7 +170,7 @@ record NumericRange(BigDecimal min, BigDecimal max, CalculatorId calculatorId) i
 record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implements CalculatorRange {
 
     @Override
-    public boolean supports(Object value) {
+    public boolean supports(@Nullable Object value) {
         return value instanceof LocalTime;
     }
 
@@ -232,7 +232,7 @@ record TimeRange(LocalTime from, LocalTime to, CalculatorId calculatorId) implem
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         if (from.isBefore(to)) {
             return "[%s, %s) → %s".formatted(from, to, calculatorId);
         } else {

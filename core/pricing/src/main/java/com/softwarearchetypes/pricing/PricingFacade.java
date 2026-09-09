@@ -313,7 +313,7 @@ public class PricingFacade {
             }
             case DISCRETE_POINTS -> {
                 Map<BigDecimal, Money> points = new HashMap<>();
-                ((Map<?, ?>) parameters.get("points"))
+                ((Map<?, ?>) parameters.require("points"))
                         .forEach((quantity, price) -> points.put((BigDecimal) quantity, (Money) price));
                 yield interpretation != null
                         ? new DiscretePointsCalculator(name, points, interpretation)
@@ -349,18 +349,14 @@ public class PricingFacade {
                                 parameters.getMoney("endPrice"));
             case COMPOSITE -> {
                 @SuppressWarnings("unchecked")
-                List<CalculatorRange> rangesList = (List<CalculatorRange>) parameters.get("ranges");
-                String rangeSelector = (String) parameters.get("rangeSelector");
-
-                if (rangeSelector == null) {
-                    throw new IllegalArgumentException("COMPOSITE calculator requires 'rangeSelector' parameter");
-                }
+                List<CalculatorRange> rangesList = (List<CalculatorRange>) parameters.require("ranges");
+                String rangeSelector = (String) parameters.require("rangeSelector");
 
                 Ranges ranges = new Ranges(rangeSelector, rangesList);
                 yield new CompositeFunctionCalculator(name, ranges, calculatorRepository);
             }
             case PERCENTAGE -> {
-                BigDecimal percentageRate = (BigDecimal) parameters.get("percentageRate");
+                BigDecimal percentageRate = (BigDecimal) parameters.require("percentageRate");
                 yield new PercentageCalculator(name, percentageRate);
             }
             default ->

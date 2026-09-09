@@ -10,7 +10,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /** Represents a semantic part of a price calculation. Components can depend on one another. */
 public sealed interface Component permits SimpleComponent, CompositeComponent {
@@ -30,7 +32,7 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
     }
 
     /**
-     * Calculates with automatic conversion to target interpretation. For SimpleComponent: wraps calculator with
+     * Calculates with automatic conversion to target interpretation. For SimpleComponent: wraps calculator with the
      * appropriate adapter if needed. For CompositeComponent: delegates to children with target interpretation.
      *
      * @param parameters input parameters for calculation
@@ -45,7 +47,7 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
      */
     Interpretation interpretation();
 
-    /** Calculate and return breakdown showing individual component contributions. */
+    /** Calculate and return a breakdown showing individual component contributions. */
     default ComponentBreakdown calculateBreakdown(Parameters parameters) {
         return calculateBreakdown(parameters, this.interpretation());
     }
@@ -64,7 +66,7 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
  * A simple component with a time-versioned calculator configuration.
  *
  * <p>The version valid at the calculation timestamp is selected. If versions overlap, the one with the latest
- * {@code validFrom} takes precedence.
+ * {@code validity.from} takes precedence.
  */
 record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion> versions) implements Component {
 
@@ -88,14 +90,14 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
         return new SimpleComponent(ComponentId.generate(), name, List.of(initialVersion));
     }
 
-    /** Factory: Create SimpleComponent with initial version (always applicable). */
+    /** Factory: Create SimpleComponent with the initial version (always applicable). */
     public static SimpleComponent withInitialVersion(
             String name, Calculator calculator, Map<String, String> parameterMappings, Validity validity, Clock clock) {
         return withInitialVersion(
                 name, calculator, parameterMappings, ApplicabilityConstraint.alwaysTrue(), validity, clock);
     }
 
-    /** Factory: Create SimpleComponent with initial version (no parameter mappings, always applicable). */
+    /** Factory: Create SimpleComponent with the initial version (no parameter mappings, always applicable). */
     public static SimpleComponent withInitialVersion(
             String name, Calculator calculator, Validity validity, Clock clock) {
         return withInitialVersion(name, calculator, Map.of(), ApplicabilityConstraint.alwaysTrue(), validity, clock);
@@ -122,19 +124,19 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
      * Adds a new version to this component (immutable operation). Uses default validation strategy: REJECT_IDENTICAL.
      *
      * @param newVersion version to add
-     * @return new SimpleComponent with added version
-     * @throws IllegalArgumentException when version with identical validity already exists
+     * @return new SimpleComponent with an added version
+     * @throws IllegalArgumentException when a version with identical validity already exists
      */
     public SimpleComponent updateWith(SimpleComponentVersion newVersion) {
         return updateWith(newVersion, VersionUpdateStrategy.REJECT_IDENTICAL);
     }
 
     /**
-     * Adds a new version to this component with custom validation strategy (immutable operation).
+     * Adds a new version to this component with a custom validation strategy (immutable operation).
      *
      * @param newVersion version to add
      * @param strategy validation strategy for version conflicts
-     * @return new SimpleComponent with added version
+     * @return new SimpleComponent with an added version
      * @throws IllegalArgumentException when validation fails
      */
     public SimpleComponent updateWith(SimpleComponentVersion newVersion, VersionUpdateStrategy strategy) {
@@ -171,8 +173,8 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
     }
 
     /**
-     * Finds the version valid at given point in time. When multiple versions are valid, returns the one with youngest
-     * validFrom. If validFrom is identical, uses definedAt as tiebreaker (youngest wins).
+     * Finds the version valid at a given point in time. When multiple versions are valid, returns the one with the
+     * youngest validity. If validity is identical, uses definedAt as tiebreaker (youngest wins).
      */
     private SimpleComponentVersion versionAt(LocalDateTime time) {
         return versions.stream()
@@ -198,20 +200,20 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
             String calculatorParam = entry.getValue();
 
             if (original.contains(componentParam)) {
-                transformed = transformed.with(calculatorParam, original.get(componentParam));
+                transformed = transformed.with(calculatorParam, original.require(componentParam));
             }
         }
 
         for (String key : original.keys()) {
             if (!transformed.contains(key) && !parameterMappings.containsKey(key)) {
-                transformed = transformed.with(key, original.get(key));
+                transformed = transformed.with(key, original.require(key));
             }
         }
 
         return transformed;
     }
 
-    /** Returns required parameter names for this component (from first version). */
+    /** Returns required parameter names for this component (from the first version). */
     public Set<String> requiredParameters() {
         SimpleComponentVersion firstVersion = versions.getFirst();
         if (!firstVersion.parameterMappings().isEmpty()) {
@@ -248,7 +250,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
         return new CompositeComponent(ComponentId.generate(), name, List.of(initialVersion));
     }
 
-    /** Factory: Create CompositeComponent with initial version (always applicable). */
+    /** Factory: Create a CompositeComponent with an initial version (always applicable). */
     public static CompositeComponent withInitialVersion(
             String name,
             List<Component> children,
@@ -258,7 +260,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
         return withInitialVersion(name, children, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, clock);
     }
 
-    /** Factory: Create CompositeComponent with initial version (no dependencies, always applicable). */
+    /** Factory: Create a CompositeComponent with an initial version (no dependencies, always applicable). */
     public static CompositeComponent withInitialVersion(
             String name, List<Component> children, Validity validity, Clock clock) {
         return withInitialVersion(name, children, Map.of(), ApplicabilityConstraint.alwaysTrue(), validity, clock);
@@ -287,7 +289,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     }
 
     /**
-     * Creates CompositeComponent with name-based dependencies (varargs). Dependencies use child component names (not
+     * Creates a CompositeComponent with name-based dependencies (varargs). Dependencies use child component names (not
      * IDs). Valid "always" - for testing and simple use cases.
      */
     public static CompositeComponent of(
@@ -314,19 +316,19 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
      * Adds a new version to this component (immutable operation). Uses default validation strategy: REJECT_IDENTICAL.
      *
      * @param newVersion version to add
-     * @return new CompositeComponent with added version
-     * @throws IllegalArgumentException when version with identical validity already exists
+     * @return new CompositeComponent with an added version
+     * @throws IllegalArgumentException when a version with identical validity already exists
      */
     public CompositeComponent updateWith(CompositeComponentVersion newVersion) {
         return updateWith(newVersion, VersionUpdateStrategy.REJECT_IDENTICAL);
     }
 
     /**
-     * Adds a new version to this component with custom validation strategy (immutable operation).
+     * Adds a new version to this component with a custom validation strategy (immutable operation).
      *
      * @param newVersion version to add
      * @param strategy validation strategy for version conflicts
-     * @return new CompositeComponent with added version
+     * @return new CompositeComponent with an added version
      * @throws IllegalArgumentException when validation fails
      */
     public CompositeComponent updateWith(CompositeComponentVersion newVersion, VersionUpdateStrategy strategy) {
@@ -355,7 +357,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
-        Map<Component, Money> componentResults = new HashMap<>();
+        Map<Component, @Nullable Money> componentResults = new HashMap<>();
         for (Component child : version.children()) {
             componentResults.put(child, null);
         }
@@ -370,7 +372,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             total = (total == null) ? childResult : total.add(childResult);
         }
 
-        return total;
+        return Objects.requireNonNull(total);
     }
 
     @Override
@@ -386,7 +388,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
-        Map<Component, Money> componentResults = new HashMap<>();
+        Map<Component, @Nullable Money> componentResults = new HashMap<>();
         for (Component child : version.children()) {
             componentResults.put(child, null);
         }
@@ -405,12 +407,12 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             total = (total == null) ? childBreakdown.total() : total.add(childBreakdown.total());
         }
 
-        return new ComponentBreakdown(name, total, childBreakdowns);
+        return new ComponentBreakdown(name, Objects.requireNonNull(total), childBreakdowns);
     }
 
     /**
-     * Finds the version valid at given point in time. When multiple versions are valid, returns the one with youngest
-     * validFrom. If validFrom is identical, uses definedAt as tiebreaker (youngest wins).
+     * Finds the version valid at a given point in time. When multiple versions are valid, returns the one with the
+     * youngest validity. If validity is identical, uses definedAt as tiebreaker (youngest wins).
      */
     private CompositeComponentVersion versionAt(LocalDateTime time) {
         return versions.stream()
@@ -427,7 +429,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     private Parameters enrichParameters(
             Component child,
             Parameters baseParameters,
-            Map<Component, Money> componentResults,
+            Map<Component, @Nullable Money> componentResults,
             Map<ComponentId, Map<String, ParameterValue>> dependencies) {
         Map<String, ParameterValue> childDependencies = dependencies.get(child.id());
 
