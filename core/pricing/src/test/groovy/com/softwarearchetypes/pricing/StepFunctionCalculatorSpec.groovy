@@ -1,0 +1,128 @@
+package com.softwarearchetypes.pricing
+
+import com.softwarearchetypes.quantity.money.Money
+import spock.lang.Specification
+
+class StepFunctionCalculatorSpec extends Specification {
+
+    def "base price is returned for quantity within the first step"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        Parameters params = new Parameters(Map.of("quantity", new BigDecimal("5")))
+
+        and:
+        Money result = calculator.calculate(params)
+
+        expect:
+        new BigDecimal("100.00") == result.value()
+    }
+
+    def "price increases by one increment for quantities in the second step"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        Parameters params = new Parameters(Map.of("quantity", new BigDecimal("15")))
+
+        and:
+        Money result = calculator.calculate(params)
+
+        expect:
+        new BigDecimal("105.00") == result.value()
+    }
+
+    def "price increases by one increment per step crossed"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        Parameters params = new Parameters(Map.of("quantity", new BigDecimal("35")))
+
+        and:
+        Money result = calculator.calculate(params)
+
+        expect:
+        new BigDecimal("115.00") == result.value()
+    }
+
+    def "price at an exact step boundary applies the next increment"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        Parameters params = new Parameters(Map.of("quantity", new BigDecimal("20")))
+
+        and:
+        Money result = calculator.calculate(params)
+
+        expect:
+        new BigDecimal("110.00") == result.value()
+    }
+
+    def "missing quantity parameter raises an exception"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        Parameters params = Parameters.empty()
+
+        when:
+        calculator.calculate(params)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "calculator type is step function"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        expect:
+        calculator.getType() == CalculatorType.STEP_FUNCTION
+    }
+
+    def "description includes base price and step size"() {
+        given:
+        StepFunctionCalculator calculator = new StepFunctionCalculator(
+                "Volume Pricing",
+                Money.of(100, "PLN"),
+                new BigDecimal("10"),
+                new BigDecimal("5")
+        )
+
+        and:
+        String description = calculator.describe()
+
+        expect:
+        description != null
+        description.contains("100")
+        description.contains("10")
+    }
+}

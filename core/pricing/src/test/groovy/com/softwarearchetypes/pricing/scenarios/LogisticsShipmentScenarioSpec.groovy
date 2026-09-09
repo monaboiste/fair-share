@@ -1,0 +1,260 @@
+package com.softwarearchetypes.pricing.scenarios
+
+import com.softwarearchetypes.pricing.ApplicabilityConstraint
+import com.softwarearchetypes.pricing.CalculatorRange
+import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.ComponentBreakdown
+import com.softwarearchetypes.pricing.Interpretation
+import com.softwarearchetypes.pricing.ParameterValue
+import com.softwarearchetypes.pricing.Parameters
+import com.softwarearchetypes.pricing.PricingFacade
+import com.softwarearchetypes.pricing.PricingTestConfiguration
+import com.softwarearchetypes.pricing.Validity
+import com.softwarearchetypes.pricing.ValueOf
+import com.softwarearchetypes.quantity.money.Money
+import java.time.Clock
+import java.time.LocalDateTime
+import spock.lang.Specification
+
+class LogisticsShipmentScenarioSpec extends Specification {
+
+    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
+
+    def setup() {
+        LocalDateTime januaryFirst = LocalDateTime.of(2025, 1, 1, 0, 0)
+        LocalDateTime aprilFirst = LocalDateTime.of(2025, 4, 1, 0, 0)
+        def lightRate = facade.addCalculator("base-rate-light", CalculatorType.SIMPLE_FIXED,
+                Parameters.of(
+                        "amount", Money.of(new BigDecimal("7.90"), "PLN"),
+                        "interpretation", Interpretation.UNIT))
+        def mediumRate = facade.addCalculator("base-rate-medium", CalculatorType.SIMPLE_FIXED,
+                Parameters.of(
+                        "amount", Money.of(new BigDecimal("6.10"), "PLN"),
+                        "interpretation", Interpretation.UNIT))
+        def heavyRate = facade.addCalculator("base-rate-heavy", CalculatorType.SIMPLE_FIXED,
+                Parameters.of(
+                        "amount", Money.of(new BigDecimal("5.20"), "PLN"),
+                        "interpretation", Interpretation.UNIT))
+        facade.addCalculator("base-by-weight", CalculatorType.COMPOSITE,
+                Parameters.of(
+                        "ranges", List.of(
+                        CalculatorRange.numeric(
+                                new BigDecimal("1"), new BigDecimal("5"), lightRate.getId()),
+                        CalculatorRange.numeric(
+                                new BigDecimal("5"), new BigDecimal("30"), mediumRate.getId()),
+                        CalculatorRange.numeric(
+                                new BigDecimal("30"), new BigDecimal("70"), heavyRate.getId())),
+                        "rangeSelector", "quantity"))
+
+        facade.addCalculator("fuel-rate-4.5", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("4.5")))
+        facade.addCalculator("fuel-rate-5.0", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("5.0")))
+        facade.addCalculator("adr-rate", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("50")))
+        facade.addCalculator("oversized-rate", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("35")))
+        facade.addCalculator("time-window-rate", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("25")))
+        facade.addCalculator("cod-rate", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("2")))
+        facade.addCalculator("insurance-rate", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("0.15")))
+        facade.addCalculator("vat-rate", CalculatorType.PERCENTAGE,
+                Parameters.of("percentageRate", new BigDecimal("23")))
+
+        facade.createSimpleComponent(
+                "base-component",
+                "base-by-weight",
+                Map.of("weight", "quantity"),
+                Validity.from(januaryFirst))
+        facade.createSimpleComponent(
+                "fuel-component",
+                "fuel-rate-4.5",
+                Map.of(),
+                Validity.between(januaryFirst, aprilFirst))
+        facade.createSimpleComponent(
+                "fuel-component",
+                "fuel-rate-5.0",
+                Map.of(),
+                Validity.from(aprilFirst))
+        facade.createSimpleComponent(
+                "adr-component",
+                "adr-rate",
+                Map.of(),
+                ApplicabilityConstraint.equalsTo("cargo-type", "hazmat"),
+                Validity.from(januaryFirst))
+        facade.createSimpleComponent(
+                "oversized-component",
+                "oversized-rate",
+                Map.of(),
+                ApplicabilityConstraint.greaterThanOrEqualTo("weight", 30),
+                Validity.from(januaryFirst))
+        facade.createSimpleComponent(
+                "time-window-component",
+                "time-window-rate",
+                Map.of(),
+                ApplicabilityConstraint.equalsTo("delivery-type", "time-window"),
+                Validity.from(januaryFirst))
+
+        facade.createSimpleComponent(
+                "cod-component",
+                "cod-rate",
+                Map.of("cod-value", "baseAmount"),
+                Validity.from(januaryFirst))
+        facade.createSimpleComponent(
+                "insurance-component",
+                "insurance-rate",
+                Map.of("insured-value", "baseAmount"),
+                Validity.from(januaryFirst))
+        facade.createSimpleComponent(
+                "vat-component",
+                "vat-rate",
+                Map.of(),
+                Validity.from(januaryFirst))
+        Map<String, Map<String, ParameterValue>> nettoDependencies = Map.<String, Map<String, ParameterValue>> of(
+                "fuel-component", Map.of("baseAmount", new ValueOf("base-component")),
+                "adr-component", Map.of("baseAmount", new ValueOf("base-component")),
+                "oversized-component", Map.of("baseAmount", new ValueOf("base-component")),
+                "time-window-component", Map.of("baseAmount", new ValueOf("base-component")))
+        facade.createCompositeComponent(
+                "netto", nettoDependencies,
+                Validity.from(januaryFirst),
+                "base-component",
+                "fuel-component",
+                "adr-component",
+                "oversized-component",
+                "time-window-component",
+                "cod-component",
+                "insurance-component")
+
+        Map<String, Map<String, ParameterValue>> totalDependencies = Map.<String, Map<String, ParameterValue>> of(
+                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
+        facade.createCompositeComponent(
+                "total-cost", totalDependencies,
+                Validity.from(januaryFirst),
+                "netto",
+                "vat-component")
+    }
+
+    def "standard 3 kg shipment includes fuel surcharge and VAT"() {
+        given:
+        Parameters params = Parameters.of(
+                "weight", BigDecimal.valueOf(3),
+                "cargo-type", "standard",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
+        and:
+        Money result = facade.calculateComponent("total-cost", params)
+
+        expect:
+        result == Money.of(new BigDecimal("30.47"), "PLN")
+
+        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
+        breakdown.name() == "total-cost"
+        breakdown.total() == Money.of(new BigDecimal("30.47"), "PLN")
+        breakdown.children().size() == 2
+
+        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("24.77"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().size() == 7
+
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.total() == Money.of(new BigDecimal("23.70"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.children().isEmpty()
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.total() == Money.of(new BigDecimal("1.07"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.children().isEmpty()
+
+        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("5.70"), "PLN")
+        breakdown.children().find { it.name() == "vat-component" }.children().isEmpty()
+    }
+
+    def "12 kg hazmat shipment with COD and insurance adds all applicable surcharges"() {
+        given:
+        Parameters params = Parameters.of(
+                "weight", BigDecimal.valueOf(12),
+                "cargo-type", "hazmat",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.valueOf(800), "PLN"),
+                "insured-value", Money.of(BigDecimal.valueOf(1500), "PLN"))
+                .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
+        and:
+        Money result = facade.calculateComponent("total-cost", params)
+
+        expect:
+        result == Money.of(new BigDecimal("161.55"), "PLN")
+
+        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
+        breakdown.name() == "total-cost"
+        breakdown.total() == Money.of(new BigDecimal("161.55"), "PLN")
+        breakdown.children().size() == 2
+
+        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("131.34"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().size() == 7
+
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.total() == Money.of(new BigDecimal("73.20"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.total() == Money.of(new BigDecimal("3.29"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "adr-component" }.total() == Money.of(new BigDecimal("36.60"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cod-component" }.total() == Money.of(new BigDecimal("16.00"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "insurance-component" }.total() == Money.of(new BigDecimal("2.25"), "PLN")
+
+        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("30.21"), "PLN")
+    }
+
+    def "45 kg oversized shipment with time-window delivery applies both surcharges"() {
+        given:
+        Parameters params = Parameters.of(
+                "weight", BigDecimal.valueOf(45),
+                "cargo-type", "standard",
+                "delivery-type", "time-window",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
+        and:
+        Money result = facade.calculateComponent("total-cost", params)
+
+        expect:
+        result == Money.of(new BigDecimal("473.46"), "PLN")
+
+        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-cost", params)
+        breakdown.name() == "total-cost"
+        breakdown.total() == Money.of(new BigDecimal("473.46"), "PLN")
+        breakdown.children().size() == 2
+
+        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("384.93"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().size() == 7
+
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "base-component" }.total() == Money.of(new BigDecimal("234.00"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "fuel-component" }.total() == Money.of(new BigDecimal("10.53"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "oversized-component" }.total() == Money.of(new BigDecimal("81.90"), "PLN")
+        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "time-window-component" }.total() == Money.of(new BigDecimal("58.50"), "PLN")
+
+        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("88.53"), "PLN")
+    }
+
+    def "fuel surcharge rate changes from 4.5% to 5.0% on 1 April 2025"() {
+        given:
+        Parameters jan = Parameters.of(
+                "weight", BigDecimal.valueOf(3),
+                "cargo-type", "standard",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
+
+        Parameters apr = Parameters.of(
+                "weight", BigDecimal.valueOf(3),
+                "cargo-type", "standard",
+                "delivery-type", "standard",
+                "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                .with("timestamp", LocalDateTime.of(2025, 4, 15, 10, 0))
+
+        expect:
+        facade.calculateComponent("total-cost", jan) == Money.of(new BigDecimal("30.47"), "PLN")
+        facade.calculateComponent("total-cost", apr) == Money.of(new BigDecimal("30.61"), "PLN")
+    }
+}
