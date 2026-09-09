@@ -23,10 +23,11 @@ class LogisticsTransportScenarioSpec extends Specification {
         ProductType selectedInsurance = insurance == "standard"
                 ? catalog.standardCargo()
                 : catalog.extendedCargo()
-        List<SelectedProduct> selection = selectedProducts(
+        List<SelectedProduct> selection = selectedProducts([
                 selectedTransport,
                 selectedInsurance,
-                catalog.trackingPackage())
+                catalog.trackingPackage()
+        ])
 
         when:
         PackageValidationResult result = catalog.transportPremium().validateSelection(selection)
@@ -44,11 +45,12 @@ class LogisticsTransportScenarioSpec extends Specification {
     def "transport package allows at most two add-ons"() {
         given:
         List<ProductType> addOns = [catalog.coldChain(), catalog.fragileHandling(), catalog.pickupService()]
-        List<SelectedProduct> selection = selectedProducts(
+        List<SelectedProduct> selection = selectedProducts([
                 catalog.domesticExpress(),
                 catalog.standardCargo(),
                 catalog.trackingPackage(),
-                *addOns.take(addOnCount))
+                *addOns.take(addOnCount)
+        ])
 
         when:
         PackageValidationResult result = catalog.transportPremium().validateSelection(selection)
@@ -64,9 +66,10 @@ class LogisticsTransportScenarioSpec extends Specification {
 
     def "transport package requires tracking"() {
         given:
-        List<SelectedProduct> selection = selectedProducts(
+        List<SelectedProduct> selection = selectedProducts([
                 catalog.domesticExpress(),
-                catalog.standardCargo())
+                catalog.standardCargo()
+        ])
 
         when:
         PackageValidationResult result = catalog.transportPremium().validateSelection(selection)
@@ -77,10 +80,11 @@ class LogisticsTransportScenarioSpec extends Specification {
 
     def "notification package remains optional"() {
         given:
-        List<SelectedProduct> selection = selectedProducts(
+        List<SelectedProduct> selection = selectedProducts([
                 catalog.domesticExpress(),
                 catalog.standardCargo(),
-                catalog.trackingPackage())
+                catalog.trackingPackage()
+        ])
         if (notificationSelected) {
             selection.add(new SelectedProduct(catalog.notificationPackage().id(), 1))
         }
@@ -98,8 +102,8 @@ class LogisticsTransportScenarioSpec extends Specification {
     def "tracking package requires one tracking option"() {
         given:
         List<SelectedProduct> selection = trackingSelected
-                ? selectedProducts(catalog.systemTracking())
-                : List.of()
+                ? selectedProducts([catalog.systemTracking()])
+                : List.<SelectedProduct> of()
 
         when:
         PackageValidationResult result = catalog.trackingPackage().validateSelection(selection)
@@ -114,8 +118,8 @@ class LogisticsTransportScenarioSpec extends Specification {
     def "notification package allows zero or one notification channel"() {
         given:
         List<SelectedProduct> selection = notificationSelected
-                ? selectedProducts(catalog.emailNotification())
-                : List.of()
+                ? selectedProducts([catalog.emailNotification()])
+                : List.<SelectedProduct> of()
 
         when:
         PackageValidationResult result = catalog.notificationPackage().validateSelection(selection)
@@ -132,10 +136,11 @@ class LogisticsTransportScenarioSpec extends Specification {
         ProductType selectedTransport = transport == "domestic"
                 ? catalog.domesticExpress()
                 : catalog.internationalExpress()
-        List<SelectedProduct> selection = selectedProducts(
+        List<SelectedProduct> selection = selectedProducts([
                 selectedTransport,
                 catalog.partnerInsurance(),
-                catalog.trackingPackage())
+                catalog.trackingPackage()
+        ])
 
         when:
         PackageValidationResult result = catalog.transportPremium().validateSelection(selection)
@@ -154,7 +159,7 @@ class LogisticsTransportScenarioSpec extends Specification {
                 "email"  : catalog.emailNotification(),
                 "webhook": catalog.webhookNotification()
         ]
-        List<SelectedProduct> selection = selectedProducts(channels[channelName])
+        List<SelectedProduct> selection = selectedProducts([channels[channelName]])
 
         when:
         PackageValidationResult result = catalog.notificationPackage().validateSelection(selection)
@@ -168,7 +173,7 @@ class LogisticsTransportScenarioSpec extends Specification {
 
     def "tracking package accepts active monitoring"() {
         given:
-        List<SelectedProduct> selection = selectedProducts(catalog.activeMonitoring())
+        List<SelectedProduct> selection = selectedProducts([catalog.activeMonitoring()])
 
         when:
         PackageValidationResult result = catalog.trackingPackage().validateSelection(selection)
@@ -177,7 +182,7 @@ class LogisticsTransportScenarioSpec extends Specification {
         result.isValid()
     }
 
-    private static List<SelectedProduct> selectedProducts(Product... products) {
+    private static List<SelectedProduct> selectedProducts(Collection<? extends Product> products) {
         return products.collect { product -> new SelectedProduct(product.id(), 1) }
     }
 }

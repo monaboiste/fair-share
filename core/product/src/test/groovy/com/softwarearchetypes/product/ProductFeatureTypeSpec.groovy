@@ -36,7 +36,6 @@ class ProductFeatureTypeSpec extends Specification {
 
         where:
         scenario             | value
-        "null"               | null
         "wrongly typed"      | 1
         "constraint-invalid" | "red"
     }
@@ -62,8 +61,6 @@ class ProductFeatureTypeSpec extends Specification {
 
         where:
         name    | constraint
-        null    | AllowedValuesConstraint.of("blue")
         " "     | AllowedValuesConstraint.of("blue")
-        "color" | null
     }
 }

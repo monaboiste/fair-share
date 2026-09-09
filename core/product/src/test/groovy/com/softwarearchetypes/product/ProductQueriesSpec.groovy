@@ -37,10 +37,7 @@ class ProductQueriesSpec extends Specification {
         where:
         field               | constructor
         "product ID"        | { new ProductQueries.FindProductTypeCriteria(" ") }
-        "tracking strategy" | { new ProductQueries.FindByTrackingStrategyCriteria(null) }
         "catalog entry ID"  | { new ProductQueries.FindCatalogEntryCriteria("") }
-        "category"          | { new ProductQueries.FindByCategoryCriteria(null) }
-        "availability date" | { new ProductQueries.FindAvailableAtCriteria(null) }
         "metadata key"      | { new ProductQueries.FindByMetadataCriteria(" ", null) }
     }
 }

@@ -87,14 +87,6 @@ class SelectedInstanceSpec extends Specification {
         selected.quantity() == 5
     }
 
-    def "should reject null instance"() {
-        when:
-        new SelectedInstance(null, 1)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "should reject zero quantity"() {
         when:
         new SelectedInstance(laptopInstance, 0)

@@ -1,8 +1,5 @@
 package com.softwarearchetypes.product.fixture
 
-import static com.softwarearchetypes.product.SelectionRule.ifThen
-import static com.softwarearchetypes.product.SelectionRule.single
-
 import com.softwarearchetypes.product.PackageType
 import com.softwarearchetypes.product.Product
 import com.softwarearchetypes.product.ProductDescription
@@ -11,8 +8,11 @@ import com.softwarearchetypes.product.ProductName
 import com.softwarearchetypes.product.ProductSet
 import com.softwarearchetypes.product.ProductTrackingStrategy
 import com.softwarearchetypes.product.ProductType
+import com.softwarearchetypes.product.SelectionRule
 import com.softwarearchetypes.quantity.Unit
+import groovy.transform.ImmutableOptions
 
+@ImmutableOptions(knownImmutableClasses = [ProductType, PackageType])
 record TelecomPackageFixture(
         ProductType basicPlan,
         ProductType standardPlan,
@@ -58,9 +58,9 @@ record TelecomPackageFixture(
                 .asPackageType()
                 .withSingleChoice("Plan", basicPlan.id(), standardPlan.id(), premiumPlan.id())
                 .withSingleChoice("Phone", budgetPhone.id(), midRangePhone.id(), flagshipPhone.id())
-                .withRule(ifThen(
-                        single(ProductSet.singleOf("Flagship", flagshipPhone.id())),
-                        single(ProductSet.singleOf("Premium", premiumPlan.id()))))
+                .withRule(SelectionRule.ifThen(
+                        SelectionRule.single(ProductSet.singleOf("Flagship", flagshipPhone.id())),
+                        SelectionRule.single(ProductSet.singleOf("Premium", premiumPlan.id()))))
                 .withSingleChoice("Starter", starterPack.id())
                 .build()
 

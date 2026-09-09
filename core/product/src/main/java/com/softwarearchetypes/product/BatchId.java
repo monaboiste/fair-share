@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
 
 /** Unique identifier for a Batch. */
 record BatchId(UUID value) {
@@ -15,7 +14,7 @@ record BatchId(UUID value) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value.toString();
     }
 }

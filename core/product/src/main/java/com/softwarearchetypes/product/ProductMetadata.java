@@ -3,14 +3,13 @@ package com.softwarearchetypes.product;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** Immutable key-value metadata for a product. */
 public record ProductMetadata(Map<String, String> asMap) {
 
-    public ProductMetadata {
-        asMap = asMap != null ? Map.copyOf(asMap) : Map.of();
+    public ProductMetadata(@Nullable Map<String, String> asMap) {
+        this.asMap = asMap != null ? Map.copyOf(asMap) : Map.of();
     }
 
     public static ProductMetadata empty() {
@@ -40,7 +39,7 @@ public record ProductMetadata(Map<String, String> asMap) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductMetadata" + asMap;
     }
 }

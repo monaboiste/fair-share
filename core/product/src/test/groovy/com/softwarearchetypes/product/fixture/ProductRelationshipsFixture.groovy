@@ -7,7 +7,9 @@ import com.softwarearchetypes.product.ProductRelationshipsFacade
 import com.softwarearchetypes.product.ProductTrackingStrategy
 import com.softwarearchetypes.product.ProductType
 import com.softwarearchetypes.product.ProductTypeRepository
+import groovy.transform.ImmutableOptions
 
+@ImmutableOptions(knownImmutableClasses = [ProductRelationshipsFacade, ProductType])
 record ProductRelationshipsFixture(
         ProductRelationshipsFacade facade,
         ProductType basicPlan,

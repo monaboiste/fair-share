@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
 
 /** A UUID-based product identifier. */
 record UuidProductIdentifier(UUID value) implements ProductIdentifier {
@@ -20,7 +19,7 @@ record UuidProductIdentifier(UUID value) implements ProductIdentifier {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value.toString();
     }
 }

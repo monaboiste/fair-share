@@ -1,12 +1,10 @@
 package com.softwarearchetypes.product;
 
-import org.jspecify.annotations.NonNull;
-
 /** A nonblank serial number without format-specific validation. */
 record TextualSerialNumber(String value) implements SerialNumber {
 
     TextualSerialNumber {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("SerialNumber cannot be null or blank");
         }
     }
@@ -21,7 +19,7 @@ record TextualSerialNumber(String value) implements SerialNumber {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value;
     }
 }

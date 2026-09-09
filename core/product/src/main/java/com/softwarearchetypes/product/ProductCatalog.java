@@ -12,9 +12,12 @@ import com.softwarearchetypes.product.ProductQueries.SearchCatalogCriteria;
 import com.softwarearchetypes.product.ProductViews.CatalogEntryView;
 import java.time.LocalDate;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /** Manages the commercial product catalog through commands and queries. */
 class ProductCatalog {
@@ -57,7 +60,8 @@ class ProductCatalog {
             return Result.success(catalogEntryId);
 
         } catch (Exception e) {
-            return Result.failure(e.getMessage());
+            return Result.failure(
+                    Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName()));
         }
     }
 
@@ -70,8 +74,9 @@ class ProductCatalog {
                     .orElseThrow(
                             () -> new IllegalArgumentException("Catalog entry not found: " + command.catalogEntryId()));
 
-            var newValidity = catalogEntry.validity().from() != null
-                    ? Validity.between(catalogEntry.validity().from(), command.discontinuationDate())
+            var availableFrom = catalogEntry.validity().from();
+            var newValidity = availableFrom != null
+                    ? Validity.between(availableFrom, command.discontinuationDate())
                     : Validity.until(command.discontinuationDate());
 
             var updated = catalogEntry.withValidity(newValidity);
@@ -80,7 +85,8 @@ class ProductCatalog {
             return Result.success(catalogEntryId);
 
         } catch (Exception e) {
-            return Result.failure(e.getMessage());
+            return Result.failure(
+                    Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName()));
         }
     }
 
@@ -99,7 +105,8 @@ class ProductCatalog {
             return Result.success(catalogEntryId);
 
         } catch (Exception e) {
-            return Result.failure(e.getMessage());
+            return Result.failure(
+                    Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName()));
         }
     }
 
@@ -146,7 +153,7 @@ class ProductCatalog {
                 .collect(Collectors.toSet());
     }
 
-    private boolean matchesSearchText(CatalogEntry entry, String searchText) {
+    private boolean matchesSearchText(CatalogEntry entry, @Nullable String searchText) {
         if (searchText == null || searchText.isBlank()) {
             return true;
         }
@@ -155,28 +162,28 @@ class ProductCatalog {
                 || entry.description().toLowerCase(Locale.ROOT).contains(lowerSearch);
     }
 
-    private boolean matchesCategories(CatalogEntry entry, Set<String> categories) {
+    private boolean matchesCategories(CatalogEntry entry, @Nullable Set<String> categories) {
         if (categories == null || categories.isEmpty()) {
             return true;
         }
         return categories.stream().anyMatch(entry::isInCategory);
     }
 
-    private boolean matchesAvailability(CatalogEntry entry, LocalDate date) {
+    private boolean matchesAvailability(CatalogEntry entry, @Nullable LocalDate date) {
         if (date == null) {
             return true;
         }
         return entry.isAvailableAt(date);
     }
 
-    private boolean matchesProductType(CatalogEntry entry, String productTypeId) {
+    private boolean matchesProductType(CatalogEntry entry, @Nullable String productTypeId) {
         if (productTypeId == null || productTypeId.isBlank()) {
             return true;
         }
         return entry.product().id().toString().equals(productTypeId);
     }
 
-    private boolean matchesFeatures(CatalogEntry entry, java.util.Map<String, Set<String>> features) {
+    private boolean matchesFeatures(CatalogEntry entry, @Nullable Map<String, Set<String>> features) {
         if (features == null || features.isEmpty()) {
             return true;
         }
@@ -212,14 +219,14 @@ class ProductCatalog {
         return true;
     }
 
-    private boolean matchesMetadata(CatalogEntry entry, String key, String value) {
+    private boolean matchesMetadata(CatalogEntry entry, String key, @Nullable String value) {
         if (value == null) {
             return entry.hasMetadata(key);
         }
         return value.equals(entry.getMetadata(key).orElse(null));
     }
 
-    private Validity buildValidity(LocalDate from, LocalDate to) {
+    private Validity buildValidity(@Nullable LocalDate from, @Nullable LocalDate to) {
         if (from != null && to != null) {
             return Validity.between(from, to);
         } else if (from != null) {

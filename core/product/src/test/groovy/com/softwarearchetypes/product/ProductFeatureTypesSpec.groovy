@@ -42,14 +42,6 @@ class ProductFeatureTypesSpec extends Specification {
         features.allFeatures().isEmpty()
     }
 
-    def "should reject a definition without a feature type"() {
-        when:
-        new ProductFeatureTypeDefinition(null, true)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "should describe mandatory and optional definitions"() {
         given:
         ProductFeatureType feature = ProductFeatureType.withAllowedValues("color", "blue")

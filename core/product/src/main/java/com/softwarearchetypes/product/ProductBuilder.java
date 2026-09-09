@@ -7,23 +7,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** Builds product and package types through type-specific builders. */
 public class ProductBuilder {
 
-    @NonNull private final ProductIdentifier id;
+    private final ProductIdentifier id;
 
-    @NonNull private final ProductName name;
+    private final ProductName name;
 
-    @NonNull private final ProductDescription description;
+    private final ProductDescription description;
 
     private ProductMetadata metadata = ProductMetadata.empty();
 
     private ApplicabilityConstraint applicabilityConstraint = ApplicabilityConstraint.alwaysTrue();
 
-    ProductBuilder(@NonNull ProductIdentifier id, @NonNull ProductName name, @NonNull ProductDescription description) {
+    ProductBuilder(ProductIdentifier id, ProductName name, ProductDescription description) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -31,15 +30,12 @@ public class ProductBuilder {
 
     /** Sets product metadata. */
     public ProductBuilder withMetadata(@Nullable ProductMetadata metadata) {
-        this.metadata = metadata;
+        this.metadata = metadata != null ? metadata : ProductMetadata.empty();
         return this;
     }
 
     /** Adds a single metadata entry. */
     public ProductBuilder withMetadata(String key, String value) {
-        if (metadata == null) {
-            throw new IllegalArgumentException("Metadata must be set before adding entries");
-        }
         this.metadata = this.metadata.with(key, value);
         return this;
     }
@@ -179,7 +175,7 @@ public class ProductBuilder {
         }
 
         /** Returns a configured product set by name. */
-        public ProductSet getProductSet(String setName) {
+        public @Nullable ProductSet getProductSet(String setName) {
             return productSets.get(setName);
         }
 

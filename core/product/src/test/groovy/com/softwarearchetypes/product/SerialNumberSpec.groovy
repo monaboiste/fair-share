@@ -34,14 +34,6 @@ class SerialNumberSpec extends Specification {
         "49015-420323-7518" | "490154203237518"
     }
 
-    def "null textual serial number is rejected"() {
-        when:
-        SerialNumber.of(null)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "invalid serial number values are rejected"() {
         when:
         switch (kind) {

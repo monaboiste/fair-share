@@ -1,17 +1,12 @@
 package com.softwarearchetypes.product;
 
 import java.math.BigDecimal;
+import org.jspecify.annotations.Nullable;
 
 /** Restricts decimal values to an inclusive range. */
 record DecimalRangeConstraint(BigDecimal min, BigDecimal max) implements FeatureValueConstraint {
 
     DecimalRangeConstraint {
-        if (min == null) {
-            throw new IllegalArgumentException("Min must be defined");
-        }
-        if (max == null) {
-            throw new IllegalArgumentException("Max must be defined");
-        }
         if (min.compareTo(max) > 0) {
             throw new IllegalArgumentException("Min must be less than or equal to max");
         }
@@ -36,7 +31,7 @@ record DecimalRangeConstraint(BigDecimal min, BigDecimal max) implements Feature
     }
 
     @Override
-    public boolean isValid(Object value) {
+    public boolean isValid(@Nullable Object value) {
         if (!(value instanceof BigDecimal decimalValue)) {
             return false;
         }

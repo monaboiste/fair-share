@@ -1,7 +1,7 @@
 package com.softwarearchetypes.product;
 
 import java.util.Objects;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** Defines a named product feature and its value constraint. */
 public class ProductFeatureType {
@@ -10,11 +10,8 @@ public class ProductFeatureType {
     private final FeatureValueConstraint constraint;
 
     ProductFeatureType(String name, FeatureValueConstraint constraint) {
-        if (name == null || name.isBlank()) {
+        if (name.isBlank()) {
             throw new IllegalArgumentException("Feature type name must be defined");
-        }
-        if (constraint == null) {
-            throw new IllegalArgumentException("Constraint must be defined");
         }
 
         this.name = name;
@@ -70,7 +67,7 @@ public class ProductFeatureType {
      * @param value the value to validate
      * @return {@code true} if the value is valid
      */
-    public boolean isValidValue(Object value) {
+    public boolean isValidValue(@Nullable Object value) {
         return constraint.isValid(value);
     }
 
@@ -81,9 +78,6 @@ public class ProductFeatureType {
      * @throws IllegalArgumentException if the value is invalid
      */
     public void validateValue(Object value) {
-        if (value == null) {
-            throw new IllegalArgumentException("Feature value must not be null");
-        }
         if (!constraint.valueType().isInstance(value)) {
             throw new IllegalArgumentException(String.format(
                     "Feature '%s' expects type %s but got %s",
@@ -98,7 +92,7 @@ public class ProductFeatureType {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) {
             return true;
         }
@@ -114,7 +108,7 @@ public class ProductFeatureType {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductFeatureType{name='%s', constraint=%s}".formatted(name, constraint.desc());
     }
 }

@@ -268,24 +268,6 @@ class ProductFacadeSpec extends Specification {
         result.success()
     }
 
-    def "should reject null product id type"() {
-        when:
-        new DefineProductType(
-                null,
-                "id",
-                "Name",
-                "Description",
-                "pcs",
-                "IDENTICAL",
-                Set.of(),
-                Set.of(),
-                Map.of()
-        )
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "should reject blank product id"() {
         when:
         new DefineProductType(

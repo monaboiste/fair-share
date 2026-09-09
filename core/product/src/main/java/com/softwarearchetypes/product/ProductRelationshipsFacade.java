@@ -35,10 +35,10 @@ public class ProductRelationshipsFacade {
             var type = command.relationshipType();
 
             if (productTypeRepository.findById(from).isEmpty()) {
-                return Result.failure("PRODUCT_NOT_FOUND: " + from.toString());
+                return Result.failure("PRODUCT_NOT_FOUND: " + from);
             }
             if (productTypeRepository.findById(to).isEmpty()) {
-                return Result.failure("PRODUCT_NOT_FOUND: " + to.toString());
+                return Result.failure("PRODUCT_NOT_FOUND: " + to);
             }
 
             return factory.defineFor(from, to, type)

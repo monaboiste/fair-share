@@ -13,7 +13,7 @@ public final class ProductQueries {
     /** Criteria for finding a product type by identifier. */
     public record FindProductTypeCriteria(String productId) {
         public FindProductTypeCriteria {
-            if (productId == null || productId.isBlank()) {
+            if (productId.isBlank()) {
                 throw new IllegalArgumentException("Product ID must be defined");
             }
         }
@@ -22,7 +22,7 @@ public final class ProductQueries {
     /** Criteria for finding product types by tracking strategy. */
     public record FindByTrackingStrategyCriteria(String trackingStrategy) {
         public FindByTrackingStrategyCriteria {
-            if (trackingStrategy == null || trackingStrategy.isBlank()) {
+            if (trackingStrategy.isBlank()) {
                 throw new IllegalArgumentException("Tracking strategy must be defined");
             }
         }
@@ -78,7 +78,7 @@ public final class ProductQueries {
     /** Criteria for finding a catalog entry by identifier. */
     public record FindCatalogEntryCriteria(String catalogEntryId) {
         public FindCatalogEntryCriteria {
-            if (catalogEntryId == null || catalogEntryId.isBlank()) {
+            if (catalogEntryId.isBlank()) {
                 throw new IllegalArgumentException("Catalog entry ID must be defined");
             }
         }
@@ -87,20 +87,14 @@ public final class ProductQueries {
     /** Criteria for finding catalog entries by category. */
     public record FindByCategoryCriteria(String category) {
         public FindByCategoryCriteria {
-            if (category == null || category.isBlank()) {
+            if (category.isBlank()) {
                 throw new IllegalArgumentException("Category must be defined");
             }
         }
     }
 
     /** Criteria for finding catalog entries available on a date. */
-    public record FindAvailableAtCriteria(LocalDate date) {
-        public FindAvailableAtCriteria {
-            if (date == null) {
-                throw new IllegalArgumentException("Date must be defined");
-            }
-        }
-    }
+    public record FindAvailableAtCriteria(LocalDate date) {}
 
     /**
      * Criteria for finding catalog entries by metadata.
@@ -111,7 +105,7 @@ public final class ProductQueries {
     public record FindByMetadataCriteria(
             String key, @Nullable String value) {
         public FindByMetadataCriteria {
-            if (key == null || key.isBlank()) {
+            if (key.isBlank()) {
                 throw new IllegalArgumentException("Metadata key must be defined");
             }
         }

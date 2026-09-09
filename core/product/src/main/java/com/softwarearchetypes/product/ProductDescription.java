@@ -1,11 +1,9 @@
 package com.softwarearchetypes.product;
 
-import org.jspecify.annotations.NonNull;
-
 public record ProductDescription(String value) {
 
     public ProductDescription {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("ProductDescription cannot be null or blank");
         }
     }
@@ -15,7 +13,7 @@ public record ProductDescription(String value) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value;
     }
 }

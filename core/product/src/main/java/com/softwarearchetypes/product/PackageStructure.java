@@ -3,15 +3,14 @@ package com.softwarearchetypes.product;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.NonNull;
 
 /** Defines selectable product sets and the rules governing their combination. */
 public record PackageStructure(Map<String, ProductSet> productSets, List<SelectionRule> selectionRules) {
     public PackageStructure(Map<String, ProductSet> productSets, List<SelectionRule> selectionRules) {
-        if (productSets == null || productSets.isEmpty()) {
+        if (productSets.isEmpty()) {
             throw new IllegalArgumentException("ProductSets must be defined");
         }
-        if (selectionRules == null || selectionRules.isEmpty()) {
+        if (selectionRules.isEmpty()) {
             throw new IllegalArgumentException("Selection rules must be defined");
         }
         this.productSets = Map.copyOf(productSets);
@@ -39,7 +38,7 @@ public record PackageStructure(Map<String, ProductSet> productSets, List<Selecti
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "PackageStructure{sets=%d, rules=%d}".formatted(productSets.size(), selectionRules.size());
     }
 }

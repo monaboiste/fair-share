@@ -2,7 +2,7 @@ package com.softwarearchetypes.product;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** Identifies a catalog entry independently of its product. */
 public class CatalogEntryId {
@@ -10,7 +10,7 @@ public class CatalogEntryId {
     private final String value;
 
     private CatalogEntryId(String value) {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("CatalogEntryId must be defined");
         }
         this.value = value;
@@ -29,7 +29,7 @@ public class CatalogEntryId {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) {
             return true;
         }
@@ -45,7 +45,7 @@ public class CatalogEntryId {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value;
     }
 }

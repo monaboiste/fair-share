@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.util.regex.Pattern;
-import org.jspecify.annotations.NonNull;
 
 /**
  * GTIN (Global Trade Item Number) identifies retail products.
@@ -20,11 +19,12 @@ import org.jspecify.annotations.NonNull;
 record GtinProductIdentifier(String value) implements ProductIdentifier {
 
     private static final Pattern SEPARATORS = Pattern.compile("[-\\s]+");
-    private static final Pattern VALID_FORMAT =
-            Pattern.compile("[0-9]{8}|[0-9]{12}|[0-9]{13}|[0-9]{14}"); // NOSONAR: GTIN requires ASCII digits
+
+    @SuppressWarnings("squid:S6353") // GTIN requires ASCII digits
+    private static final Pattern VALID_FORMAT = Pattern.compile("[0-9]{8}|[0-9]{12,14}");
 
     GtinProductIdentifier {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("GTIN cannot be null or blank");
         }
 
@@ -49,7 +49,7 @@ record GtinProductIdentifier(String value) implements ProductIdentifier {
     }
 
     @Override
-    public @NonNull String toString() {
+    public String toString() {
         return value;
     }
 

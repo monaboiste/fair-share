@@ -2,7 +2,6 @@ package com.softwarearchetypes.product;
 
 import java.util.List;
 import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** A validated package instance containing the delivered product instances. */
@@ -11,8 +10,8 @@ class PackageInstance implements Instance {
     private final InstanceId id;
     private final PackageType packageType;
     private final List<SelectedInstance> selection;
-    private final SerialNumber serialNumber;
-    private final BatchId batchId;
+    private final @Nullable SerialNumber serialNumber;
+    private final @Nullable BatchId batchId;
 
     PackageInstance(
             InstanceId id,
@@ -20,16 +19,6 @@ class PackageInstance implements Instance {
             List<SelectedInstance> selection,
             @Nullable SerialNumber serialNumber,
             @Nullable BatchId batchId) {
-        if (id == null) {
-            throw new IllegalArgumentException("InstanceId must be defined");
-        }
-        if (packageType == null) {
-            throw new IllegalArgumentException("PackageType must be defined");
-        }
-        if (selection == null || selection.isEmpty()) {
-            throw new IllegalArgumentException("Selection cannot be empty");
-        }
-
         validateTrackingRequirements(packageType, serialNumber, batchId);
         validateSelection(packageType, selection);
 
@@ -46,6 +35,16 @@ class PackageInstance implements Instance {
             throw new IllegalArgumentException("PackageInstance must have either SerialNumber or BatchId (or both)");
         }
 
+        ProductTrackingStrategy strategy = validateAgainstStrategy(packageType, serialNumber, batchId);
+
+        if (strategy.requiresBothTrackingMethods() && (serialNumber == null || batchId == null)) {
+            throw new IllegalArgumentException(
+                    "PackageType requires both individual and batch tracking (strategy: " + strategy + ")");
+        }
+    }
+
+    private static ProductTrackingStrategy validateAgainstStrategy(
+            PackageType packageType, @Nullable SerialNumber serialNumber, @Nullable BatchId batchId) {
         ProductTrackingStrategy strategy = packageType.trackingStrategy();
 
         if (strategy.isTrackedIndividually() && serialNumber == null) {
@@ -57,11 +56,7 @@ class PackageInstance implements Instance {
             throw new IllegalArgumentException(
                     "PackageType requires batch tracking (strategy: " + strategy + ") but no batch id defined");
         }
-
-        if (strategy.requiresBothTrackingMethods() && (serialNumber == null || batchId == null)) {
-            throw new IllegalArgumentException(
-                    "PackageType requires both individual and batch tracking (strategy: " + strategy + ")");
-        }
+        return strategy;
     }
 
     private static void validateSelection(PackageType packageType, List<SelectedInstance> selection) {
@@ -103,7 +98,7 @@ class PackageInstance implements Instance {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "PackageInstance{id=%s, type=%s, serial=%s, batch=%s, selection=%d products}"
                 .formatted(
                         id,

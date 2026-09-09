@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.NonNull;
 
 /** Product feature type definitions indexed by feature name. */
 class ProductFeatureTypes {
@@ -14,10 +13,6 @@ class ProductFeatureTypes {
     private final Map<String, ProductFeatureTypeDefinition> features;
 
     ProductFeatureTypes(Collection<ProductFeatureTypeDefinition> definitions) {
-        if (definitions == null) {
-            throw new IllegalArgumentException("Feature definitions must be defined");
-        }
-
         this.features = definitions.stream()
                 .collect(Collectors.toUnmodifiableMap(def -> def.featureType().name(), def -> def));
     }
@@ -95,7 +90,7 @@ class ProductFeatureTypes {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductFeatureTypes{mandatory=%d, optional=%d}"
                 .formatted(mandatoryFeatures().size(), optionalFeatures().size());
     }

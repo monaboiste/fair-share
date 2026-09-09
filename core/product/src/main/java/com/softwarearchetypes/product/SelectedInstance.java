@@ -4,9 +4,6 @@ package com.softwarearchetypes.product;
 record SelectedInstance(Instance instance, int quantity) {
 
     public SelectedInstance {
-        if (instance == null) {
-            throw new IllegalArgumentException("Instance must be defined");
-        }
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be > 0");
         }

@@ -121,20 +121,19 @@ public class ProductFacade {
 
     private FeatureValueConstraint toConstraint(ProductCommands.FeatureConstraintConfig config) {
         return switch (config) {
-            case ProductCommands.AllowedValuesConfig allowed ->
-                AllowedValuesConstraint.of(allowed.allowedValues().toArray(String[]::new));
+            case ProductCommands.AllowedValuesConfig(var allowedValues) ->
+                AllowedValuesConstraint.of(allowedValues.toArray(String[]::new));
 
-            case ProductCommands.NumericRangeConfig range -> NumericRangeConstraint.between(range.min(), range.max());
+            case ProductCommands.NumericRangeConfig(var min, var max) -> NumericRangeConstraint.between(min, max);
 
-            case ProductCommands.DecimalRangeConfig range -> DecimalRangeConstraint.of(range.min(), range.max());
+            case ProductCommands.DecimalRangeConfig(var min, var max) -> DecimalRangeConstraint.of(min, max);
 
-            case ProductCommands.RegexConfig regex -> RegexConstraint.of(regex.pattern());
+            case ProductCommands.RegexConfig(var pattern) -> RegexConstraint.of(pattern);
 
-            case ProductCommands.DateRangeConfig range -> DateRangeConstraint.between(range.from(), range.to());
+            case ProductCommands.DateRangeConfig(var from, var to) -> DateRangeConstraint.between(from, to);
 
-            case ProductCommands.UnconstrainedConfig unconstrained ->
-                new Unconstrained(
-                        FeatureValueType.valueOf(unconstrained.valueType().toUpperCase(Locale.ROOT)));
+            case ProductCommands.UnconstrainedConfig(var valueType) ->
+                new Unconstrained(FeatureValueType.valueOf(valueType.toUpperCase(Locale.ROOT)));
         };
     }
 
@@ -165,16 +164,15 @@ public class ProductFacade {
 
     private Map<String, Object> constraintConfigToMap(FeatureValueConstraint constraint) {
         return switch (constraint) {
-            case AllowedValuesConstraint allowed -> Map.of("allowedValues", allowed.allowedValues());
+            case AllowedValuesConstraint(var allowedValues) -> Map.of("allowedValues", allowedValues);
 
-            case NumericRangeConstraint range -> Map.of("min", range.min(), "max", range.max());
+            case NumericRangeConstraint(var min, var max) -> Map.of("min", min, "max", max);
 
-            case DecimalRangeConstraint range -> Map.of("min", range.min(), "max", range.max());
+            case DecimalRangeConstraint(var min, var max) -> Map.of("min", min, "max", max);
 
-            case RegexConstraint regex -> Map.of("pattern", regex.pattern());
+            case RegexConstraint(var pattern) -> Map.of("pattern", pattern);
 
-            case DateRangeConstraint range ->
-                Map.of("from", range.from().toString(), "to", range.to().toString());
+            case DateRangeConstraint(var from, var to) -> Map.of("from", from.toString(), "to", to.toString());
 
             default -> Map.of();
         };

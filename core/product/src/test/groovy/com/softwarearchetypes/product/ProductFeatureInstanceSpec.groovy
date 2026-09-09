@@ -19,22 +19,6 @@ class ProductFeatureInstanceSpec extends Specification {
         parsed.valueAsString() == "42"
     }
 
-    def "rejects missing inputs"() {
-        when:
-        action.call()
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        action << [
-                { ProductFeatureInstance.of(null, "value") },
-                { ProductFeatureInstance.of(ProductFeatureType.withAllowedValues("color", "red"), null) },
-                { ProductFeatureInstance.fromString(null, "value") },
-                { ProductFeatureInstance.fromString(ProductFeatureType.withAllowedValues("color", "red"), null) }
-        ]
-    }
-
     def "returns each supported value as a string"() {
         expect:
         ProductFeatureInstance.of(featureType, value).valueAsString() == expected

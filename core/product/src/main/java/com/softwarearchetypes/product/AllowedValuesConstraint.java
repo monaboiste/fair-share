@@ -1,19 +1,20 @@
 package com.softwarearchetypes.product;
 
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /** Restricts text to a predefined set of values. */
 record AllowedValuesConstraint(Set<String> allowedValues) implements FeatureValueConstraint {
 
     AllowedValuesConstraint(Set<String> allowedValues) {
-        if (allowedValues == null || allowedValues.isEmpty()) {
+        if (allowedValues.isEmpty()) {
             throw new IllegalArgumentException("Allowed values must not be empty");
         }
         this.allowedValues = Set.copyOf(allowedValues);
     }
 
     static AllowedValuesConstraint of(String... values) {
-        if (values == null || values.length == 0) {
+        if (values.length == 0) {
             throw new IllegalArgumentException("Allowed values must not be empty");
         }
         return new AllowedValuesConstraint(Set.of(values));
@@ -30,7 +31,7 @@ record AllowedValuesConstraint(Set<String> allowedValues) implements FeatureValu
     }
 
     @Override
-    public boolean isValid(Object value) {
+    public boolean isValid(@Nullable Object value) {
         return value instanceof String text && allowedValues.contains(text);
     }
 

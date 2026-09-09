@@ -1,11 +1,9 @@
 package com.softwarearchetypes.product;
 
-import org.jspecify.annotations.NonNull;
-
 record TextProductIdentifier(String value) implements ProductIdentifier {
 
     TextProductIdentifier {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("TextProductIdentifier value cannot be null or blank");
         }
     }
@@ -16,7 +14,7 @@ record TextProductIdentifier(String value) implements ProductIdentifier {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value;
     }
 }

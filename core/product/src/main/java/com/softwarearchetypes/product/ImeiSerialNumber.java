@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.util.regex.Pattern;
-import org.jspecify.annotations.NonNull;
 
 /**
  * IMEI (International Mobile Equipment Identity) identifies mobile equipment.
@@ -22,7 +21,7 @@ record ImeiSerialNumber(String value) implements SerialNumber {
     private static final Pattern VALID_FORMAT = Pattern.compile("\\d{15}");
 
     ImeiSerialNumber {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("IMEI cannot be null or blank");
         }
 
@@ -47,7 +46,7 @@ record ImeiSerialNumber(String value) implements SerialNumber {
     }
 
     @Override
-    public @NonNull String toString() {
+    public String toString() {
         return value;
     }
 

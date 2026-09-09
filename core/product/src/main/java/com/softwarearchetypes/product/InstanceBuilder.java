@@ -3,7 +3,6 @@ package com.softwarearchetypes.product;
 import com.softwarearchetypes.quantity.Quantity;
 import java.util.ArrayList;
 import java.util.List;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** Builds product and package instances through type-specific builders. */
@@ -15,7 +14,7 @@ class InstanceBuilder {
 
     @Nullable private BatchId batchId;
 
-    InstanceBuilder(@NonNull InstanceId id) {
+    InstanceBuilder(InstanceId id) {
         this.id = id;
     }
 
@@ -25,7 +24,7 @@ class InstanceBuilder {
         return this;
     }
 
-    /** Sets batch ID for the instance. */
+    /** Sets batch identifier for the instance. */
     InstanceBuilder withBatch(@Nullable BatchId batchId) {
         this.batchId = batchId;
         return this;
@@ -44,14 +43,14 @@ class InstanceBuilder {
     /** Builds a product instance using the enclosing builder's tracking fields. */
     class ProductInstanceBuilder {
         private final ProductType productType;
-        private Quantity quantity;
+        private @Nullable Quantity quantity;
         private final List<ProductFeatureInstance> features = new ArrayList<>();
 
         ProductInstanceBuilder(ProductType productType) {
             this.productType = productType;
         }
 
-        ProductInstanceBuilder withQuantity(Quantity quantity) {
+        ProductInstanceBuilder withQuantity(@Nullable Quantity quantity) {
             this.quantity = quantity;
             return this;
         }
@@ -75,7 +74,7 @@ class InstanceBuilder {
     /** Builds a package instance using the enclosing builder's tracking fields. */
     class PackageInstanceBuilder {
         private final PackageType packageType;
-        private List<SelectedInstance> selection;
+        private List<SelectedInstance> selection = List.of();
 
         PackageInstanceBuilder(PackageType packageType) {
             this.packageType = packageType;

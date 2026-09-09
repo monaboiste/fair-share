@@ -2,7 +2,6 @@ package com.softwarearchetypes.product;
 
 import com.softwarearchetypes.quantity.Quantity;
 import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** A validated instance of a product type with tracking, quantity, and feature values. */
@@ -10,9 +9,9 @@ class ProductInstance implements Instance {
 
     private final InstanceId id;
     private final ProductType productType;
-    private final SerialNumber serialNumber;
-    private final BatchId batchId;
-    private final Quantity quantity;
+    private final @Nullable SerialNumber serialNumber;
+    private final @Nullable BatchId batchId;
+    private final @Nullable Quantity quantity;
     private final ProductFeatureInstances features;
 
     ProductInstance(
@@ -22,16 +21,6 @@ class ProductInstance implements Instance {
             @Nullable BatchId batchId,
             @Nullable Quantity quantity,
             ProductFeatureInstances features) {
-        if (id == null) {
-            throw new IllegalArgumentException("InstanceId must be defined");
-        }
-        if (productType == null) {
-            throw new IllegalArgumentException("ProductType must be defined");
-        }
-        if (features == null) {
-            throw new IllegalArgumentException("ProductFeatureInstances must be defined");
-        }
-
         validateTrackingRequirements(productType, serialNumber, batchId);
         validateQuantityUnit(productType, quantity);
         features.validateAgainst(productType.featureTypes());
@@ -130,7 +119,7 @@ class ProductInstance implements Instance {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductInstance{id=%s, type=%s, serial=%s, batch=%s, quantity=%s, features=%s}"
                 .formatted(
                         id,

@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.time.LocalDate;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** A period with optional inclusive start and end dates. */
@@ -47,7 +46,7 @@ public record Validity(@Nullable LocalDate from, @Nullable LocalDate to) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         if (from == null && to == null) {
             return "always";
         }

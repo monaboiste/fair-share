@@ -1,12 +1,10 @@
 package com.softwarearchetypes.product;
 
-import org.jspecify.annotations.NonNull;
-
 /** A descriptive batch name. */
 record BatchName(String value) {
 
     BatchName {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("BatchName cannot be null or blank");
         }
     }
@@ -16,7 +14,7 @@ record BatchName(String value) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value;
     }
 }

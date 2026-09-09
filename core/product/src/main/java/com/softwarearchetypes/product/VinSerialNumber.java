@@ -2,7 +2,6 @@ package com.softwarearchetypes.product;
 
 import java.util.Locale;
 import java.util.regex.Pattern;
-import org.jspecify.annotations.NonNull;
 
 /**
  * VIN (Vehicle Identification Number) identifies a motor vehicle.
@@ -26,7 +25,7 @@ record VinSerialNumber(String value) implements SerialNumber {
     private static final Pattern VALID_CHARACTERS = Pattern.compile("[A-HJ-NPR-Z\\d]+");
 
     VinSerialNumber {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("VIN cannot be null or blank");
         }
 
@@ -51,7 +50,7 @@ record VinSerialNumber(String value) implements SerialNumber {
     }
 
     @Override
-    public @NonNull String toString() {
+    public String toString() {
         return value;
     }
 }

@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import com.softwarearchetypes.quantity.Unit;
-import org.jspecify.annotations.NonNull;
 
 /** Defines a product's identity, measurement, tracking, features, and applicability. */
 public class ProductType implements Product {
@@ -15,6 +14,7 @@ public class ProductType implements Product {
     private final ProductMetadata metadata;
     private final ApplicabilityConstraint applicabilityConstraint;
 
+    @SuppressWarnings("java:S107")
     ProductType(
             ProductIdentifier id,
             ProductName name,
@@ -24,30 +24,6 @@ public class ProductType implements Product {
             ProductFeatureTypes featureTypes,
             ProductMetadata metadata,
             ApplicabilityConstraint applicabilityConstraint) {
-        if (id == null) {
-            throw new IllegalArgumentException("ProductIdentifier must be defined");
-        }
-        if (name == null) {
-            throw new IllegalArgumentException("ProductName must be defined");
-        }
-        if (description == null) {
-            throw new IllegalArgumentException("ProductDescription must be defined");
-        }
-        if (preferredUnit == null) {
-            throw new IllegalArgumentException("Unit must be defined");
-        }
-        if (trackingStrategy == null) {
-            throw new IllegalArgumentException("ProductTrackingStrategy must be defined");
-        }
-        if (featureTypes == null) {
-            throw new IllegalArgumentException("ProductFeatureTypes must be defined");
-        }
-        if (metadata == null) {
-            throw new IllegalArgumentException("ProductMetadata must be defined");
-        }
-        if (applicabilityConstraint == null) {
-            throw new IllegalArgumentException("ApplicabilityConstraint must be defined");
-        }
         this.id = id;
         this.name = name;
         this.description = description;
@@ -197,7 +173,7 @@ public class ProductType implements Product {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductType{id=%s, name=%s, unit=%s, tracking=%s, features=%s}"
                 .formatted(id, name, preferredUnit, trackingStrategy, featureTypes);
     }

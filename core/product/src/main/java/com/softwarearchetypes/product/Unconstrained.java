@@ -1,15 +1,10 @@
 package com.softwarearchetypes.product;
 
 import java.util.Locale;
+import org.jspecify.annotations.Nullable;
 
 /** Accepts every value of the specified type. */
 record Unconstrained(FeatureValueType valueType) implements FeatureValueConstraint {
-
-    Unconstrained {
-        if (valueType == null) {
-            throw new IllegalArgumentException("Value type must be defined");
-        }
-    }
 
     @Override
     public String type() {
@@ -17,7 +12,7 @@ record Unconstrained(FeatureValueType valueType) implements FeatureValueConstrai
     }
 
     @Override
-    public boolean isValid(Object value) {
+    public boolean isValid(@Nullable Object value) {
         return valueType.isInstance(value);
     }
 

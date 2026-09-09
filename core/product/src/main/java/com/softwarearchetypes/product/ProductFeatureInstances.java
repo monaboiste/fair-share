@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.NonNull;
 
 /** Product feature instances indexed by feature name. */
 class ProductFeatureInstances {
@@ -14,10 +13,6 @@ class ProductFeatureInstances {
     private final Map<String, ProductFeatureInstance> features;
 
     ProductFeatureInstances(Collection<ProductFeatureInstance> instances) {
-        if (instances == null) {
-            throw new IllegalArgumentException("Feature instances must be defined");
-        }
-
         this.features = instances.stream()
                 .collect(Collectors.toUnmodifiableMap(inst -> inst.featureType().name(), Function.identity()));
     }
@@ -94,7 +89,7 @@ class ProductFeatureInstances {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductFeatureInstances{%s}"
                 .formatted(features.values().stream()
                         .map(f -> "%s=%s".formatted(f.featureType().name(), f.value()))

@@ -27,34 +27,6 @@ class ProductTypeSpec extends Specification {
         ProductTrackingStrategy.INDIVIDUALLY_AND_BATCH_TRACKED | Unit.pieces()
     }
 
-    def "should reject missing #field"() {
-        when:
-        new ProductType(
-                field == "identifier" ? null : UuidProductIdentifier.random(),
-                field == "name" ? null : ProductName.of("Product"),
-                field == "description" ? null : ProductDescription.of("Description"),
-                field == "unit" ? null : Unit.pieces(),
-                field == "tracking strategy" ? null : ProductTrackingStrategy.IDENTICAL,
-                field == "feature types" ? null : ProductFeatureTypes.empty(),
-                field == "metadata" ? null : ProductMetadata.empty(),
-                field == "applicability constraint" ? null : ApplicabilityConstraint.alwaysTrue())
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        field << [
-                "identifier",
-                "name",
-                "description",
-                "unit",
-                "tracking strategy",
-                "feature types",
-                "metadata",
-                "applicability constraint"
-        ]
-    }
-
     private static ProductType buildProduct(ProductTrackingStrategy strategy, Unit unit) {
         ProductIdentifier id = UuidProductIdentifier.random()
         ProductName name = ProductName.of("Product")

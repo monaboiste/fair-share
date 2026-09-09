@@ -1,12 +1,13 @@
 package com.softwarearchetypes.product;
 
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /** Restricts text to values matching a regular expression. */
 record RegexConstraint(Pattern compiledPattern) implements FeatureValueConstraint {
 
     RegexConstraint(String pattern) {
-        if (pattern == null || pattern.isBlank()) {
+        if (pattern.isBlank()) {
             throw new IllegalArgumentException("Pattern must be defined");
         }
         this(Pattern.compile(pattern));
@@ -31,7 +32,7 @@ record RegexConstraint(Pattern compiledPattern) implements FeatureValueConstrain
     }
 
     @Override
-    public boolean isValid(Object value) {
+    public boolean isValid(@Nullable Object value) {
         return value instanceof String string && compiledPattern.matcher(string).matches();
     }
 

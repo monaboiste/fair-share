@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.util.regex.Pattern;
-import org.jspecify.annotations.NonNull;
 
 /**
  * ISBN-10 (International Standard Book Number) identifies a book or publication.
@@ -23,7 +22,7 @@ record Isbn10ProductIdentifier(String value) implements ProductIdentifier {
     private static final Pattern VALID_FORMAT = Pattern.compile("\\d{9}[\\dX]");
 
     Isbn10ProductIdentifier {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             throw new IllegalArgumentException("ISBN cannot be null or blank");
         }
 
@@ -48,7 +47,7 @@ record Isbn10ProductIdentifier(String value) implements ProductIdentifier {
     }
 
     @Override
-    public @NonNull String toString() {
+    public String toString() {
         return value;
     }
 

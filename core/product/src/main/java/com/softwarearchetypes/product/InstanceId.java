@@ -1,7 +1,6 @@
 package com.softwarearchetypes.product;
 
 import java.util.UUID;
-import org.jspecify.annotations.NonNull;
 
 /** Identifies a product or package instance independently of its tracking identifiers. */
 record InstanceId(UUID value) {
@@ -15,7 +14,7 @@ record InstanceId(UUID value) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return value.toString();
     }
 }

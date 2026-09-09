@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** A product's commercial description and availability in a catalog. */
@@ -39,9 +38,6 @@ public class CatalogEntry {
         }
         if (builder.validity == null) {
             throw new IllegalArgumentException("Validity must be defined");
-        }
-        if (builder.salesConstraint == null) {
-            throw new IllegalArgumentException("Sales constraint must be defined");
         }
 
         this.id = builder.id;
@@ -135,7 +131,7 @@ public class CatalogEntry {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) {
             return true;
         }
@@ -151,19 +147,19 @@ public class CatalogEntry {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "CatalogEntry{id=%s, displayName='%s', product=%s, categories=%s, validity=%s}"
                 .formatted(id, displayName, product.name(), categories, validity);
     }
 
     public static class Builder {
 
-        private CatalogEntryId id;
-        private String displayName;
-        private String description;
-        private Product product;
+        private @Nullable CatalogEntryId id;
+        private @Nullable String displayName;
+        private @Nullable String description;
+        private @Nullable Product product;
         private Set<String> categories = new HashSet<>();
-        private Validity validity;
+        private @Nullable Validity validity;
         private Map<String, String> metadata = new HashMap<>();
         private ApplicabilityConstraint salesConstraint = ApplicabilityConstraint.alwaysTrue();
 

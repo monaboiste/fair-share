@@ -56,12 +56,21 @@ class CatalogEntrySpec extends Specification {
     def "reject an entry with missing #field"() {
         given:
         CatalogEntry.Builder builder = CatalogEntry.builder()
-                .id(CatalogEntryId.generate())
-                .displayName("Offer")
-                .description("Description")
-                .product(product)
-                .validity(Validity.always())
-        configureMissing(builder, field)
+        if (field != "identifier") {
+            builder.id(CatalogEntryId.generate())
+        }
+        if (field != "display name") {
+            builder.displayName("Offer")
+        }
+        if (field != "description") {
+            builder.description("Description")
+        }
+        if (field != "product") {
+            builder.product(product)
+        }
+        if (field != "validity") {
+            builder.validity(Validity.always())
+        }
 
         when:
         builder.build()
@@ -70,7 +79,7 @@ class CatalogEntrySpec extends Specification {
         thrown(IllegalArgumentException)
 
         where:
-        field << ["identifier", "display name", "description", "product", "validity", "sales constraint"]
+        field << ["identifier", "display name", "description", "product", "validity"]
     }
 
     private CatalogEntry entry(CatalogEntryId id, String displayName) {
@@ -81,16 +90,5 @@ class CatalogEntrySpec extends Specification {
                 .product(product)
                 .validity(Validity.always())
                 .build()
-    }
-
-    private static void configureMissing(CatalogEntry.Builder builder, String field) {
-        switch (field) {
-            case "identifier" -> builder.id(null)
-            case "display name" -> builder.displayName(" ")
-            case "description" -> builder.description(null)
-            case "product" -> builder.product(null)
-            case "validity" -> builder.validity(null)
-            case "sales constraint" -> builder.salesConstraint(null)
-        }
     }
 }

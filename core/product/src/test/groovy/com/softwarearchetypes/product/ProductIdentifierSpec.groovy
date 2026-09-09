@@ -57,14 +57,6 @@ class ProductIdentifierSpec extends Specification {
         "0-471-95869-7" | "0471958697"
     }
 
-    def "null text identifier is rejected"() {
-        when:
-        ProductIdentifier.of(null)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "invalid identifier values are rejected"() {
         when:
         switch (kind) {

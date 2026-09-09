@@ -1,9 +1,5 @@
 package com.softwarearchetypes.product.fixture
 
-import static com.softwarearchetypes.product.SelectionRule.ifThen
-import static com.softwarearchetypes.product.SelectionRule.not
-import static com.softwarearchetypes.product.SelectionRule.single
-
 import com.softwarearchetypes.product.PackageType
 import com.softwarearchetypes.product.Product
 import com.softwarearchetypes.product.ProductDescription
@@ -11,8 +7,11 @@ import com.softwarearchetypes.product.ProductIdentifier
 import com.softwarearchetypes.product.ProductName
 import com.softwarearchetypes.product.ProductSet
 import com.softwarearchetypes.product.ProductType
+import com.softwarearchetypes.product.SelectionRule
 import com.softwarearchetypes.quantity.Unit
+import groovy.transform.ImmutableOptions
 
+@ImmutableOptions(knownImmutableClasses = [ProductType, PackageType])
 record LogisticsTransportFixture(
         ProductType systemTracking,
         ProductType activeMonitoring,
@@ -75,9 +74,9 @@ record LogisticsTransportFixture(
                 .withSingleChoice("Transport", domesticExpress.id(), internationalExpress.id())
                 .withSingleChoice("Insurance", standardCargo.id(), extendedCargo.id(), partnerInsurance.id())
                 .withChoice("AddOns", 0, 2, coldChain.id(), fragileHandling.id(), pickupService.id())
-                .withRule(ifThen(
-                        single(ProductSet.singleOf("International", internationalExpress.id())),
-                        not(single(ProductSet.singleOf("StandardCargo", standardCargo.id())))))
+                .withRule(SelectionRule.ifThen(
+                        SelectionRule.single(ProductSet.singleOf("International", internationalExpress.id())),
+                        SelectionRule.not(SelectionRule.single(ProductSet.singleOf("StandardCargo", standardCargo.id())))))
                 .withSingleChoice("Tracking", trackingPackage.id())
                 .withOptionalChoice("Notifications", notificationPackage.id())
                 .build()

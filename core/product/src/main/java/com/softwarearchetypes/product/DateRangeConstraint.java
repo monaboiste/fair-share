@@ -1,17 +1,12 @@
 package com.softwarearchetypes.product;
 
 import java.time.LocalDate;
+import org.jspecify.annotations.Nullable;
 
 /** Restricts dates to an inclusive range. */
 record DateRangeConstraint(LocalDate from, LocalDate to) implements FeatureValueConstraint {
 
     DateRangeConstraint {
-        if (from == null) {
-            throw new IllegalArgumentException("From date must be defined");
-        }
-        if (to == null) {
-            throw new IllegalArgumentException("To date must be defined");
-        }
         if (from.isAfter(to)) {
             throw new IllegalArgumentException("Start date must not be after end date");
         }
@@ -32,7 +27,7 @@ record DateRangeConstraint(LocalDate from, LocalDate to) implements FeatureValue
     }
 
     @Override
-    public boolean isValid(Object value) {
+    public boolean isValid(@Nullable Object value) {
         if (!(value instanceof LocalDate dateValue)) {
             return false;
         }

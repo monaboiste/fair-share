@@ -4,7 +4,6 @@ import static java.util.stream.Collectors.toSet;
 
 import java.util.Arrays;
 import java.util.Set;
-import org.jspecify.annotations.NonNull;
 
 /** A named set of products available for selection in a package. */
 public class ProductSet {
@@ -12,10 +11,10 @@ public class ProductSet {
     private final Set<ProductIdentifier> products;
 
     ProductSet(String name, Set<ProductIdentifier> products) {
-        if (name == null || name.isBlank()) {
+        if (name.isBlank()) {
             throw new IllegalArgumentException("ProductSet name must be defined");
         }
-        if (products == null || products.isEmpty()) {
+        if (products.isEmpty()) {
             throw new IllegalArgumentException("ProductSet must contain at least one product");
         }
         this.name = name;
@@ -43,7 +42,7 @@ public class ProductSet {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductSet{name='%s', products=%s}".formatted(name, products);
     }
 }

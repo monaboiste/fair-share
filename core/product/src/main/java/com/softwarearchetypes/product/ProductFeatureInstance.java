@@ -3,19 +3,12 @@ package com.softwarearchetypes.product;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** A validated value for a product feature type. */
 record ProductFeatureInstance(ProductFeatureType featureType, Object value) {
 
     ProductFeatureInstance {
-        if (featureType == null) {
-            throw new IllegalArgumentException("ProductFeatureType must be defined");
-        }
-        if (value == null) {
-            throw new IllegalArgumentException("Feature value must be defined");
-        }
-
         featureType.validateValue(value);
     }
 
@@ -26,13 +19,6 @@ record ProductFeatureInstance(ProductFeatureType featureType, Object value) {
 
     /** Parses and validates a feature instance from its string representation. */
     static ProductFeatureInstance fromString(ProductFeatureType featureType, String stringValue) {
-        if (featureType == null) {
-            throw new IllegalArgumentException("ProductFeatureType must be defined");
-        }
-        if (stringValue == null) {
-            throw new IllegalArgumentException("String value must be defined");
-        }
-
         Object parsedValue = featureType.constraint().fromString(stringValue);
         return new ProductFeatureInstance(featureType, parsedValue);
     }
@@ -114,7 +100,7 @@ record ProductFeatureInstance(ProductFeatureType featureType, Object value) {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(@Nullable Object o) {
         if (this == o) {
             return true;
         }
@@ -125,7 +111,7 @@ record ProductFeatureInstance(ProductFeatureType featureType, Object value) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ProductFeatureInstance{%s=%s}".formatted(featureType.name(), value);
     }
 

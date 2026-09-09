@@ -2,6 +2,7 @@ package com.softwarearchetypes.product;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import org.jspecify.annotations.Nullable;
 
 /** Defines supported product feature value types and their string conversions. */
 public enum FeatureValueType {
@@ -87,7 +88,7 @@ public enum FeatureValueType {
     }
 
     /** Returns whether the value is an instance of this type. */
-    public boolean isInstance(Object value) {
+    public boolean isInstance(@Nullable Object value) {
         return type.isInstance(value);
     }
 }

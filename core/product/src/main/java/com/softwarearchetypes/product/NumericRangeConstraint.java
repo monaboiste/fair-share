@@ -1,5 +1,7 @@
 package com.softwarearchetypes.product;
 
+import org.jspecify.annotations.Nullable;
+
 /** Restricts integer values to an inclusive range. */
 record NumericRangeConstraint(int min, int max) implements FeatureValueConstraint {
 
@@ -24,7 +26,7 @@ record NumericRangeConstraint(int min, int max) implements FeatureValueConstrain
     }
 
     @Override
-    public boolean isValid(Object value) {
+    public boolean isValid(@Nullable Object value) {
         if (!(value instanceof Integer intValue)) {
             return false;
         }

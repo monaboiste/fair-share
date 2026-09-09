@@ -372,7 +372,7 @@ class FeatureValueConstraintSpec extends Specification {
             thrown(IllegalArgumentException)
 
             where:
-            pattern << ["", "   ", null]
+            pattern << ["", "   "]
         }
 
         def "should have correct value type"() {
@@ -602,14 +602,6 @@ class FeatureValueConstraintSpec extends Specification {
             FeatureValueType.TEXT    | 123
             FeatureValueType.INTEGER | "123"
             FeatureValueType.TEXT    | null
-        }
-
-        def "should reject null value type"() {
-            when:
-            new Unconstrained(null)
-
-            then:
-            thrown(IllegalArgumentException)
         }
 
         def "should have correct type identifier"() {

@@ -2,14 +2,13 @@ package com.softwarearchetypes.product;
 
 import java.util.Map;
 import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** Immutable parameters used to evaluate applicability constraints. */
 public record ApplicabilityContext(Map<String, String> parameters) {
 
-    public ApplicabilityContext {
-        parameters = Map.copyOf(parameters != null ? parameters : Map.of());
+    public ApplicabilityContext(@Nullable Map<String, String> parameters) {
+        this.parameters = Map.copyOf(parameters != null ? parameters : Map.of());
     }
 
     public static ApplicabilityContext empty() {
@@ -37,7 +36,7 @@ public record ApplicabilityContext(Map<String, String> parameters) {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "ApplicabilityContext" + parameters;
     }
 }

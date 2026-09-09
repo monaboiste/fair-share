@@ -21,7 +21,7 @@ public final class ProductCommands {
 
     public record AllowedValuesConfig(Set<String> allowedValues) implements FeatureConstraintConfig {
         public AllowedValuesConfig {
-            if (allowedValues == null || allowedValues.isEmpty()) {
+            if (allowedValues.isEmpty()) {
                 throw new IllegalArgumentException("Allowed values must not be empty");
             }
         }
@@ -35,39 +35,21 @@ public final class ProductCommands {
         }
     }
 
-    public record DecimalRangeConfig(String min, String max) implements FeatureConstraintConfig {
-        public DecimalRangeConfig {
-            if (min == null) {
-                throw new IllegalArgumentException("Min must be defined");
-            }
-            if (max == null) {
-                throw new IllegalArgumentException("Max must be defined");
-            }
-        }
-    }
+    public record DecimalRangeConfig(String min, String max) implements FeatureConstraintConfig {}
 
     public record RegexConfig(String pattern) implements FeatureConstraintConfig {
         public RegexConfig {
-            if (pattern == null || pattern.isBlank()) {
+            if (pattern.isBlank()) {
                 throw new IllegalArgumentException("Pattern must be defined");
             }
         }
     }
 
-    public record DateRangeConfig(String from, String to) implements FeatureConstraintConfig {
-        public DateRangeConfig {
-            if (from == null) {
-                throw new IllegalArgumentException("From date must be defined");
-            }
-            if (to == null) {
-                throw new IllegalArgumentException("To date must be defined");
-            }
-        }
-    }
+    public record DateRangeConfig(String from, String to) implements FeatureConstraintConfig {}
 
     public record UnconstrainedConfig(String valueType) implements FeatureConstraintConfig {
         public UnconstrainedConfig {
-            if (valueType == null || valueType.isBlank()) {
+            if (valueType.isBlank()) {
                 throw new IllegalArgumentException("Value type must be defined");
             }
         }
@@ -98,22 +80,22 @@ public final class ProductCommands {
             @Nullable Set<OptionalFeature> optionalFeatures,
             @Nullable Map<String, String> metadata) {
         public DefineProductType {
-            if (productIdType == null || productIdType.isBlank()) {
+            if (productIdType.isBlank()) {
                 throw new IllegalArgumentException("Product ID type must be defined");
             }
-            if (productId == null || productId.isBlank()) {
+            if (productId.isBlank()) {
                 throw new IllegalArgumentException("Product ID must be defined");
             }
-            if (name == null || name.isBlank()) {
+            if (name.isBlank()) {
                 throw new IllegalArgumentException("Name must be defined");
             }
-            if (description == null || description.isBlank()) {
+            if (description.isBlank()) {
                 throw new IllegalArgumentException("Description must be defined");
             }
-            if (unit == null || unit.isBlank()) {
+            if (unit.isBlank()) {
                 throw new IllegalArgumentException("Unit must be defined");
             }
-            if (trackingStrategy == null || trackingStrategy.isBlank()) {
+            if (trackingStrategy.isBlank()) {
                 throw new IllegalArgumentException("Tracking strategy must be defined");
             }
         }
@@ -122,11 +104,8 @@ public final class ProductCommands {
     /** Mandatory feature definition. */
     public record MandatoryFeature(String name, FeatureConstraintConfig constraint) {
         public MandatoryFeature {
-            if (name == null || name.isBlank()) {
+            if (name.isBlank()) {
                 throw new IllegalArgumentException("Feature name must be defined");
-            }
-            if (constraint == null) {
-                throw new IllegalArgumentException("Constraint must be defined");
             }
         }
     }
@@ -134,11 +113,8 @@ public final class ProductCommands {
     /** Optional feature definition. */
     public record OptionalFeature(String name, FeatureConstraintConfig constraint) {
         public OptionalFeature {
-            if (name == null || name.isBlank()) {
+            if (name.isBlank()) {
                 throw new IllegalArgumentException("Feature name must be defined");
-            }
-            if (constraint == null) {
-                throw new IllegalArgumentException("Constraint must be defined");
             }
         }
     }
@@ -163,13 +139,13 @@ public final class ProductCommands {
             @Nullable LocalDate availableUntil,
             Map<String, String> metadata) {
         public AddToOffer {
-            if (productTypeId == null || productTypeId.isBlank()) {
+            if (productTypeId.isBlank()) {
                 throw new IllegalArgumentException("Product type ID must be defined");
             }
-            if (displayName == null || displayName.isBlank()) {
+            if (displayName.isBlank()) {
                 throw new IllegalArgumentException("Display name must be defined");
             }
-            if (description == null || description.isBlank()) {
+            if (description.isBlank()) {
                 throw new IllegalArgumentException("Description must be defined");
             }
         }
@@ -178,11 +154,8 @@ public final class ProductCommands {
     /** Discontinues a catalog entry on the given date. */
     public record DiscontinueProduct(String catalogEntryId, LocalDate discontinuationDate) {
         public DiscontinueProduct {
-            if (catalogEntryId == null || catalogEntryId.isBlank()) {
+            if (catalogEntryId.isBlank()) {
                 throw new IllegalArgumentException("Catalog entry ID must be defined");
-            }
-            if (discontinuationDate == null) {
-                throw new IllegalArgumentException("Discontinuation date must be defined");
             }
         }
     }
@@ -190,11 +163,8 @@ public final class ProductCommands {
     /** Replaces a catalog entry's metadata. */
     public record UpdateMetadata(String catalogEntryId, Map<String, String> metadata) {
         public UpdateMetadata {
-            if (catalogEntryId == null || catalogEntryId.isBlank()) {
+            if (catalogEntryId.isBlank()) {
                 throw new IllegalArgumentException("Catalog entry ID must be defined");
-            }
-            if (metadata == null) {
-                throw new IllegalArgumentException("Metadata must be defined");
             }
         }
     }
@@ -223,25 +193,25 @@ public final class ProductCommands {
             Set<SelectionRuleConfig> selectionRules,
             @Nullable Map<String, String> metadata) {
         public DefinePackageType {
-            if (productIdType == null || productIdType.isBlank()) {
+            if (productIdType.isBlank()) {
                 throw new IllegalArgumentException("Product ID type must be defined");
             }
-            if (productId == null || productId.isBlank()) {
+            if (productId.isBlank()) {
                 throw new IllegalArgumentException("Product ID must be defined");
             }
-            if (name == null || name.isBlank()) {
+            if (name.isBlank()) {
                 throw new IllegalArgumentException("Name must be defined");
             }
-            if (description == null || description.isBlank()) {
+            if (description.isBlank()) {
                 throw new IllegalArgumentException("Description must be defined");
             }
-            if (unit == null || unit.isBlank()) {
+            if (unit.isBlank()) {
                 throw new IllegalArgumentException("Unit must be defined");
             }
-            if (trackingStrategy == null || trackingStrategy.isBlank()) {
+            if (trackingStrategy.isBlank()) {
                 throw new IllegalArgumentException("Tracking strategy must be defined");
             }
-            if (selectionRules == null || selectionRules.isEmpty()) {
+            if (selectionRules.isEmpty()) {
                 throw new IllegalArgumentException("Selection rules must be defined");
             }
         }
@@ -267,7 +237,7 @@ public final class ProductCommands {
      */
     public record IsSubsetOfConfig(Set<String> productIds, int min, int max) implements SelectionRuleConfig {
         public IsSubsetOfConfig {
-            if (productIds == null || productIds.isEmpty()) {
+            if (productIds.isEmpty()) {
                 throw new IllegalArgumentException("Product IDs must not be empty");
             }
             if (min < 0) {
@@ -286,7 +256,7 @@ public final class ProductCommands {
      */
     public record SingleConfig(Set<String> productIds) implements SelectionRuleConfig {
         public SingleConfig {
-            if (productIds == null || productIds.isEmpty()) {
+            if (productIds.isEmpty()) {
                 throw new IllegalArgumentException("Product IDs must not be empty");
             }
         }
@@ -299,7 +269,7 @@ public final class ProductCommands {
      */
     public record OptionalConfig(Set<String> productIds) implements SelectionRuleConfig {
         public OptionalConfig {
-            if (productIds == null || productIds.isEmpty()) {
+            if (productIds.isEmpty()) {
                 throw new IllegalArgumentException("Product IDs must not be empty");
             }
         }
@@ -312,7 +282,7 @@ public final class ProductCommands {
      */
     public record RequiredConfig(Set<String> productIds) implements SelectionRuleConfig {
         public RequiredConfig {
-            if (productIds == null || productIds.isEmpty()) {
+            if (productIds.isEmpty()) {
                 throw new IllegalArgumentException("Product IDs must not be empty");
             }
         }
@@ -321,7 +291,7 @@ public final class ProductCommands {
     /** Requires all nested rules to be satisfied. */
     public record AndRuleConfig(Set<SelectionRuleConfig> rules) implements SelectionRuleConfig {
         public AndRuleConfig {
-            if (rules == null || rules.isEmpty()) {
+            if (rules.isEmpty()) {
                 throw new IllegalArgumentException("Rules must not be empty");
             }
         }
@@ -330,29 +300,20 @@ public final class ProductCommands {
     /** Requires at least one nested rule to be satisfied. */
     public record OrRuleConfig(Set<SelectionRuleConfig> rules) implements SelectionRuleConfig {
         public OrRuleConfig {
-            if (rules == null || rules.isEmpty()) {
+            if (rules.isEmpty()) {
                 throw new IllegalArgumentException("Rules must not be empty");
             }
         }
     }
 
     /** Inverts the nested rule. */
-    public record NotRuleConfig(SelectionRuleConfig rule) implements SelectionRuleConfig {
-        public NotRuleConfig {
-            if (rule == null) {
-                throw new IllegalArgumentException("Rule must be defined");
-            }
-        }
-    }
+    public record NotRuleConfig(SelectionRuleConfig rule) implements SelectionRuleConfig {}
 
     /** Requires all consequent rules when the condition is satisfied. */
     public record IfThenRuleConfig(SelectionRuleConfig condition, Set<SelectionRuleConfig> thenRules)
             implements SelectionRuleConfig {
         public IfThenRuleConfig {
-            if (condition == null) {
-                throw new IllegalArgumentException("Condition must be defined");
-            }
-            if (thenRules == null || thenRules.isEmpty()) {
+            if (thenRules.isEmpty()) {
                 throw new IllegalArgumentException("Then rules must not be empty");
             }
         }
@@ -376,13 +337,13 @@ public final class ProductCommands {
             String unit,
             Set<FeatureInstanceConfig> features) {
         public CreateProductInstance {
-            if (productTypeId == null || productTypeId.isBlank()) {
+            if (productTypeId.isBlank()) {
                 throw new IllegalArgumentException("Product type ID must be defined");
             }
-            if (quantity == null || quantity.isBlank()) {
+            if (quantity.isBlank()) {
                 throw new IllegalArgumentException("Quantity must be defined");
             }
-            if (unit == null || unit.isBlank()) {
+            if (unit.isBlank()) {
                 throw new IllegalArgumentException("Unit must be defined");
             }
         }
@@ -391,11 +352,8 @@ public final class ProductCommands {
     /** Configures a product feature value. */
     public record FeatureInstanceConfig(String featureName, String value) {
         public FeatureInstanceConfig {
-            if (featureName == null || featureName.isBlank()) {
+            if (featureName.isBlank()) {
                 throw new IllegalArgumentException("Feature name must be defined");
-            }
-            if (value == null) {
-                throw new IllegalArgumentException("Feature value must be defined");
             }
         }
     }
@@ -414,10 +372,10 @@ public final class ProductCommands {
             @Nullable String batchId,
             Set<SelectedInstanceConfig> selection) {
         public CreatePackageInstance {
-            if (packageTypeId == null || packageTypeId.isBlank()) {
+            if (packageTypeId.isBlank()) {
                 throw new IllegalArgumentException("Package type ID must be defined");
             }
-            if (selection == null || selection.isEmpty()) {
+            if (selection.isEmpty()) {
                 throw new IllegalArgumentException("Selection must not be empty");
             }
         }
@@ -431,7 +389,7 @@ public final class ProductCommands {
      */
     public record SelectedInstanceConfig(String instanceId, int quantity) {
         public SelectedInstanceConfig {
-            if (instanceId == null || instanceId.isBlank()) {
+            if (instanceId.isBlank()) {
                 throw new IllegalArgumentException("Instance ID must be defined");
             }
             if (quantity <= 0) {

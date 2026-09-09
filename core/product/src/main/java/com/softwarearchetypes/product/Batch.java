@@ -3,7 +3,6 @@ package com.softwarearchetypes.product;
 import com.softwarearchetypes.quantity.Quantity;
 import java.time.Instant;
 import java.util.Optional;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /** A quantity of a product type tracked together for production and quality control. */
@@ -13,13 +12,13 @@ class Batch {
     private final BatchName name;
     private final ProductIdentifier batchOf;
     private final Quantity quantityInBatch;
-    private final Instant dateProduced;
-    private final Instant sellBy;
-    private final Instant useBy;
-    private final Instant bestBefore;
-    private final SerialNumber startSerialNumber;
-    private final SerialNumber endSerialNumber;
-    private final String comments;
+    private final @Nullable Instant dateProduced;
+    private final @Nullable Instant sellBy;
+    private final @Nullable Instant useBy;
+    private final @Nullable Instant bestBefore;
+    private final @Nullable SerialNumber startSerialNumber;
+    private final @Nullable SerialNumber endSerialNumber;
+    private final @Nullable String comments;
 
     private Batch(Builder builder) {
         if (builder.id == null) {
@@ -101,16 +100,16 @@ class Batch {
     }
 
     @Override
-    @NonNull public String toString() {
+    public String toString() {
         return "Batch{id=%s, name=%s, of=%s, quantity=%s}".formatted(id, name, batchOf, quantityInBatch);
     }
 
     static class Builder {
 
-        private BatchId id;
-        private BatchName name;
-        private ProductType productType;
-        private Quantity quantityInBatch;
+        private @Nullable BatchId id;
+        private @Nullable BatchName name;
+        private @Nullable ProductType productType;
+        private @Nullable Quantity quantityInBatch;
         private @Nullable Instant dateProduced;
         private @Nullable Instant sellBy;
         private @Nullable Instant useBy;
@@ -141,37 +140,37 @@ class Batch {
             return this;
         }
 
-        Builder dateProduced(Instant dateProduced) {
+        Builder dateProduced(@Nullable Instant dateProduced) {
             this.dateProduced = dateProduced;
             return this;
         }
 
-        Builder sellBy(Instant sellBy) {
+        Builder sellBy(@Nullable Instant sellBy) {
             this.sellBy = sellBy;
             return this;
         }
 
-        Builder useBy(Instant useBy) {
+        Builder useBy(@Nullable Instant useBy) {
             this.useBy = useBy;
             return this;
         }
 
-        Builder bestBefore(Instant bestBefore) {
+        Builder bestBefore(@Nullable Instant bestBefore) {
             this.bestBefore = bestBefore;
             return this;
         }
 
-        Builder startSerialNumber(SerialNumber startSerialNumber) {
+        Builder startSerialNumber(@Nullable SerialNumber startSerialNumber) {
             this.startSerialNumber = startSerialNumber;
             return this;
         }
 
-        Builder endSerialNumber(SerialNumber endSerialNumber) {
+        Builder endSerialNumber(@Nullable SerialNumber endSerialNumber) {
             this.endSerialNumber = endSerialNumber;
             return this;
         }
 
-        Builder comments(String comments) {
+        Builder comments(@Nullable String comments) {
             this.comments = comments;
             return this;
         }

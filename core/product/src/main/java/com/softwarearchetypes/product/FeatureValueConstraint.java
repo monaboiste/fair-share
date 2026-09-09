@@ -1,5 +1,7 @@
 package com.softwarearchetypes.product;
 
+import org.jspecify.annotations.Nullable;
+
 /** Validates and converts product feature values. */
 sealed interface FeatureValueConstraint
         permits AllowedValuesConstraint,
@@ -34,7 +36,7 @@ sealed interface FeatureValueConstraint
      * @param value the value to validate
      * @return {@code true} if the value satisfies this constraint; otherwise {@code false}
      */
-    boolean isValid(Object value);
+    boolean isValid(@Nullable Object value);
 
     /**
      * Returns a human-readable description of this constraint.

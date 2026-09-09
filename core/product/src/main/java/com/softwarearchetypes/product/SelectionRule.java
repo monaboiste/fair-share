@@ -2,7 +2,6 @@ package com.softwarearchetypes.product;
 
 import java.util.Arrays;
 import java.util.List;
-import org.jspecify.annotations.NonNull;
 
 /**
  * Defines constraints on how products from a package may be selected.
@@ -72,9 +71,6 @@ public interface SelectionRule {
     record IsSubsetOf(ProductSet sourceSet, int min, int max) implements SelectionRule {
 
         public IsSubsetOf {
-            if (sourceSet == null) {
-                throw new IllegalArgumentException("ProductSet must be defined");
-            }
             if (min < 0) {
                 throw new IllegalArgumentException("Min must be >= 0");
             }
@@ -94,7 +90,7 @@ public interface SelectionRule {
         }
 
         @Override
-        @NonNull public String toString() {
+        public String toString() {
             return "IsSubsetOf{set='%s', min=%d, max=%d}".formatted(sourceSet.name(), min, max);
         }
     }
@@ -103,7 +99,7 @@ public interface SelectionRule {
     record AndRule(List<SelectionRule> rules) implements SelectionRule {
 
         public AndRule {
-            if (rules == null || rules.isEmpty()) {
+            if (rules.isEmpty()) {
                 throw new IllegalArgumentException("Rules cannot be empty");
             }
         }
@@ -114,7 +110,7 @@ public interface SelectionRule {
         }
 
         @Override
-        @NonNull public String toString() {
+        public String toString() {
             return "AND(%d rules)".formatted(rules.size());
         }
     }
@@ -123,7 +119,7 @@ public interface SelectionRule {
     record OrRule(List<SelectionRule> rules) implements SelectionRule {
 
         public OrRule {
-            if (rules == null || rules.isEmpty()) {
+            if (rules.isEmpty()) {
                 throw new IllegalArgumentException("Rules cannot be empty");
             }
         }
@@ -134,7 +130,7 @@ public interface SelectionRule {
         }
 
         @Override
-        @NonNull public String toString() {
+        public String toString() {
             return "OR(%d rules)".formatted(rules.size());
         }
     }
@@ -142,19 +138,13 @@ public interface SelectionRule {
     /** Is satisfied when the contained rule is not satisfied. */
     record NotRule(SelectionRule rule) implements SelectionRule {
 
-        public NotRule {
-            if (rule == null) {
-                throw new IllegalArgumentException("Rule must be defined");
-            }
-        }
-
         @Override
         public boolean isSatisfiedBy(List<SelectedProduct> selection) {
             return !rule.isSatisfiedBy(relevantSelection(rule, selection));
         }
 
         @Override
-        @NonNull public String toString() {
+        public String toString() {
             return "NOT(%s)".formatted(rule);
         }
     }
@@ -167,10 +157,7 @@ public interface SelectionRule {
     record ConditionalRule(SelectionRule condition, List<SelectionRule> thenRules) implements SelectionRule {
 
         public ConditionalRule {
-            if (condition == null) {
-                throw new IllegalArgumentException("Condition must be defined");
-            }
-            if (thenRules == null || thenRules.isEmpty()) {
+            if (thenRules.isEmpty()) {
                 throw new IllegalArgumentException("Then rules cannot be empty");
             }
         }
@@ -184,7 +171,7 @@ public interface SelectionRule {
         }
 
         @Override
-        @NonNull public String toString() {
+        public String toString() {
             return "IF(%s) THEN(%d rules)".formatted(condition, thenRules.size());
         }
     }

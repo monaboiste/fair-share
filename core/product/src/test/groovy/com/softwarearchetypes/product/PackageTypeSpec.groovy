@@ -311,51 +311,6 @@ class PackageTypeSpec extends Specification {
         outerBundle.structure().selectionRules().size() == 2
     }
 
-    def "should reject invalid package type creation"() {
-        when:
-        Product.builder(
-                null,
-                ProductName.of("Invalid Package"),
-                ProductDescription.of("Missing ID")
-        )
-                .asPackageType()
-                .build()
-
-        then:
-        thrown(IllegalArgumentException)
-
-        when:
-        Product.builder(
-                UuidProductIdentifier.random(),
-                null,
-                ProductDescription.of("Missing name")
-        )
-                .asPackageType()
-                .build()
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
-    def "should reject a package with missing #field"() {
-        when:
-        packageWithMissing(field)
-
-        then:
-        thrown(IllegalArgumentException)
-
-        where:
-        field << [
-                "identifier",
-                "name",
-                "description",
-                "tracking strategy",
-                "metadata",
-                "applicability constraint",
-                "structure"
-        ]
-    }
-
     def "should define an individually tracked package with defaults"() {
         given:
         ProductSet set = ProductSet.singleOf("laptop", laptop.id())
@@ -396,18 +351,5 @@ class PackageTypeSpec extends Specification {
         PackageStructure structure = bundle.structure()
         structure != null
         structure.selectionRules().size() == 2
-    }
-
-    private PackageType packageWithMissing(String field) {
-        ProductSet set = ProductSet.singleOf("laptop", laptop.id())
-        PackageStructure structure = new PackageStructure(Map.of(set.name(), set), List.of(SelectionRule.single(set)))
-        return new PackageType(
-                field == "identifier" ? null : UuidProductIdentifier.random(),
-                field == "name" ? null : ProductName.of("Package"),
-                field == "description" ? null : ProductDescription.of("Description"),
-                field == "tracking strategy" ? null : ProductTrackingStrategy.IDENTICAL,
-                field == "metadata" ? null : ProductMetadata.empty(),
-                field == "applicability constraint" ? null : ApplicabilityConstraint.alwaysTrue(),
-                field == "structure" ? null : structure)
     }
 }
