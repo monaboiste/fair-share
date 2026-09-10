@@ -1,0 +1,65 @@
+package com.softwarearchetypes.scoring.ast;
+
+import java.util.List;
+
+public interface Expression {
+
+    <R> R accept(ExpressionVisitor<R> visitor);
+
+    record And(Expression left, Expression right) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record Or(Expression left, Expression right) implements Expression {
+
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record Not(Expression inner) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record MetricComparison(Metric metric, ComparisonOperator op, double value) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record ConstantScore(int value) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record Sum(List<Expression> children) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record IfThenElse(Expression condition, Expression thenBranch, Expression elseBranch) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+
+    record Labeled(String label, Expression inner) implements Expression {
+        @Override
+        public <R> R accept(ExpressionVisitor<R> visitor) {
+            return visitor.visit(this);
+        }
+    }
+}
