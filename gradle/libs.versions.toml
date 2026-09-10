@@ -2,6 +2,7 @@
 
 # Core
 java = "25"
+jgrapht = "1.5.2"
 money-api = "1.1"
 moneta = "1.4.5"
 
@@ -52,6 +53,8 @@ errorprone-plugin = { module = "net.ltgt.errorprone:net.ltgt.errorprone.gradle.p
 errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone-core" }
 quodana-plugin = { module = "org.jetbrains.qodana:org.jetbrains.qodana.gradle.plugin", version.ref = "qodana" }
 dependency-analysis-plugin = { module = "com.autonomousapps:dependency-analysis-gradle-plugin", version.ref = "dependency-analysis" }
+
+jgrapht-core = { module = "org.jgrapht:jgrapht-core", version.ref = "jgrapht" }
 
 money-api = { module = "javax.money:money-api", version.ref = "money-api" }
 moneta-core = { module = "org.javamoney.moneta:moneta-core", version.ref = "moneta" }
