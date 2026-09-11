@@ -53,14 +53,20 @@ class MoneySpec extends Specification {
         -100   | "100"
     }
 
-    def "divides and returns quotient and remainder"() {
+    def "divides #currency into equal shares and a smallest-unit remainder"() {
         when:
-        def result = Money.of(100, "PLN").divideAndRemainder(new BigDecimal("3"))
+        def result = Money.of(amount, currency).divideAndRemainder(new BigDecimal("3"))
 
         then:
         result.length == 2
-        result[0].value() == new BigDecimal("33")
-        result[1].value() == BigDecimal.ONE
+        result[0].value() == new BigDecimal(share)
+        result[1].value() == new BigDecimal(remainder)
+
+        where:
+        currency | amount | share    | remainder
+        "JPY"    | 100    | "33"     | "1"
+        "USD"    | 100    | "33.33"  | "0.01"
+        "KWD"    | 100    | "33.333" | "0.001"
     }
 
     def "reports zero state for #amount"() {
@@ -248,6 +254,28 @@ class MoneySpec extends Specification {
         RoundingMode.HALF_UP | "33.33"
     }
 
+    def "rounds #currency to its fraction digits"() {
+        expect:
+        Money.of(amount, currency).round(RoundingMode.HALF_UP).value() == new BigDecimal(expected)
+
+        where:
+        currency | amount                     | expected
+        "JPY"    | new BigDecimal("1.5")    | "2"
+        "USD"    | new BigDecimal("1.125")  | "1.13"
+        "KWD"    | new BigDecimal("1.2345") | "1.235"
+    }
+
+    def "rounded division uses #currency fraction digits"() {
+        expect:
+        Money.of(amount, currency).divide(divisor, RoundingMode.HALF_UP).value() == new BigDecimal(expected)
+
+        where:
+        currency | amount | divisor                  | expected
+        "JPY"    | 5      | new BigDecimal("2")  | "3"
+        "USD"    | 1      | new BigDecimal("8")  | "0.13"
+        "KWD"    | 1      | new BigDecimal("16") | "0.063"
+    }
+
     def "returns #currency currency code"() {
         expect:
         money.currency() == currency
@@ -284,6 +312,17 @@ class MoneySpec extends Specification {
         result.currency() == "EUR"
         result.value() > new BigDecimal("29")
         result.value() < new BigDecimal("31")
+    }
+
+    def "returns #currency smallest monetary unit"() {
+        expect:
+        Money.of(1, currency).smallestUnit() == Money.of(new BigDecimal(expected), currency)
+
+        where:
+        currency | expected
+        "JPY"    | "1"
+        "USD"    | "0.01"
+        "KWD"    | "0.001"
     }
 
     def "exposes JSR 354 currency unit"() {
@@ -378,6 +417,18 @@ class MoneySpec extends Specification {
         thrown(ArithmeticException)
     }
 
+    def "cannot divide money among #description share counts"() {
+        when:
+        Money.of(100, "USD").divideAndRemainder(divider)
+
+        then:
+        thrown(IllegalArgumentException)
+
+        where:
+        description  | divider
+        "negative"   | new BigDecimal("-1")
+        "fractional" | new BigDecimal("0.3")
+    }
     def "cannot divide and remainder by zero"() {
         when:
         Money.of(100, "PLN").divideAndRemainder(BigDecimal.ZERO)
