@@ -72,13 +72,21 @@ public class Money implements Comparable<Money> {
     }
 
     public Money divide(BigDecimal divisor, RoundingMode roundingMode) {
-        BigDecimal result = value().divide(divisor, 2, roundingMode);
+        BigDecimal result = value().divide(divisor, currencyUnit().getDefaultFractionDigits(), roundingMode);
         return Money.of(result, currency());
     }
 
+    public Money round(RoundingMode roundingMode) {
+        return Money.of(value().setScale(currencyUnit().getDefaultFractionDigits(), roundingMode), currency());
+    }
+
     public Money[] divideAndRemainder(BigDecimal divider) {
-        org.javamoney.moneta.Money[] result = value.divideAndRemainder(divider);
-        return new Money[] {new Money(result[0]), new Money(result[1])};
+        if (divider.signum() < 0 || divider.stripTrailingZeros().scale() > 0) {
+            throw new IllegalArgumentException("Divider must be a positive whole number");
+        }
+        BigDecimal quotient = value().divide(divider, currencyUnit().getDefaultFractionDigits(), RoundingMode.DOWN);
+        BigDecimal remainder = value().subtract(quotient.multiply(divider));
+        return new Money[] {Money.of(quotient, currency()), Money.of(remainder, currency())};
     }
 
     public Money multiply(Percentage percentage) {
@@ -149,6 +157,10 @@ public class Money implements Comparable<Money> {
     public String toString() {
         return value.getCurrency().getCurrencyCode() + " "
                 + value.getNumberStripped().toPlainString();
+    }
+
+    public Money smallestUnit() {
+        return Money.of(BigDecimal.ONE.movePointLeft(currencyUnit().getDefaultFractionDigits()), currency());
     }
 
     public CurrencyUnit currencyUnit() {
