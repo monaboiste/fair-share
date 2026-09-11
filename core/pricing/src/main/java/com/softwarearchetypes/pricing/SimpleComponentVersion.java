@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /** Defines a calculator configuration with validity and applicability constraints. */
-record SimpleComponentVersion(
+public record SimpleComponentVersion(
+        ComponentVersionId id,
         Calculator calculator,
         Map<String, String> parameterMappings,
         ApplicabilityConstraint applicabilityConstraint,
@@ -20,10 +21,31 @@ record SimpleComponentVersion(
         Objects.requireNonNull(applicabilityConstraint, "applicabilityConstraint cannot be null");
     }
 
+    public SimpleComponentVersion(
+            Calculator calculator,
+            Map<String, String> parameterMappings,
+            ApplicabilityConstraint applicabilityConstraint,
+            Validity validity,
+            LocalDateTime definedAt) {
+        this(
+                ComponentVersionId.generate(),
+                calculator,
+                parameterMappings,
+                applicabilityConstraint,
+                validity,
+                definedAt);
+    }
+
     /** Creates a version that always applies. */
     public SimpleComponentVersion(
             Calculator calculator, Map<String, String> parameterMappings, Validity validity, LocalDateTime definedAt) {
         this(calculator, parameterMappings, ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
+    }
+
+    public static SimpleComponentVersion of(
+            ComponentVersionId id, Calculator calculator, Validity validity, LocalDateTime definedAt) {
+        return new SimpleComponentVersion(
+                id, calculator, Map.of(), ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
     }
 
     /** Returns whether validity and applicability match the context. */

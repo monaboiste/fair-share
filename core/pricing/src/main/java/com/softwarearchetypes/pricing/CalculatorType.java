@@ -40,6 +40,7 @@ public enum CalculatorType {
             "Percentage calculator - calculates %s%% of base amount",
             Set.of("percentageRate"),
             Set.of("baseAmount")),
+    CUSTOM("custom", "Application-defined calculator", Set.of(), Set.of()),
 
     UNIT_TO_TOTAL_ADAPTER(
             "unit-to-total-adapter",

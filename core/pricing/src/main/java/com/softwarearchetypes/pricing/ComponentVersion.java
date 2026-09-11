@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 /** Describes a component configuration and its validity period. */
 sealed interface ComponentVersion permits SimpleComponentVersion, CompositeComponentVersion {
 
+    ComponentVersionId id();
+
     /** Returns this version's validity period. */
     Validity validity();
 

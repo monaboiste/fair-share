@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  * Each child component resolves its own version independently.
  */
 record CompositeComponentVersion(
+        ComponentVersionId id,
         List<Component> children,
         Map<ComponentId, Map<String, ParameterValue>> dependencies,
         ApplicabilityConstraint applicabilityConstraint,
@@ -27,6 +28,15 @@ record CompositeComponentVersion(
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> Map.copyOf(e.getValue()))));
         Objects.requireNonNull(applicabilityConstraint, "applicabilityConstraint cannot be null");
         Objects.requireNonNull(definedAt, "definedAt cannot be null");
+    }
+
+    public CompositeComponentVersion(
+            List<Component> children,
+            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            ApplicabilityConstraint applicabilityConstraint,
+            Validity validity,
+            LocalDateTime definedAt) {
+        this(ComponentVersionId.generate(), children, dependencies, applicabilityConstraint, validity, definedAt);
     }
 
     /** Backward-compatible constructor - composite always applicable (no business condition). */

@@ -66,6 +66,7 @@ final class PricingTestConfiguration {
                     .filter(Objects::nonNull)
                     .toList()
             new CompositeComponentVersion(
+                    version.id(),
                     children,
                     version.dependencies(),
                     version.applicabilityConstraint(),
