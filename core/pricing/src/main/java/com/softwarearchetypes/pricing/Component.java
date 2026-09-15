@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /** Represents a semantic part of a price calculation. Components can depend on one another. */
@@ -211,15 +210,6 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
         }
 
         return transformed;
-    }
-
-    /** Returns required parameter names for this component (from the first version). */
-    public Set<String> requiredParameters() {
-        SimpleComponentVersion firstVersion = versions.getFirst();
-        if (!firstVersion.parameterMappings().isEmpty()) {
-            return firstVersion.parameterMappings().keySet();
-        }
-        return firstVersion.calculator().getType().requiredCalculationFields();
     }
 }
 

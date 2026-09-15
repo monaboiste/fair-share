@@ -187,6 +187,60 @@ class SimpleComponentVersioningSpec extends Specification {
         ex.message.contains("overlaps")
     }
 
+    def "only the selected version's mapped calculator contract is validated"() {
+        given:
+        Calculator legacyCalculator = calculatorWithInput(
+                CalculatorInput.instanceOf("amount", String), Money.of(10, "PLN"))
+        Calculator currentCalculator = calculatorWithInput(
+                CalculatorInput.bigDecimal("quantity"), Money.of(20, "PLN"))
+        SimpleComponent component = SimpleComponent.withInitialVersion(
+                "Versioned price",
+                legacyCalculator,
+                Map.of("legacyAmount", "amount"),
+                Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0)),
+                clock)
+        component = component.updateWith(new SimpleComponentVersion(
+                currentCalculator,
+                Map.of("currentQuantity", "quantity"),
+                Validity.from(LocalDateTime.of(2024, 2, 1, 0, 0)),
+                LocalDateTime.of(2024, 1, 15, 0, 0)))
+
+        expect:
+        component.calculate(Parameters.of(
+                "timestamp", LocalDateTime.of(2024, 1, 15, 0, 0),
+                "legacyAmount", "legacy")) == Money.of(10, "PLN")
+        component.calculate(Parameters.of(
+                "timestamp", LocalDateTime.of(2024, 2, 15, 0, 0),
+                "currentQuantity", BigDecimal.ONE)) == Money.of(20, "PLN")
+    }
+
+    def "applicability is checked before selected calculator validation"() {
+        given:
+        Calculator calculator = calculatorWithInput(CalculatorInput.bigDecimal("quantity"), Money.of(10, "PLN"))
+        SimpleComponent component = SimpleComponent.withInitialVersion(
+                "conditional price",
+                calculator,
+                Map.of(),
+                ApplicabilityConstraint.equalsTo("customer", "excluded"),
+                Validity.always(),
+                clock)
+
+        when:
+        Money result = component.calculate(Parameters.of("customer", "included"))
+
+        then:
+        result == Money.zero("PLN")
+    }
+
+    private static Calculator calculatorWithInput(CalculatorInput<?> input, Money result) {
+        [
+                inputs: { Set.of(input) },
+                calculateWithValidInputs: { Parameters ignored -> result },
+                getType: { CalculatorType.CUSTOM },
+                interpretation: { Interpretation.TOTAL }
+        ] as Calculator
+    }
+
     def "versioned component works with parameter mappings"() {
         given:
         Calculator calculator = new StepFunctionCalculator(

@@ -144,7 +144,7 @@ repository calculators; bypassing wrapped `calculate()`; suppressing nested vali
 
 ## TODO-CV-04: Validate selected component version
 
-- Status: open
+- Status: closed
 - Depends on: TODO-CV-03
 - Acceptance: ISC-11, ISC-12
 
