@@ -1,5 +1,6 @@
 package com.softwarearchetypes.pricing
 
+import java.time.LocalDate
 import java.time.LocalTime
 import spock.lang.Specification
 
@@ -84,6 +85,22 @@ class RangesSpec extends Specification {
         ex.message.contains("same type")
     }
 
+    def "finds matching range for numeric string value"() {
+        given:
+        CalculatorId matchingRangeCalculatorId = CalculatorId.generate()
+
+        Ranges ranges = new Ranges(
+                "quantity",
+                List.of(
+                        CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
+                        CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), matchingRangeCalculatorId)
+                )
+        )
+
+        expect:
+        ranges.findMatching(Parameters.of("quantity", "25")).orElseThrow().calculatorId() == matchingRangeCalculatorId
+    }
+
     def "finds matching range for numeric value"() {
         given:
         CalculatorId matchingRangeCalculatorId = CalculatorId.generate()
@@ -104,6 +121,21 @@ class RangesSpec extends Specification {
 
         expect:
         matchingRange.calculatorId() == matchingRangeCalculatorId
+    }
+
+    def "finds matching range for date string value"() {
+        given:
+        CalculatorId matchingRangeCalculatorId = CalculatorId.generate()
+
+        Ranges ranges = new Ranges(
+                "date",
+                List.of(
+                        CalculatorRange.date(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1), matchingRangeCalculatorId)
+                )
+        )
+
+        expect:
+        ranges.findMatching(Parameters.of("date", "2025-06-01")).orElseThrow().calculatorId() == matchingRangeCalculatorId
     }
 
     def "finds matching range for time value"() {

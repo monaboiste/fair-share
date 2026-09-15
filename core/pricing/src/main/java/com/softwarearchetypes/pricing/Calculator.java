@@ -23,12 +23,22 @@ public interface Calculator {
 
     Set<CalculatorInput<?>> inputs();
 
+    /**
+     * Validates the input contract, reads declared inputs in name order, then performs the calculation.
+     *
+     * <p>Interface defaults cannot be final, so an implementation or caller can bypass this validation by overriding
+     * this method or calling {@link #calculateWithValidInputs(Parameters)} directly.
+     */
     default Money calculate(Parameters parameters) {
         validateInputContract();
         inputs().stream().sorted(comparing(CalculatorInput::name)).forEach(input -> input.read(parameters));
         return calculateWithValidInputs(parameters);
     }
 
+    /**
+     * Performs calculation after input validation. Implementations must provide this hook; production callers should
+     * use {@link #calculate(Parameters)}.
+     */
     Money calculateWithValidInputs(Parameters parameters);
 
     private void validateInputContract() {

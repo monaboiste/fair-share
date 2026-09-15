@@ -37,7 +37,7 @@ public enum CalculatorType {
             "Converts unit price to marginal: for constant unit price, marginal = unitPrice",
             Set.of()),
     TOTAL_TO_UNIT_ADAPTER(
-            "total-to-unit-adapter", "Converts total to unit price: unitPrice = total / quantity", Set.of()),
+            "total-to-unit-adapter", "Converts total price to unit price: unitPrice = total / quantity", Set.of()),
     TOTAL_TO_MARGINAL_ADAPTER(
             "total-to-marginal-adapter", "Converts total to marginal: marginal(n) = total(n) - total(n-1)", Set.of()),
     MARGINAL_TO_TOTAL_ADAPTER(

@@ -74,10 +74,9 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
     }
 
     /**
-     * Finds the first range that contains the value from the specified parameter.
+     * Returns the typed input descriptor for this range selector.
      *
-     * @param parameters the parameters containing the value to check
-     * @return Optional containing the matching range, or empty if no match
+     * @return the selector descriptor
      */
     CalculatorInput<?> selectorInput() {
         CalculatorRange range = ranges.getFirst();
@@ -90,8 +89,18 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
         return CalculatorInput.instanceOf(rangeSelector, java.time.LocalTime.class);
     }
 
+    /**
+     * Finds the first range that contains the converted selector value.
+     *
+     * @param parameters the parameters containing the selector value
+     * @return the matching range, or empty if no range matches
+     */
     public Optional<CalculatorRange> findMatching(Parameters parameters) {
-        Object value = parameters.get(rangeSelector);
+        if (!parameters.contains(rangeSelector)) {
+            throw new IllegalArgumentException(
+                    "Parameter '%s' is required but not found in parameters".formatted(rangeSelector));
+        }
+        Object value = selectorInput().read(parameters);
 
         if (value == null) {
             throw new IllegalArgumentException(
