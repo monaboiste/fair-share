@@ -2,6 +2,7 @@ package com.softwarearchetypes.pricing;
 
 import static com.softwarearchetypes.pricing.CalculatorType.COMPOSITE;
 import static java.time.temporal.ChronoUnit.DAYS;
+import static java.util.Comparator.comparing;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
@@ -14,12 +15,32 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
 public interface Calculator {
 
-    Money calculate(Parameters parameters);
+    Set<CalculatorInput<?>> inputs();
+
+    default Money calculate(Parameters parameters) {
+        validateInputContract();
+        inputs().stream().sorted(comparing(CalculatorInput::name)).forEach(input -> input.read(parameters));
+        return calculateWithValidInputs(parameters);
+    }
+
+    Money calculateWithValidInputs(Parameters parameters);
+
+    private void validateInputContract() {
+        Map<String, CalculatorInput<?>> declared = new HashMap<>();
+        for (CalculatorInput<?> input : inputs()) {
+            CalculatorInput<?> previous = declared.putIfAbsent(input.name(), input);
+            if (previous != null && !previous.isCompatibleWith(input)) {
+                throw new IllegalStateException("Calculator '%s' declares incompatible inputs for '%s': %s and %s"
+                        .formatted(name(), input.name(), previous.expectedType(), input.expectedType()));
+            }
+        }
+    }
 
     String describe();
 
@@ -60,7 +81,7 @@ record SimpleFixedCalculator(CalculatorId id, String name, Money amount, Interpr
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
+    public Money calculateWithValidInputs(Parameters parameters) {
         return amount;
     }
 
@@ -77,6 +98,11 @@ record SimpleFixedCalculator(CalculatorId id, String name, Money amount, Interpr
     @Override
     public Interpretation interpretation() {
         return interpretation;
+    }
+
+    @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of();
     }
 
     @Override
@@ -99,11 +125,7 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
-        if (!parameters.containsAll(getType().requiredCalculationFields())) {
-            throw new IllegalArgumentException("SimpleInterestCalculator requiredPreviousKeys %s parameters"
-                    .formatted(getType().requiredCalculationFields()));
-        }
+    public Money calculateWithValidInputs(Parameters parameters) {
 
         Money base = parameters.getMoney("base");
         ChronoUnit unit = (ChronoUnit) parameters.require("unit");
@@ -128,6 +150,11 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
     @Override
     public Interpretation interpretation() {
         return Interpretation.TOTAL;
+    }
+
+    @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(CalculatorInput.money("base"), CalculatorInput.instanceOf("unit", ChronoUnit.class));
     }
 
     @Override
@@ -203,11 +230,7 @@ record StepFunctionCalculator(
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
-        if (!parameters.containsAll(getType().requiredCalculationFields())) {
-            throw new IllegalArgumentException("StepFunctionCalculator requires %s parameters"
-                    .formatted(getType().requiredCalculationFields()));
-        }
+    public Money calculateWithValidInputs(Parameters parameters) {
 
         BigDecimal totalIncrementValue = calculateTotalIncrementValue(parameters);
         Money incrementTotal = Money.of(totalIncrementValue, basePrice.currency());
@@ -249,6 +272,11 @@ record StepFunctionCalculator(
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(CalculatorInput.bigDecimal("quantity"));
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.STEP_FUNCTION;
     }
@@ -273,11 +301,7 @@ record DiscretePointsCalculator(
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
-        if (!parameters.containsAll(getType().requiredCalculationFields())) {
-            throw new IllegalArgumentException("DiscretePointsCalculator requires %s parameters"
-                    .formatted(getType().requiredCalculationFields()));
-        }
+    public Money calculateWithValidInputs(Parameters parameters) {
 
         BigDecimal quantity = parameters.getBigDecimal("quantity");
 
@@ -309,6 +333,11 @@ record DiscretePointsCalculator(
     @Override
     public Interpretation interpretation() {
         return interpretation;
+    }
+
+    @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(CalculatorInput.bigDecimal("quantity"));
     }
 
     @Override
@@ -346,11 +375,7 @@ record DailyIncrementCalculator(
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
-        if (!parameters.containsAll(getType().requiredCalculationFields())) {
-            throw new IllegalArgumentException("DailyIncrementCalculator requires %s parameters"
-                    .formatted(getType().requiredCalculationFields()));
-        }
+    public Money calculateWithValidInputs(Parameters parameters) {
 
         LocalDate date = parameters.getLocalDate("date");
 
@@ -379,6 +404,11 @@ record DailyIncrementCalculator(
     @Override
     public Interpretation interpretation() {
         return interpretation;
+    }
+
+    @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(CalculatorInput.localDate("date"));
     }
 
     @Override
@@ -423,11 +453,7 @@ record ContinuousLinearTimeCalculator(
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
-        if (!parameters.containsAll(getType().requiredCalculationFields())) {
-            throw new IllegalArgumentException("ContinuousLinearTimeCalculator requires %s parameters"
-                    .formatted(getType().requiredCalculationFields()));
-        }
+    public Money calculateWithValidInputs(Parameters parameters) {
 
         Instant queryTime = parameters.getInstant("time");
 
@@ -467,6 +493,11 @@ record ContinuousLinearTimeCalculator(
     @Override
     public Interpretation interpretation() {
         return interpretation;
+    }
+
+    @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(CalculatorInput.instant("time"));
     }
 
     @Override
@@ -536,7 +567,7 @@ record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, 
     }
 
     @Override
-    public Money calculate(Parameters parameters) {
+    public Money calculateWithValidInputs(Parameters parameters) {
         CalculatorRange matchingRange = ranges.findMatching(parameters)
                 .orElseThrow(() -> new IllegalArgumentException("No matching range found in %s".formatted(ranges)));
 
@@ -568,6 +599,11 @@ record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, 
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(ranges.selectorInput());
+    }
+
+    @Override
     public CalculatorType getType() {
         return COMPOSITE;
     }
@@ -590,12 +626,20 @@ record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(CalculatorInput.bigDecimal("quantity")),
+                        sourceCalculator.inputs().stream())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.UNIT_TO_TOTAL_ADAPTER;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.getBigDecimal("quantity");
         Money unitPrice = sourceCalculator.calculate(params);
         return unitPrice.multiply(quantity);
@@ -638,12 +682,20 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(CalculatorInput.bigDecimal("quantity")),
+                        sourceCalculator.inputs().stream())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.UNIT_TO_MARGINAL_ADAPTER;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.getBigDecimal("quantity");
 
         if (quantity.compareTo(BigDecimal.ONE) < 0) {
@@ -658,7 +710,7 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
         }
 
         BigDecimal quantityMinusOne = quantity.subtract(BigDecimal.ONE);
-        Parameters paramsN1 = Parameters.of("quantity", quantityMinusOne);
+        Parameters paramsN1 = params.with("quantity", quantityMinusOne);
         Money unitPriceN1 = sourceCalculator.calculate(paramsN1);
         Money totalN1 = unitPriceN1.multiply(quantityMinusOne);
 
@@ -698,12 +750,20 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(CalculatorInput.bigDecimal("quantity")),
+                        sourceCalculator.inputs().stream())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.TOTAL_TO_UNIT_ADAPTER;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.getBigDecimal("quantity");
         Money total = sourceCalculator.calculate(params);
         return total.divide(quantity);
@@ -742,12 +802,20 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(CalculatorInput.bigDecimal("quantity")),
+                        sourceCalculator.inputs().stream())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.TOTAL_TO_MARGINAL_ADAPTER;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.getBigDecimal("quantity");
 
         if (quantity.compareTo(BigDecimal.ONE) < 0) {
@@ -761,7 +829,7 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
         }
 
         BigDecimal quantityMinusOne = quantity.subtract(BigDecimal.ONE);
-        Parameters paramsN1 = Parameters.of("quantity", quantityMinusOne);
+        Parameters paramsN1 = params.with("quantity", quantityMinusOne);
         Money totalN1 = sourceCalculator.calculate(paramsN1);
 
         return totalN.subtract(totalN1);
@@ -800,18 +868,26 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(CalculatorInput.bigDecimal("quantity")),
+                        sourceCalculator.inputs().stream())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.MARGINAL_TO_TOTAL_ADAPTER;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.getBigDecimal("quantity");
 
-        Money total = sourceCalculator.calculate(Parameters.of("quantity", BigDecimal.ONE));
+        Money total = sourceCalculator.calculate(params.with("quantity", BigDecimal.ONE));
 
         for (int i = 2; i <= quantity.intValue(); i++) {
-            Parameters marginalParams = Parameters.of("quantity", new BigDecimal(i));
+            Parameters marginalParams = params.with("quantity", new BigDecimal(i));
             Money marginal = sourceCalculator.calculate(marginalParams);
             total = total.add(marginal);
         }
@@ -852,18 +928,26 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(CalculatorInput.bigDecimal("quantity")),
+                        sourceCalculator.inputs().stream())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.MARGINAL_TO_UNIT_ADAPTER;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.getBigDecimal("quantity");
 
-        Money total = sourceCalculator.calculate(Parameters.of("quantity", BigDecimal.ONE));
+        Money total = sourceCalculator.calculate(params.with("quantity", BigDecimal.ONE));
 
         for (int i = 2; i <= quantity.intValue(); i++) {
-            Parameters marginalParams = Parameters.of("quantity", new BigDecimal(i));
+            Parameters marginalParams = params.with("quantity", new BigDecimal(i));
             Money marginal = sourceCalculator.calculate(marginalParams);
             total = total.add(marginal);
         }
@@ -900,12 +984,17 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
     }
 
     @Override
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(CalculatorInput.money("baseAmount"));
+    }
+
+    @Override
     public CalculatorType getType() {
         return CalculatorType.PERCENTAGE;
     }
 
     @Override
-    public Money calculate(Parameters params) {
+    public Money calculateWithValidInputs(Parameters params) {
         Money baseAmount = params.getMoney("baseAmount");
         BigDecimal rate = percentageRate.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
         Money result = baseAmount.multiply(rate);

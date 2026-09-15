@@ -79,6 +79,17 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
      * @param parameters the parameters containing the value to check
      * @return Optional containing the matching range, or empty if no match
      */
+    CalculatorInput<?> selectorInput() {
+        CalculatorRange range = ranges.getFirst();
+        if (range instanceof NumericRange) {
+            return CalculatorInput.bigDecimal(rangeSelector);
+        }
+        if (range instanceof DateRange) {
+            return CalculatorInput.localDate(rangeSelector);
+        }
+        return CalculatorInput.instanceOf(rangeSelector, java.time.LocalTime.class);
+    }
+
     public Optional<CalculatorRange> findMatching(Parameters parameters) {
         Object value = parameters.get(rangeSelector);
 

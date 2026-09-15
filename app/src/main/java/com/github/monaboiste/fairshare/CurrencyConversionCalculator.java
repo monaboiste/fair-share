@@ -2,10 +2,12 @@ package com.github.monaboiste.fairshare;
 
 import com.softwarearchetypes.pricing.Calculator;
 import com.softwarearchetypes.pricing.CalculatorId;
+import com.softwarearchetypes.pricing.CalculatorInput;
 import com.softwarearchetypes.pricing.CalculatorType;
 import com.softwarearchetypes.pricing.Interpretation;
 import com.softwarearchetypes.pricing.Parameters;
 import com.softwarearchetypes.quantity.money.Money;
+import java.util.Set;
 
 record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) implements Calculator {
 
@@ -13,9 +15,16 @@ record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) 
         this(CalculatorId.generate(), exchangeRate);
     }
 
+    private static final CalculatorInput<Money> SOURCE = CalculatorInput.money("source");
+
     @Override
-    public Money calculate(Parameters parameters) {
-        return exchangeRate.convert(parameters.getMoney("source"));
+    public Set<CalculatorInput<?>> inputs() {
+        return Set.of(SOURCE);
+    }
+
+    @Override
+    public Money calculateWithValidInputs(Parameters parameters) {
+        return exchangeRate.convert(SOURCE.read(parameters));
     }
 
     @Override
