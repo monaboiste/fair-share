@@ -1,6 +1,7 @@
 package com.softwarearchetypes.pricing
 
 import com.softwarearchetypes.quantity.money.Money
+import java.time.LocalDateTime
 import spock.lang.Specification
 
 class AdaptersSpec extends Specification {
@@ -156,6 +157,70 @@ class AdaptersSpec extends Specification {
         MarginalToUnitAdapter.wrap("a", marginalCalculator).getType() == CalculatorType.MARGINAL_TO_UNIT_ADAPTER
     }
 
+    def "derived adapter evaluations retain unrelated source parameters"() {
+        given:
+        LocalDateTime timestamp = LocalDateTime.of(2026, 1, 2, 3, 4)
+        Money baseAmount = Money.of(10, "PLN")
+        List evaluations = [
+                [UnitToTotalAdapter.&wrap, Interpretation.UNIT, [new BigDecimal("2")]],
+                [UnitToMarginalAdapter.&wrap, Interpretation.UNIT, [new BigDecimal("2"), BigDecimal.ONE]],
+                [TotalToUnitAdapter.&wrap, Interpretation.TOTAL, [new BigDecimal("2")]],
+                [TotalToMarginalAdapter.&wrap, Interpretation.TOTAL, [new BigDecimal("2"), BigDecimal.ONE]],
+                [MarginalToTotalAdapter.&wrap, Interpretation.MARGINAL, [BigDecimal.ONE, new BigDecimal("2")]],
+                [MarginalToUnitAdapter.&wrap, Interpretation.MARGINAL, [BigDecimal.ONE, new BigDecimal("2")]]
+        ].collect { adapter, interpretation, expectedQuantities ->
+            def source = new TrackingCalculator(interpretation)
+            def wrapped = adapter("adapter", source)
+            wrapped.calculate(Parameters.of(
+                    "quantity", new BigDecimal("2"),
+                    "baseAmount", baseAmount,
+                    "timestamp", timestamp
+            ))
+            [source, expectedQuantities]
+        }
+
+        expect:
+        evaluations.every { source, expectedQuantities ->
+            source.received*.get("baseAmount").every { it == baseAmount } &&
+                    source.received*.get("timestamp").every { it == timestamp } &&
+                    source.received*.get("quantity") == expectedQuantities
+        }
+    }
+
+    def "adapter collapses a compatible quantity descriptor from its source calculator"() {
+        given:
+        def source = new TrackingCalculator(Interpretation.UNIT, CalculatorInput.bigDecimal("quantity"))
+        def adapter = UnitToTotalAdapter.wrap("adapter", source)
+
+        expect:
+        adapter.inputs().count { it.name() == "quantity" } == 1
+        adapter.calculate(Parameters.of(
+                "quantity", new BigDecimal("2"),
+                "baseAmount", Money.of(10, "PLN"),
+                "timestamp", LocalDateTime.of(2026, 1, 2, 3, 4)
+        )) == Money.of(40, "PLN")
+    }
+
+    def "adapter rejects an incompatible quantity descriptor before evaluating its source"() {
+        given:
+        def source = new TrackingCalculator(Interpretation.UNIT, CalculatorInput.money("quantity"))
+        def adapter = UnitToTotalAdapter.wrap("adapter", source)
+
+        when:
+        adapter.calculate(Parameters.of(
+                "quantity", new BigDecimal("2"),
+                "baseAmount", Money.of(10, "PLN"),
+                "timestamp", LocalDateTime.of(2026, 1, 2, 3, 4)
+        ))
+
+        then:
+        def ex = thrown(IllegalStateException)
+        ex.message.contains("quantity")
+        ex.message.contains("BigDecimal")
+        ex.message.contains("Money")
+        source.received.empty
+    }
+
     def "adapter formula includes the source calculator formula"() {
         given:
         Calculator unitCalculator = new SimpleFixedCalculator("test", Money.of(10, "PLN"), Interpretation.UNIT)
@@ -167,5 +232,45 @@ class AdaptersSpec extends Specification {
         expect:
         formula.contains("quantity \u00d7")
         formula.contains("f(x) = PLN 10")
+    }
+
+    private static class TrackingCalculator implements Calculator {
+        private final Interpretation interpretation
+        private final CalculatorInput<?> quantity
+        final List<Parameters> received = []
+
+        TrackingCalculator(Interpretation interpretation, CalculatorInput<?> quantity = CalculatorInput.bigDecimal("quantity")) {
+            this.interpretation = interpretation
+            this.quantity = quantity
+        }
+
+        @Override
+        Set<CalculatorInput<?>> inputs() {
+            [quantity, CalculatorInput.money("baseAmount"), CalculatorInput.instanceOf("timestamp", LocalDateTime)] as Set
+        }
+
+        @Override
+        Money calculateWithValidInputs(Parameters parameters) {
+            received << parameters
+            parameters.getMoney("baseAmount").multiply(parameters.getBigDecimal("quantity"))
+        }
+
+        @Override
+        CalculatorType getType() { CalculatorType.CUSTOM }
+
+        @Override
+        CalculatorId getId() { CalculatorId.generate() }
+
+        @Override
+        String name() { "tracking" }
+
+        @Override
+        String describe() { "tracking" }
+
+        @Override
+        String formula() { "tracking" }
+
+        @Override
+        Interpretation interpretation() { interpretation }
     }
 }

@@ -106,7 +106,7 @@ calculator business exceptions; semantic formula changes.
 
 ## TODO-CV-03: Preserve adapter input contracts
 
-- Status: open
+- Status: closed
 - Depends on: TODO-CV-02
 - Acceptance: ISC-9, ISC-10, ISC-13
 
