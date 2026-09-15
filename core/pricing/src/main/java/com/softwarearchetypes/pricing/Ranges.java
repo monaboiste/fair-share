@@ -102,11 +102,6 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
         }
         Object value = selectorInput().read(parameters);
 
-        if (value == null) {
-            throw new IllegalArgumentException(
-                    "Parameter '%s' is required but not found in parameters".formatted(rangeSelector));
-        }
-
         return ranges.stream().filter(range -> range.contains(value)).findFirst();
     }
 
