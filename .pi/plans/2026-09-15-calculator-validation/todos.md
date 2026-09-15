@@ -171,7 +171,7 @@ context-free replacement query; changed version tie-breaking or clock fallback.
 
 ## TODO-CV-05: Migrate currency conversion calculator
 
-- Status: open
+- Status: closed
 - Depends on: TODO-CV-04
 - Acceptance: ISC-7, ISC-14, ISC-17, ISC-18, ISC-19, ISC-20, ISC-21
 

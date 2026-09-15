@@ -1,6 +1,8 @@
 package com.github.monaboiste.fairshare
 
+import com.softwarearchetypes.pricing.CalculatorType
 import com.softwarearchetypes.pricing.ComponentVersionId
+import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.SimpleComponentVersion
 import com.softwarearchetypes.pricing.Validity
 import com.softwarearchetypes.quantity.money.Money
@@ -18,6 +20,73 @@ class CurrencyValuationSpec extends Specification {
     private static final CurrencyUnit USD = Monetary.getCurrency("USD")
 
     private final Pricing pricing = Pricing.standard()
+
+    def "currency conversion declares source as a Money input"() {
+        given:
+        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
+                ExchangeRate.of(USD, PLN, 4.5))
+
+        expect:
+        calculator.inputs().size() == 1
+        calculator.inputs().first().name() == "source"
+        calculator.getType() == CalculatorType.CUSTOM
+
+        when:
+        calculator.calculate(Parameters.of("source", Money.of(2, "USD")))
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "currency conversion rejects a missing source before calculation"() {
+        given:
+        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
+                ExchangeRate.of(USD, PLN, 4.5))
+
+        when:
+        calculator.calculate(Parameters.empty())
+
+        then:
+        IllegalArgumentException error = thrown()
+        error.message.contains("source")
+    }
+
+    def "currency conversion rejects a null source before calculation"() {
+        given:
+        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
+                ExchangeRate.of(USD, PLN, 4.5))
+        Parameters parameters = new Parameters([source: null])
+
+        when:
+        calculator.calculate(parameters)
+
+        then:
+        IllegalArgumentException error = thrown()
+        error.message.contains("source")
+    }
+
+    def "currency conversion accepts a convertible Money source"() {
+        given:
+        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
+                ExchangeRate.of(USD, PLN, 4.5))
+
+        expect:
+        calculator.calculate(Parameters.of("source", "USD 2.00")) == Money.of(9, "PLN")
+    }
+
+    def "currency conversion rejects a source with the wrong type"() {
+        given:
+        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
+                ExchangeRate.of(USD, PLN, 4.5))
+
+        when:
+        calculator.calculate(Parameters.of("source", 2))
+
+        then:
+        IllegalArgumentException error = thrown()
+        error.message.contains("source")
+        error.message.contains("Money")
+    }
 
     def "same-currency Valuation uses a stable implicit Exchange Rate version of one"() {
         given:
