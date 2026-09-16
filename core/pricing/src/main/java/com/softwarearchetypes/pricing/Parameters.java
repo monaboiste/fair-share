@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -19,7 +20,7 @@ public record Parameters(Map<String, Object> values) {
     }
 
     public Parameters(Map<String, Object> values) {
-        this.values = new HashMap<>(values);
+        this.values = Collections.unmodifiableMap(new HashMap<>(values));
     }
 
     public static Parameters empty() {
@@ -27,114 +28,139 @@ public record Parameters(Map<String, Object> values) {
     }
 
     public static Parameters of(String key, Object value) {
-        return new Parameters(Map.of(key, value));
+        var m = new HashMap<String, Object>();
+        m.put(key, value);
+        return new Parameters(m);
     }
 
-    public static Parameters of(String k1, Object v1, String k2, Object v2) {
-        return new Parameters(Map.of(k1, v1, k2, v2));
+    public static Parameters of(String key1, Object value1, String key2, Object value2) {
+        return of(key1, value1).with(key2, value2);
     }
 
-    public static Parameters of(String k1, Object v1, String k2, Object v2, String k3, Object v3) {
-        return new Parameters(Map.of(k1, v1, k2, v2, k3, v3));
-    }
-
-    public static Parameters of(
-            String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4) {
-        return new Parameters(Map.of(k1, v1, k2, v2, k3, v3, k4, v4));
+    public static Parameters of(String key1, Object value1, String key2, Object value2, String key3, Object value3) {
+        return of(key1, value1, key2, value2).with(key3, value3);
     }
 
     public static Parameters of(
-            String k1,
-            Object v1,
-            String k2,
-            Object v2,
-            String k3,
-            Object v3,
-            String k4,
-            Object v4,
-            String k5,
-            Object v5) {
-        return new Parameters(Map.of(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5));
+            String key1,
+            Object value1,
+            String key2,
+            Object value2,
+            String key3,
+            Object value3,
+            String key4,
+            Object value4) {
+        return of(key1, value1, key2, value2, key3, value3).with(key4, value4);
     }
 
-    public BigDecimal getBigDecimal(String key) {
-        Object value = values.get(key);
-        if (value instanceof BigDecimal bigDecimal) {
-            return bigDecimal;
-        }
-        if (value instanceof Number) {
-            return new BigDecimal(value.toString());
-        }
-        if (value instanceof String text) {
-            return new BigDecimal(text);
-        }
-        throw new IllegalArgumentException("Cannot convert " + value + " to BigDecimal");
+    public static Parameters of(
+            String key1,
+            Object value1,
+            String key2,
+            Object value2,
+            String key3,
+            Object value3,
+            String key4,
+            Object value4,
+            String key5,
+            Object value5) {
+        return of(key1, value1, key2, value2, key3, value3, key4, value4).with(key5, value5);
     }
 
-    public Money getMoney(String key) {
-        Object value = values.get(key);
-        if (value instanceof Money money) {
-            return money;
+    public static <T> Parameters of(ParameterKey<T> key, T value) {
+        return of(key.name(), value);
+    }
+
+    public <T> Parameters with(ParameterKey<T> key, T value) {
+        return with(key.name(), value);
+    }
+
+    public Parameters with(String key, Object value) {
+        var m = new HashMap<>(values);
+        m.put(key, value);
+        return new Parameters(m);
+    }
+
+    public <T> T get(ParameterKey<T> key) {
+        Object value = values.get(key.name());
+        if (value == null) {
+            throw new IllegalArgumentException("Required parameter '%s' is absent".formatted(key.name()));
         }
-        if (value instanceof String text) {
-            StringTokenizer parts = new StringTokenizer(text);
+        try {
+            return key.type().cast(convert(key, value));
+        } catch (RuntimeException cause) {
+            throw new IllegalArgumentException(
+                    "Parameter '%s' must be convertible to %s".formatted(key.name(), key.expectedType()), cause);
+        }
+    }
+
+    public <T> T get(String name, Class<T> type) {
+        return get(new ParameterKey<>(name, type));
+    }
+
+    private Object convert(ParameterKey<?> key, Object value) {
+        if (key.type() == Money.class && value instanceof String text) {
+            var parts = new StringTokenizer(text);
             if (parts.countTokens() != 2) {
                 throw new IllegalArgumentException(
                         "Invalid Money format: " + value + ". Expected format: 'PLN 1999.00'");
             }
             String currency = parts.nextToken().toUpperCase(Locale.ROOT);
-            BigDecimal amount = new BigDecimal(parts.nextToken());
-            return Money.of(amount, currency);
+            return Money.of(new BigDecimal(parts.nextToken()), currency);
         }
-        throw new IllegalArgumentException("Cannot convert " + value + " to Money");
+        if (key.type() == BigDecimal.class && value instanceof Number) {
+            return new BigDecimal(value.toString());
+        }
+        if (key.type() == BigDecimal.class && value instanceof String text) {
+            return new BigDecimal(text);
+        }
+        if (key.type() == LocalDate.class && value instanceof String text) {
+            return LocalDate.parse(text);
+        }
+        if (key.type() == Instant.class && value instanceof String text) {
+            return Instant.parse(text);
+        }
+        if (key.type() == LocalDateTime.class && value instanceof String text) {
+            return LocalDateTime.parse(text);
+        }
+        if (!key.type().isInstance(value)) {
+            if (key.type() == Money.class
+                    || key.type() == BigDecimal.class
+                    || key.type() == LocalDate.class
+                    || key.type() == Instant.class
+                    || key.type() == LocalDateTime.class) {
+                throw new IllegalArgumentException("Cannot convert " + value + " to " + key.expectedType());
+            }
+            throw new ClassCastException(value.getClass().getName() + " cannot be cast to "
+                    + key.type().getName());
+        }
+        return value;
+    }
+
+    public BigDecimal getBigDecimal(String key) {
+        return get(key, BigDecimal.class);
+    }
+
+    public Money getMoney(String key) {
+        return get(key, Money.class);
     }
 
     LocalDate getLocalDate(String key) {
-        Object value = values.get(key);
-        if (value instanceof LocalDate date) {
-            return date;
-        }
-        if (value instanceof String text) {
-            return LocalDate.parse(text);
-        }
-        throw new IllegalArgumentException("Cannot convert " + value + " to LocalDate");
+        return get(key, LocalDate.class);
     }
 
     Instant getInstant(String key) {
-        Object value = values.get(key);
-        if (value instanceof Instant instant) {
-            return instant;
-        }
-        if (value instanceof String text) {
-            return Instant.parse(text);
-        }
-        throw new IllegalArgumentException("Cannot convert " + value + " to Instant");
+        return get(key, Instant.class);
     }
 
     LocalDateTime getTime(String key) {
-        Object value = values.get(key);
-        if (value instanceof LocalDateTime date) {
-            return date;
-        }
-        if (value instanceof String text) {
-            return LocalDateTime.parse(text);
-        }
-        throw new IllegalArgumentException("Cannot convert " + value + " to LocalDateTime");
+        return get(key, LocalDateTime.class);
     }
 
-    /** Returns the calculation timestamp, if present. */
     public Optional<LocalDateTime> timestamp() {
-        if (contains("timestamp")) {
-            return Optional.of(getTime("timestamp"));
-        }
-        return Optional.empty();
+        return contains("timestamp") ? Optional.of(getTime("timestamp")) : Optional.empty();
     }
 
-    /**
-     * Returns the required calculation timestamp.
-     *
-     * @throws IllegalArgumentException when the timestamp is absent.
-     */
     public LocalDateTime requireTimestamp() {
         return timestamp()
                 .orElseThrow(() ->
@@ -155,41 +181,24 @@ public record Parameters(Map<String, Object> values) {
 
     Object require(String key) {
         Object value = values.get(key);
-        if (value == null) {
-            throw new IllegalArgumentException("Required parameter '%s' is absent".formatted(key));
-        }
+        if (value == null) throw new IllegalArgumentException("Required parameter '%s' is absent".formatted(key));
         return value;
     }
 
-    @Override
-    public String toString() {
-        return "Parameters" + values;
+    void validate(ParameterDefinition definition) {
+        validateKey((ParameterKey<?>) definition);
     }
 
-    @Override
-    public boolean equals(@Nullable Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof Parameters(var thatValues))) {
-            return false;
-        }
-        return values.equals(thatValues);
+    private <T> void validateKey(ParameterKey<T> key) {
+        get(key);
     }
 
     public Set<String> keys() {
         return values.keySet();
     }
 
-    public void setValues(Map<String, Object> values) {
-        this.values.clear();
-        this.values.putAll(values);
-    }
-
-    /** Returns a copy containing the given parameter. */
-    public Parameters with(String key, Object value) {
-        Map<String, Object> newValues = new HashMap<>(this.values);
-        newValues.put(key, value);
-        return new Parameters(newValues);
+    @Override
+    public String toString() {
+        return "Parameters" + values;
     }
 }

@@ -7,7 +7,7 @@ class CalculatorValidationSpec extends Specification {
 
     def "custom calculator logic is not entered when a declared input is invalid"() {
         given:
-        def calculator = new TestCalculator(CalculatorInput.bigDecimal("quantity"))
+        def calculator = new TestCalculator(new ParameterKey<>("quantity", BigDecimal.class))
 
         when:
         calculator.calculate(value == null ? new Parameters([quantity: null]) : Parameters.of("quantity", value))
@@ -31,7 +31,7 @@ class CalculatorValidationSpec extends Specification {
 
     def "simulation uses the same validation path"() {
         given:
-        def calculator = new TestCalculator(CalculatorInput.bigDecimal("quantity"))
+        def calculator = new TestCalculator(new ParameterKey<>("quantity", BigDecimal.class))
 
         when:
         calculator.simulate([Parameters.of("quantity", "invalid")])
@@ -43,8 +43,8 @@ class CalculatorValidationSpec extends Specification {
 
     def "compatible duplicate descriptors are accepted"() {
         given:
-        def input = CalculatorInput.bigDecimal("quantity")
-        def calculator = new TestCalculator(input, CalculatorInput.bigDecimal("quantity"))
+        def input = new ParameterKey<>("quantity", BigDecimal.class)
+        def calculator = new TestCalculator(input, new ParameterKey<>("quantity", BigDecimal.class))
 
         expect:
         calculator.calculate(Parameters.of("quantity", 2)) == Money.of(1, "PLN")
@@ -54,7 +54,7 @@ class CalculatorValidationSpec extends Specification {
     def "incompatible duplicate descriptors fail before calculator logic"() {
         given:
         def calculator = new TestCalculator(
-                CalculatorInput.bigDecimal("quantity"), CalculatorInput.money("quantity"))
+                new ParameterKey<>("quantity", BigDecimal.class), new ParameterKey<>("quantity", Money.class))
 
         when:
         calculator.calculate(Parameters.of("quantity", 2))
@@ -66,15 +66,15 @@ class CalculatorValidationSpec extends Specification {
     }
 
     private static class TestCalculator implements Calculator {
-        private final Set<CalculatorInput<?>> declaredInputs
+        private final Set<ParameterDefinition> declaredInputs
         int calculations
 
-        TestCalculator(CalculatorInput<?>... inputs) {
+        TestCalculator(ParameterDefinition... inputs) {
             declaredInputs = inputs as Set
         }
 
         @Override
-        Set<CalculatorInput<?>> inputs() {
+        Set<ParameterDefinition> inputs() {
             declaredInputs
         }
 

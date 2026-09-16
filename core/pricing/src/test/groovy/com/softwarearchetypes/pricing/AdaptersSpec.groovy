@@ -189,7 +189,7 @@ class AdaptersSpec extends Specification {
 
     def "adapter collapses a compatible quantity descriptor from its source calculator"() {
         given:
-        def source = new TrackingCalculator(Interpretation.UNIT, CalculatorInput.bigDecimal("quantity"))
+        def source = new TrackingCalculator(Interpretation.UNIT, new ParameterKey<>("quantity", BigDecimal.class))
         def adapter = UnitToTotalAdapter.wrap("adapter", source)
 
         expect:
@@ -203,7 +203,7 @@ class AdaptersSpec extends Specification {
 
     def "adapter rejects an incompatible quantity descriptor before evaluating its source"() {
         given:
-        def source = new TrackingCalculator(Interpretation.UNIT, CalculatorInput.money("quantity"))
+        def source = new TrackingCalculator(Interpretation.UNIT, new ParameterKey<>("quantity", Money.class))
         def adapter = UnitToTotalAdapter.wrap("adapter", source)
 
         when:
@@ -236,17 +236,17 @@ class AdaptersSpec extends Specification {
 
     private static class TrackingCalculator implements Calculator {
         private final Interpretation interpretation
-        private final CalculatorInput<?> quantity
+        private final ParameterDefinition quantity
         final List<Parameters> received = []
 
-        TrackingCalculator(Interpretation interpretation, CalculatorInput<?> quantity = CalculatorInput.bigDecimal("quantity")) {
+        TrackingCalculator(Interpretation interpretation, ParameterDefinition quantity = new ParameterKey<>("quantity", BigDecimal.class)) {
             this.interpretation = interpretation
             this.quantity = quantity
         }
 
         @Override
-        Set<CalculatorInput<?>> inputs() {
-            [quantity, CalculatorInput.money("baseAmount"), CalculatorInput.instanceOf("timestamp", LocalDateTime)] as Set
+        Set<ParameterDefinition> inputs() {
+            [quantity, new ParameterKey<>("baseAmount", Money.class), new ParameterKey<>("timestamp", LocalDateTime.class)] as Set
         }
 
         @Override

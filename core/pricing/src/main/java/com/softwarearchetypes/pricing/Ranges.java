@@ -1,5 +1,7 @@
 package com.softwarearchetypes.pricing;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -78,15 +80,15 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
      *
      * @return the selector descriptor
      */
-    CalculatorInput<?> selectorInput() {
+    ParameterDefinition selectorInput() {
         CalculatorRange range = ranges.getFirst();
         if (range instanceof NumericRange) {
-            return CalculatorInput.bigDecimal(rangeSelector);
+            return new ParameterKey<>(rangeSelector, BigDecimal.class);
         }
         if (range instanceof DateRange) {
-            return CalculatorInput.localDate(rangeSelector);
+            return new ParameterKey<>(rangeSelector, LocalDate.class);
         }
-        return CalculatorInput.instanceOf(rangeSelector, java.time.LocalTime.class);
+        return new ParameterKey<>(rangeSelector, java.time.LocalTime.class);
     }
 
     /**
@@ -100,7 +102,7 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
             throw new IllegalArgumentException(
                     "Parameter '%s' is required but not found in parameters".formatted(rangeSelector));
         }
-        Object value = selectorInput().read(parameters);
+        Object value = parameters.get((ParameterKey<?>) selectorInput());
 
         return ranges.stream().filter(range -> range.contains(value)).findFirst();
     }

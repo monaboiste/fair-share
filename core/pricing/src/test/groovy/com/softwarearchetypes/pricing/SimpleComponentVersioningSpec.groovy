@@ -190,9 +190,9 @@ class SimpleComponentVersioningSpec extends Specification {
     def "only the selected version's mapped calculator contract is validated"() {
         given:
         Calculator legacyCalculator = calculatorWithInput(
-                CalculatorInput.instanceOf("amount", String), Money.of(10, "PLN"))
+                new ParameterKey<>("amount", String), Money.of(10, "PLN"))
         Calculator currentCalculator = calculatorWithInput(
-                CalculatorInput.bigDecimal("quantity"), Money.of(20, "PLN"))
+                new ParameterKey<>("quantity", BigDecimal.class), Money.of(20, "PLN"))
         SimpleComponent component = SimpleComponent.withInitialVersion(
                 "Versioned price",
                 legacyCalculator,
@@ -216,7 +216,7 @@ class SimpleComponentVersioningSpec extends Specification {
 
     def "applicability is checked before selected calculator validation"() {
         given:
-        Calculator calculator = calculatorWithInput(CalculatorInput.bigDecimal("quantity"), Money.of(10, "PLN"))
+        Calculator calculator = calculatorWithInput(new ParameterKey<>("quantity", BigDecimal.class), Money.of(10, "PLN"))
         SimpleComponent component = SimpleComponent.withInitialVersion(
                 "conditional price",
                 calculator,
@@ -232,7 +232,7 @@ class SimpleComponentVersioningSpec extends Specification {
         result == Money.zero("PLN")
     }
 
-    private static Calculator calculatorWithInput(CalculatorInput<?> input, Money result) {
+    private static Calculator calculatorWithInput(ParameterDefinition input, Money result) {
         [
                 inputs: { Set.of(input) },
                 calculateWithValidInputs: { Parameters ignored -> result },
