@@ -94,8 +94,8 @@ class CalculationSimulationSpec extends Specification {
         Map<Parameters, PricingResult> results = calculator.simulate(points)
 
         and:
-        Money at25Percent = results.get(Parameters.of("time", startTime.plus(3, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
-        Money at75Percent = results.get(Parameters.of("time", startTime.plus(10, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
+        PricingResult at25Percent = results.get(Parameters.of("time", startTime.plus(3, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
+        PricingResult at75Percent = results.get(Parameters.of("time", startTime.plus(10, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
 
         expect:
         results != null
@@ -167,11 +167,11 @@ class CalculationSimulationSpec extends Specification {
         given:
 
 
-        Calculator lowTier = Calculators.fixed("low-tier", Money.of(20, "PLN")))
+        Calculator lowTier = Calculators.fixed("low-tier", Money.of(20, "PLN"))
 
-        Calculator mediumTier = Calculators.fixed("medium-tier", Money.of(10, "PLN")))
+        Calculator mediumTier = Calculators.fixed("medium-tier", Money.of(10, "PLN"))
 
-        Calculator highTier = Calculators.fixed("high-tier", Money.of(0, "PLN")))
+        Calculator highTier = Calculators.fixed("high-tier", Money.of(0, "PLN"))
 
         List<CalculatorRange> ranges = List.of(
                 CalculatorRange.numeric(BigDecimal.ZERO, new BigDecimal("1000"), lowTier.getId()),

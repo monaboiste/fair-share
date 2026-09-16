@@ -33,8 +33,8 @@ class CompositeComponentApplicabilitySpec extends Specification {
         composite(name, deps, constraint, Validity.always(), children)
     }
 
-    private void composite(String name, Map deps = Map.of(), ApplicabilityConstraint constraint = ApplicabilityConstraint.alwaysTrue(), Validity validity = Validity.always(), String... children) {
-        components[name] = CompositeComponent.withInitialVersion(name, children.collect { components[it] }, deps, constraint, validity, java.time.Clock.systemUTC())
+    private void composite(String name, Map deps, ApplicabilityConstraint constraint, Validity validity, String... children) {
+        components[name] = Component.composite(name, deps, constraint, validity, *children.collect { components[it] })
     }
 
     private Money calculate(String name, Parameters params) { components[name].calculate(params).money() }
@@ -191,7 +191,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 ApplicabilityConstraint.equalsTo("tier", "enterprise"),
                 "surcharge")
 
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterValue>> of(
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "surcharge-bundle", Map.of("baseAmount", ParameterExpression.valueOf("base-service")))
         composite("service-cost", dependencies,
                 "base-service", "surcharge-bundle")

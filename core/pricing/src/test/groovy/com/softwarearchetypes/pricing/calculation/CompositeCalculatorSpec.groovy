@@ -9,7 +9,7 @@ class CompositeCalculatorSpec extends Specification {
     Calculator discrete = Calculators.discretePoints("discrete-calc", Map.of(new BigDecimal("50"), Money.of(500, "PLN"), new BigDecimal("75"), Money.of(700, "PLN")), Interpretation.TOTAL)
 
     private Calculator composite(String name, CalculatorRange... ranges) {
-        new CompositeFunctionCalculator(name, Ranges.of(rangeSelector, ranges.toArray(new CalculatorRange[0])), [fixed, step, discrete])
+        new CompositeFunctionCalculator(name, new Ranges("quantity", ranges.toList()), [fixed, step, discrete])
     }
 
     def "delegates to each matching range calculator"() {

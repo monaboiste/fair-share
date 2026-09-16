@@ -127,6 +127,6 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
     }
 
     private CompositeFunctionCalculator addCompositeCalculator(String name, String rangeSelector, CalculatorRange... ranges) {
-        return new CompositeFunctionCalculator(name, Ranges.of(rangeSelector, ranges.toArray(new CalculatorRange[0])), calculators.values())
+        return new CompositeFunctionCalculator(name, new Ranges(rangeSelector, ranges.toList()), calculators.values())
     }
 }

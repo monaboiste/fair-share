@@ -1,5 +1,7 @@
 package com.softwarearchetypes.pricing.component
 
+import com.softwarearchetypes.pricing.calculation.Calculator
+
 import com.softwarearchetypes.pricing.calculation.CalculatorRange
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
@@ -44,12 +46,12 @@ class LogisticsShipmentScenarioSpec extends Specification {
         def cod = Component.simple("cod-component", Calculators.percentage("cod-rate", new BigDecimal("2")), Map.of("cod-value", "baseAmount"))
         def insurance = Component.simple("insurance-component", Calculators.percentage("insurance-rate", new BigDecimal("0.15")), Map.of("insured-value", "baseAmount"))
         def vat = Component.simple("vat-component", Calculators.percentage("vat-rate", new BigDecimal("23")))
-        def netto = Component.composite("netto", Map.of(
+        def netto = Component.composite("netto", [
                 "fuel-component": Map.of("baseAmount", ParameterExpression.valueOf("base-component")),
                 "adr-component": Map.of("baseAmount", ParameterExpression.valueOf("base-component")),
                 "oversized-component": Map.of("baseAmount", ParameterExpression.valueOf("base-component")),
-                "time-window-component": Map.of("baseAmount", ParameterExpression.valueOf("base-component"))), base, fuel, adr, oversized, timeWindow, cod, insurance)
-        totalCost = Component.composite("total-cost", Map.of("vat-component": Map.of("baseAmount", ParameterExpression.valueOf("netto"))), netto, vat)
+                "time-window-component": Map.of("baseAmount", ParameterExpression.valueOf("base-component"))], base, fuel, adr, oversized, timeWindow, cod, insurance)
+        totalCost = Component.composite("total-cost", Map.of("vat-component", Map.of("baseAmount", ParameterExpression.valueOf("netto"))), netto, vat)
     }
 
     def "standard 3 kg shipment includes fuel surcharge and VAT"() {
@@ -63,7 +65,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
-        Money result = totalCost.calculate( params)
+        Money result = totalCost.calculate( params).money()
 
         expect:
         result == Money.of(new BigDecimal("30.47"), "PLN")
@@ -96,7 +98,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
-        Money result = totalCost.calculate( params)
+        Money result = totalCost.calculate( params).money()
 
         expect:
         result == Money.of(new BigDecimal("161.55"), "PLN")
@@ -129,7 +131,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
-        Money result = totalCost.calculate( params)
+        Money result = totalCost.calculate( params).money()
 
         expect:
         result == Money.of(new BigDecimal("473.46"), "PLN")
@@ -169,7 +171,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 .with("timestamp", LocalDateTime.of(2025, 4, 15, 10, 0))
 
         expect:
-        totalCost.calculate( jan) == Money.of(new BigDecimal("30.47"), "PLN")
-        totalCost.calculate( apr) == Money.of(new BigDecimal("30.61"), "PLN")
+        totalCost.calculate( jan).money() == Money.of(new BigDecimal("30.47"), "PLN")
+        totalCost.calculate( apr).money() == Money.of(new BigDecimal("30.61"), "PLN")
     }
 }

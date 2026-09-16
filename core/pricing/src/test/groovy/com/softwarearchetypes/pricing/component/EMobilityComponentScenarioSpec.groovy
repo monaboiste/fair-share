@@ -1,6 +1,7 @@
 package com.softwarearchetypes.pricing.component
 
-import com.softwarearchetypes.pricing.StepBoundary
+import com.softwarearchetypes.pricing.calculation.Calculator
+
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.Parameters
@@ -58,7 +59,7 @@ class EMobilityComponentScenarioSpec extends Specification {
                 "time", BigDecimal.valueOf(40)
         )
 
-        Money result = total_session_cost.calculate( sessionParams)
+        Money result = total_session_cost.calculate( sessionParams).money()
 
         Money expectedTotal = Money.of(new BigDecimal("26.57"), "PLN")
 

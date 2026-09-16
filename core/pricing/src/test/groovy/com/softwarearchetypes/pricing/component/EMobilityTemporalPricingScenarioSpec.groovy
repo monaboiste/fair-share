@@ -1,5 +1,7 @@
 package com.softwarearchetypes.pricing.component
 
+import com.softwarearchetypes.pricing.calculation.Calculator
+
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.Parameters
@@ -21,7 +23,9 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     private Component energyCharge
     private Component parkingFee
     private Component totalPrice
+    private Component vat
     private Calculator energy250
+    private Calculator parkingzero
 
     def setup() {
         registerCalculators()
@@ -29,6 +33,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     }
 
     private void registerCalculators() {
+        parkingzero = Calculators.fixed("parking-zero", Money.zero("PLN"))
         energy250 = Calculators.fixed("energy-2.50", Money.of(2.50, "PLN"), Interpretation.UNIT)
 
         energy200 = Calculators.fixed("energy-2.00", Money.of(2.00, "PLN"), Interpretation.UNIT)
@@ -42,9 +47,10 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
 
     private void createInitialComponents() {
         energyCharge = Component.simple("EnergyCharge", energy250, Map.of("kwh", "quantity"), Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0)))
-        def vat = Component.simple("VAT", vat23, Map.of("baseAmount", "baseAmount"), Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0)))
-        parkingFee = Component.simple("ParkingFee", parking5, Map.of(), Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)))
-        totalPrice = Component.composite("TotalPrice", Map.of("VAT": Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
+        vat = Component.simple("VAT", vat23, Map.of("baseAmount", "baseAmount"), Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0)))
+        parkingFee = Component.simple("ParkingFee", parkingzero)
+        parkingFee = parkingFee.updateWith(new SimpleComponentVersion(parking5, Map.of(), Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)), LocalDateTime.now()))
+        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
     }
 
     def "price in January uses the base rate of 2.50 PLN per kWh"() {
@@ -67,6 +73,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     def "Valentine promotion in February reduces the energy rate to 2.00 PLN per kWh"() {
         given: "a temporary discount valid only in February"
         energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy200, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 2, 1, 0, 0), LocalDateTime.of(2024, 3, 1, 0, 0)), LocalDateTime.now()))
+        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
 
         and:
         Parameters feb14 = Parameters.of(
@@ -84,6 +91,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     def "price in March reverts to the base rate after the promotion ends"() {
         given: "the February promotion registered alongside the base rate"
         energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy200, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 2, 1, 0, 0), LocalDateTime.of(2024, 3, 1, 0, 0)), LocalDateTime.now()))
+        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
 
         and:
         Parameters mar10 = Parameters.of(
@@ -102,7 +110,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         given: "a new composite version that includes ParkingFee from May onwards"
         Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
-        totalPrice = Component.composite("TotalPrice", dependencies, EnergyCharge, ParkingFee, VAT)
+        totalPrice = Component.composite("TotalPrice", dependencies, energyCharge, parkingFee, vat)
 
         and:
         Parameters may20 = Parameters.of(
@@ -124,8 +132,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         given: "composite updated for May, and energy raised to 2.80 PLN for July-August"
         Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
-        totalPrice = Component.composite("TotalPrice", dependencies, EnergyCharge, ParkingFee, VAT)
-        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now())))
+        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now()))
+        totalPrice = Component.composite("TotalPrice", dependencies, energyCharge, parkingFee, vat)
 
         and:
         Parameters jul15 = Parameters.of(
@@ -144,8 +152,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         given: "composite updated for May, summer increase registered for July-August"
         Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
-        totalPrice = Component.composite("TotalPrice", dependencies, EnergyCharge, ParkingFee, VAT)
-        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now())))
+        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now()))
+        totalPrice = Component.composite("TotalPrice", dependencies, energyCharge, parkingFee, vat)
 
         and:
         Parameters sep15 = Parameters.of(
@@ -165,9 +173,9 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         given: "full year pricing with composite, summer rate, and winter parking fee"
         Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
-        totalPrice = Component.composite("TotalPrice", dependencies, EnergyCharge, ParkingFee, VAT)
-        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now())))
+        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now()))
         parkingFee = parkingFee.updateWith(new SimpleComponentVersion(parking8, Map.of(), Validity.from(LocalDateTime.of(2024, 11, 1, 0, 0)), LocalDateTime.now()))
+        totalPrice = Component.composite("TotalPrice", dependencies, energyCharge, parkingFee, vat)
 
         and:
         Parameters dec05 = Parameters.of(
@@ -221,16 +229,16 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         expect:
         dates.collect { date ->
             Parameters params = Parameters.of("timestamp", date, "kwh", BigDecimal.valueOf(20))
-            totalPrice.calculate( params)
+            totalPrice.calculate( params).money()
         } == expected
     }
 
     private void setupFullYearPricing() {
         energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy200, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 2, 1, 0, 0), LocalDateTime.of(2024, 3, 1, 0, 0)), LocalDateTime.now()))
-        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now())))
+        energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy280, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 7, 1, 0, 0), LocalDateTime.of(2024, 9, 1, 0, 0)), LocalDateTime.now()))
         parkingFee = parkingFee.updateWith(new SimpleComponentVersion(parking8, Map.of(), Validity.from(LocalDateTime.of(2024, 11, 1, 0, 0)), LocalDateTime.now()))
         Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
-        totalPrice = Component.composite("TotalPrice", dependencies, EnergyCharge, ParkingFee, VAT)
+        totalPrice = Component.composite("TotalPrice", dependencies, energyCharge, parkingFee, vat)
     }
 }

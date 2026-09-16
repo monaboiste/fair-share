@@ -1,11 +1,16 @@
 package com.softwarearchetypes.pricing.calculation
 
-import com.softwarearchetypes.pricing.calculation.Calculator
 import com.softwarearchetypes.pricing.calculation.CalculatorId
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.pricing.calculation.PricingResult
+import com.softwarearchetypes.pricing.component.MarginalToTotalAdapter
+import com.softwarearchetypes.pricing.component.MarginalToUnitAdapter
+import com.softwarearchetypes.pricing.component.TotalToMarginalAdapter
+import com.softwarearchetypes.pricing.component.TotalToUnitAdapter
+import com.softwarearchetypes.pricing.component.UnitToMarginalAdapter
+import com.softwarearchetypes.pricing.component.UnitToTotalAdapter
 import com.softwarearchetypes.quantity.money.Money
 import java.time.LocalDateTime
 import spock.lang.Specification

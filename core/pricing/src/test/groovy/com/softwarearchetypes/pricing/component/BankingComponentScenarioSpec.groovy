@@ -1,5 +1,7 @@
 package com.softwarearchetypes.pricing.component
 
+import com.softwarearchetypes.pricing.calculation.Calculator
+
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.quantity.money.Money
@@ -49,7 +51,7 @@ class BankingComponentScenarioSpec extends Specification {
                 "unit", ChronoUnit.YEARS
         )
 
-        Money result = total_loan_cost.calculate( loanParams)
+        Money result = total_loan_cost.calculate( loanParams).money()
 
         and:
         Money expectedBase = Money.of(BigDecimal.valueOf(6000), "PLN")
@@ -80,7 +82,7 @@ class BankingComponentScenarioSpec extends Specification {
 
         and:
         Parameters accountParams = Parameters.of("quantity", BigDecimal.valueOf(50))
-        Money result = total_account_fees.calculate( accountParams)
+        Money result = total_account_fees.calculate( accountParams).money()
 
         and:
         Money expected = Money.of(BigDecimal.valueOf(40), "PLN")
@@ -107,7 +109,7 @@ class BankingComponentScenarioSpec extends Specification {
                 "baseAmount", Money.of(BigDecimal.valueOf(1000000), "PLN")
         )
 
-        Money result = total_management_fees.calculate( portfolioParams)
+        Money result = total_management_fees.calculate( portfolioParams).money()
 
         and:
         Money expectedBase = Money.of(BigDecimal.valueOf(15000), "PLN")
@@ -141,7 +143,7 @@ class BankingComponentScenarioSpec extends Specification {
                 "unit", ChronoUnit.YEARS
         )
 
-        Money result = financing_costs.calculate( loanParams)
+        Money result = financing_costs.calculate( loanParams).money()
 
         and:
         Money expectedInterest = Money.of(BigDecimal.valueOf(11000), "PLN")

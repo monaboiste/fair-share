@@ -1,5 +1,7 @@
 package com.softwarearchetypes.pricing.component
 
+import com.softwarearchetypes.pricing.calculation.Calculator
+
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.quantity.money.Money
@@ -35,7 +37,7 @@ class TelcoComponentScenarioSpec extends Specification {
         def base_fee = Component.composite("base-fee", Map.of(), network_maintenance_component, commission_component)
 
         and:
-        Money result = base_fee.calculate( Parameters.empty())
+        Money result = base_fee.calculate( Parameters.empty()).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(45), "PLN")
@@ -58,7 +60,7 @@ class TelcoComponentScenarioSpec extends Specification {
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
-        Money result = monthly_bill.calculate( usageParams)
+        Money result = monthly_bill.calculate( usageParams).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(51), "PLN")
@@ -87,7 +89,7 @@ class TelcoComponentScenarioSpec extends Specification {
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(20))
-        Money result = monthly_bill.calculate( usageParams)
+        Money result = monthly_bill.calculate( usageParams).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(75), "PLN")
@@ -109,7 +111,7 @@ class TelcoComponentScenarioSpec extends Specification {
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
-        Money result = total_bill.calculate( usageParams)
+        Money result = total_bill.calculate( usageParams).money()
 
         and:
         Money expectedNet = Money.of(BigDecimal.valueOf(51), "PLN")
