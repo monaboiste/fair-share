@@ -1,4 +1,4 @@
-package com.softwarearchetypes.pricing.component
+package com.softwarearchetypes.pricing.calculation
 
 import com.softwarearchetypes.pricing.calculation.Calculator
 import com.softwarearchetypes.pricing.calculation.CalculatorId

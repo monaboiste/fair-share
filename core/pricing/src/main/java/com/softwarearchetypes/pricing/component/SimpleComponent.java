@@ -2,11 +2,9 @@ package com.softwarearchetypes.pricing.component;
 
 import com.softwarearchetypes.pricing.calculation.Calculator;
 import com.softwarearchetypes.pricing.calculation.Interpretation;
-import com.softwarearchetypes.pricing.calculation.MarginalPrice;
 import com.softwarearchetypes.pricing.calculation.Parameters;
 import com.softwarearchetypes.pricing.calculation.PricingResult;
 import com.softwarearchetypes.pricing.calculation.TotalPrice;
-import com.softwarearchetypes.pricing.calculation.UnitPrice;
 import com.softwarearchetypes.quantity.money.Money;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -15,8 +13,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
-/** Represents a semantic part of a price calculation. Components can depend on one another. */
 /**
  * A simple component with a time-versioned calculator configuration.
  *
@@ -103,24 +101,23 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
     }
 
     @Override
-    public PricingResult calculate(Parameters parameters, Interpretation targetInterpretation) {
+    public PricingResult calculate(Parameters parameters) {
         LocalDateTime time = ComponentVersion.calculationTime(parameters);
         SimpleComponentVersion version = versionAt(time);
 
         if (!version.isApplicableFor(parameters)) {
-            return zeroResult(targetInterpretation);
+            return new TotalPrice(Money.zero("PLN"));
         }
 
         Parameters transformedParams = transformParameters(parameters, version.parameterMappings());
         Calculator adaptedCalculator =
-                InterpretationAdapters.adapt(version.calculator(), targetInterpretation, transformedParams);
+                InterpretationAdapters.adapt(version.calculator(), Interpretation.TOTAL, transformedParams);
         return adaptedCalculator.calculate(transformedParams);
     }
 
     @Override
-    public ComponentBreakdown calculateBreakdown(Parameters parameters, Interpretation targetInterpretation) {
-        PricingResult result = this.calculate(parameters, targetInterpretation);
-        return new ComponentBreakdown(name, result, List.of());
+    public ComponentBreakdown calculateBreakdown(Parameters parameters) {
+        return new ComponentBreakdown(name, calculate(parameters));
     }
 
     /**
@@ -138,15 +135,6 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
                         "No version of component '%s' (%s) valid at %s".formatted(name, id, time)));
     }
 
-    private PricingResult zeroResult(Interpretation interpretation) {
-        Money zero = Money.zero("PLN");
-        return switch (interpretation) {
-            case TOTAL -> new TotalPrice(zero);
-            case UNIT -> new UnitPrice(zero);
-            case MARGINAL -> new MarginalPrice(zero);
-        };
-    }
-
     /** Transform parameters from component parameter names to calculator parameter names. */
     private Parameters transformParameters(Parameters original, Map<String, String> parameterMappings) {
         if (parameterMappings.isEmpty()) {
@@ -160,7 +148,8 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
             String calculatorParam = entry.getValue();
 
             if (original.contains(componentParam)) {
-                transformed = transformed.with(calculatorParam, original.get(componentParam));
+                @Nullable Object value = original.get(componentParam);
+                transformed = transformed.with(calculatorParam, value);
             }
         }
 
@@ -173,9 +162,3 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
         return transformed;
     }
 }
-
-/**
- * A composite component with a time-versioned child composition.
- *
- * <p>The composition can change over time by adding, removing, or replacing children.
- */

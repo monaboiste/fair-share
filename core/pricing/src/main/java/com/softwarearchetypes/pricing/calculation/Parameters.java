@@ -14,12 +14,12 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import org.jspecify.annotations.Nullable;
 
-public record Parameters(Map<String, Object> values) {
+public record Parameters(Map<String, @Nullable Object> values) {
     public Parameters() {
         this(new HashMap<>());
     }
 
-    public Parameters(Map<String, Object> values) {
+    public Parameters(Map<String, @Nullable Object> values) {
         this.values = Collections.unmodifiableMap(new HashMap<>(values));
     }
 
@@ -28,7 +28,7 @@ public record Parameters(Map<String, Object> values) {
     }
 
     public static Parameters of(String key, Object value) {
-        var m = new HashMap<String, Object>();
+        var m = new HashMap<String, @Nullable Object>();
         m.put(key, value);
         return new Parameters(m);
     }
@@ -75,8 +75,8 @@ public record Parameters(Map<String, Object> values) {
         return with(key.name(), value);
     }
 
-    public Parameters with(String key, Object value) {
-        var m = new HashMap<>(values);
+    public Parameters with(String key, @Nullable Object value) {
+        Map<String, @Nullable Object> m = new HashMap<>(values);
         m.put(key, value);
         return new Parameters(m);
     }

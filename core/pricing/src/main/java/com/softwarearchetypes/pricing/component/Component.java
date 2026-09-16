@@ -1,7 +1,6 @@
 package com.softwarearchetypes.pricing.component;
 
 import com.softwarearchetypes.pricing.calculation.Calculator;
-import com.softwarearchetypes.pricing.calculation.Interpretation;
 import com.softwarearchetypes.pricing.calculation.Parameters;
 import com.softwarearchetypes.pricing.calculation.PricingResult;
 import java.time.Clock;
@@ -117,43 +116,13 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
     String name();
 
     /**
-     * Calculates this component's contribution to the total price. Delegates to calculateBreakdown().total().
+     * Calculates this component's contribution to the total price. Delegates to calculateBreakdown().result().
      *
      * @param parameters input parameters for calculation
      * @return calculated money amount for this component
      */
-    default PricingResult calculate(Parameters parameters) {
-        return calculateBreakdown(parameters).result();
-    }
-
-    /**
-     * Calculates with automatic conversion to target interpretation. For SimpleComponent: wraps calculator with the
-     * appropriate adapter if needed. For CompositeComponent: delegates to children with target interpretation.
-     *
-     * @param parameters input parameters for calculation
-     * @param targetInterpretation desired price interpretation
-     * @return calculated money amount in target interpretation
-     */
-    PricingResult calculate(Parameters parameters, Interpretation targetInterpretation);
+    PricingResult calculate(Parameters parameters);
 
     /** Calculate and return a breakdown showing individual component contributions. */
-    default ComponentBreakdown calculateBreakdown(Parameters parameters) {
-        return calculateBreakdown(parameters, Interpretation.TOTAL);
-    }
-
-    /**
-     * Calculates breakdown with automatic conversion to target interpretation.
-     *
-     * @param parameters input parameters for calculation
-     * @param targetInterpretation desired price interpretation
-     * @return breakdown with values in target interpretation
-     */
-    ComponentBreakdown calculateBreakdown(Parameters parameters, Interpretation targetInterpretation);
+    ComponentBreakdown calculateBreakdown(Parameters parameters);
 }
-
-/**
- * A simple component with a time-versioned calculator configuration.
- *
- * <p>The version valid at the calculation timestamp is selected. If versions overlap, the one with the latest
- * {@code validity.from} takes precedence.
- */

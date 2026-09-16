@@ -1,6 +1,5 @@
 package com.softwarearchetypes.pricing.component;
 
-import com.softwarearchetypes.pricing.calculation.Interpretation;
 import com.softwarearchetypes.pricing.calculation.Parameters;
 import com.softwarearchetypes.pricing.calculation.PricingResult;
 import com.softwarearchetypes.pricing.calculation.TotalPrice;
@@ -14,7 +13,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /** Represents a semantic part of a price calculation. Components can depend on one another. */
@@ -135,69 +133,36 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     }
 
     @Override
-    public PricingResult calculate(Parameters parameters, Interpretation targetInterpretation) {
-        LocalDateTime time = ComponentVersion.calculationTime(parameters);
-        CompositeComponentVersion version = versionAt(time);
-
-        if (!version.isApplicableFor(parameters)) {
-            return new TotalPrice(Money.zero("PLN"));
-        }
-
-        if (version.children().isEmpty()) {
-            throw new IllegalStateException("Composite component %s has no children".formatted(name));
-        }
-
-        Map<Component, @Nullable PricingResult> componentResults = new HashMap<>();
-        for (Component child : version.children()) {
-            componentResults.put(child, null);
-        }
-
-        Money total = null;
-        for (Component child : version.children()) {
-            Parameters enrichedParams = enrichParameters(child, parameters, componentResults, version.dependencies());
-
-            PricingResult childResult = child.calculate(enrichedParams, targetInterpretation);
-
-            componentResults.put(child, childResult);
-            total = (total == null) ? childResult.money() : total.add(childResult.money());
-        }
-
-        return new TotalPrice(Objects.requireNonNull(total));
+    public PricingResult calculate(Parameters parameters) {
+        return calculateBreakdown(parameters).result();
     }
 
     @Override
-    public ComponentBreakdown calculateBreakdown(Parameters parameters, Interpretation targetInterpretation) {
+    public ComponentBreakdown calculateBreakdown(Parameters parameters) {
         LocalDateTime time = ComponentVersion.calculationTime(parameters);
         CompositeComponentVersion version = versionAt(time);
 
         if (!version.isApplicableFor(parameters)) {
             return new ComponentBreakdown(name, new TotalPrice(Money.zero("PLN")), List.of());
         }
-
         if (version.children().isEmpty()) {
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
         Map<Component, @Nullable PricingResult> componentResults = new HashMap<>();
-        for (Component child : version.children()) {
-            componentResults.put(child, null);
-        }
-
+        version.children().forEach(child -> componentResults.put(child, null));
         List<ComponentBreakdown> childBreakdowns = new ArrayList<>();
-
-        Money total = null;
         for (Component child : version.children()) {
             Parameters enrichedParams = enrichParameters(child, parameters, componentResults, version.dependencies());
-
-            ComponentBreakdown childBreakdown = child.calculateBreakdown(enrichedParams, targetInterpretation);
-
+            ComponentBreakdown childBreakdown = child.calculateBreakdown(enrichedParams);
             componentResults.put(child, childBreakdown.result());
             childBreakdowns.add(childBreakdown);
-
-            total = (total == null) ? childBreakdown.total() : total.add(childBreakdown.total());
         }
-
-        return new ComponentBreakdown(name, new TotalPrice(Objects.requireNonNull(total)), childBreakdowns);
+        Money total = childBreakdowns.stream()
+                .map(ComponentBreakdown::total)
+                .reduce(Money::add)
+                .orElseThrow();
+        return new ComponentBreakdown(name, new TotalPrice(total), childBreakdowns);
     }
 
     /**

@@ -1,11 +1,5 @@
 package com.softwarearchetypes.pricing.component;
 
-import com.softwarearchetypes.pricing.calculation.Calculator;
-import com.softwarearchetypes.pricing.calculation.CalculatorId;
-import com.softwarearchetypes.pricing.calculation.MarginalPrice;
-import com.softwarearchetypes.pricing.calculation.ParameterKey;
-import com.softwarearchetypes.pricing.calculation.Parameters;
-import com.softwarearchetypes.pricing.calculation.PricingResult;
 import java.math.BigDecimal;
 
 record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalculator) implements Calculator {

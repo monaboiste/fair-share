@@ -247,9 +247,7 @@ class SimpleComponentVersioningSpec extends Specification {
 
     private static Calculator calculatorWithInput(ParameterKey input, Money result) {
         [
-                calculateWithValidInputs: { Parameters parameters -> parameters.get(input); new TotalPrice(result) },
-                getType: { CalculatorType.CUSTOM },
-                interpretation: { Interpretation.TOTAL }
+                calculateWithValidInputs: { Parameters parameters -> parameters.get(input); new TotalPrice(result) }
         ] as Calculator
     }
 

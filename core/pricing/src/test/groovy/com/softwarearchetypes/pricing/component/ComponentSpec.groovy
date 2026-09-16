@@ -301,9 +301,7 @@ class ComponentSpec extends Specification {
 
         and:
         PricingResult resultAsTotal = component.calculate(
-                Parameters.of("quantity", BigDecimal.valueOf(10)),
-                Interpretation.TOTAL
-        )
+                Parameters.of("quantity", BigDecimal.valueOf(10)))
 
         expect:
         resultAsTotal.money() == Money.of(BigDecimal.valueOf(27.5), "PLN")
