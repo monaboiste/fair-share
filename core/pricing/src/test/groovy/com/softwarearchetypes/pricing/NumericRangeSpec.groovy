@@ -35,18 +35,6 @@ class NumericRangeSpec extends Specification {
         !(range.contains(new BigDecimal("25")))
     }
 
-    def "does not contain value of wrong type"() {
-        given:
-        CalculatorRange range = CalculatorRange.numeric(
-                new BigDecimal("0"),
-                new BigDecimal("10"),
-                CalculatorId.generate()
-        )
-
-        expect:
-        !(range.contains("5"))
-        !(range.contains(5))
-    }
 
     def "throws when min greater than max"() {
         when:

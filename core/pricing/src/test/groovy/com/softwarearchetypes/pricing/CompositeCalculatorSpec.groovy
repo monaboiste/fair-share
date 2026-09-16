@@ -129,28 +129,7 @@ class CompositeCalculatorSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def "returns correct type"() {
-        when:
-        addCompositeCalculator(
-                "piecewise-pricing",
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), fixedId))
 
-        then:
-        facade.availableCalculators().find { it.name() == "piecewise-pricing" }.type() == CalculatorType.COMPOSITE
-    }
-
-    def "provides description"() {
-        when:
-        addCompositeCalculator(
-                "piecewise-pricing",
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), fixedId),
-                CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), stepId))
-
-        then:
-        String description = facade.availableCalculators().find { it.name() == "piecewise-pricing" }.description()
-        description.contains("Composite function calculator")
-        description.contains("quantity")
-    }
 
     def "fails during construction when calculator not found"() {
         given:
@@ -166,49 +145,8 @@ class CompositeCalculatorSpec extends Specification {
         ex.message.contains("not found")
     }
 
-    def "fails when component calculators have different interpretations"() {
-        given:
-        CalculatorId totalId = addFixedCalculator("total-calc", Money.of(100, "PLN"), Interpretation.TOTAL)
-        CalculatorId unitId = addFixedCalculator("unit-calc", Money.of(10, "PLN"), Interpretation.UNIT)
 
-        when:
-        addCompositeCalculator(
-                "composite",
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), totalId),
-                CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), unitId))
 
-        then:
-        def ex = thrown(IllegalArgumentException)
-        ex.message.contains("same interpretation")
-        ex.message.contains("TOTAL")
-        ex.message.contains("UNIT")
-    }
-
-    def "returns shared interpretation of component calculators"() {
-        given:
-        CalculatorId unit1Id = addFixedCalculator("unit-1", Money.of(10, "PLN"), Interpretation.UNIT)
-        CalculatorId unit2Id = addFixedCalculator("unit-2", Money.of(8, "PLN"), Interpretation.UNIT)
-
-        when:
-        Calculator calculator = addCompositeCalculator(
-                "composite",
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), unit1Id),
-                CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), unit2Id))
-
-        then:
-        calculator.interpretation() == Interpretation.UNIT
-    }
-
-    def "allows composite with all total price calculators"() {
-        when:
-        Calculator calculator = addCompositeCalculator(
-                "composite",
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), fixedId),
-                CalculatorRange.numeric(new BigDecimal("10"), new BigDecimal("50"), stepId))
-
-        then:
-        calculator.interpretation() == Interpretation.TOTAL
-    }
 
     private CalculatorId addFixedCalculator(
             String name, Money amount, Interpretation interpretation = Interpretation.TOTAL) {

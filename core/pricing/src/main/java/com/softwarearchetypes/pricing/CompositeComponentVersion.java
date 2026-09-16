@@ -52,8 +52,9 @@ record CompositeComponentVersion(
      * Returns true when this version should be used for the given pricing context. Combines the time dimension
      * (validity) with the business dimension (applicability).
      */
-    public boolean isApplicableFor(PricingContext context) {
-        return validity.isValidAt(context.timestamp()) && applicabilityConstraint.isSatisfiedBy(context);
+    public boolean isApplicableFor(Parameters parameters) {
+        LocalDateTime time = ComponentVersion.calculationTime(parameters);
+        return validity.isValidAt(time) && applicabilityConstraint.isSatisfiedBy(parameters);
     }
 
     /** Create a version with an explicit applicability constraint. */

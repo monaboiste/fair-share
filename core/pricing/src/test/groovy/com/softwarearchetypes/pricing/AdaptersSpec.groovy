@@ -18,24 +18,8 @@ class AdaptersSpec extends Specification {
 
         expect:
         total.money() == Money.of(150, "PLN")
-        totalCalculator.interpretation() == Interpretation.TOTAL
     }
 
-    def "unit-to-total adapter rejects a non-unit-price calculator"() {
-        given:
-        Calculator totalCalculator = new SimpleFixedCalculator(
-                "total",
-                Money.of(100, "PLN"),
-                Interpretation.TOTAL
-        )
-
-        when:
-        UnitToTotalAdapter.wrap("adapter", totalCalculator)
-
-        then:
-        def ex = thrown(IllegalArgumentException)
-        ex.message.contains("UNIT")
-    }
 
     def "unit-to-marginal adapter returns the same price regardless of quantity"() {
         given:
@@ -51,7 +35,6 @@ class AdaptersSpec extends Specification {
         expect:
         marginal5.money() == Money.of(10, "PLN")
         marginal15.money() == Money.of(10, "PLN")
-        marginalCalculator.interpretation() == Interpretation.MARGINAL
     }
 
     def "total-to-unit adapter divides total by quantity"() {
@@ -68,7 +51,6 @@ class AdaptersSpec extends Specification {
 
         expect:
         unit.money() == Money.of(7, "PLN")
-        unitCalculator.interpretation() == Interpretation.UNIT
     }
 
     def "total-to-marginal adapter computes the marginal as the derivative"() {
@@ -89,8 +71,6 @@ class AdaptersSpec extends Specification {
         marginal10.money() == Money.of(5, "PLN")
         PricingResult marginal11 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("11")))
         marginal11.money() == Money.of(0, "PLN")
-
-        marginalCalculator.interpretation() == Interpretation.MARGINAL
     }
 
     def "marginal-to-total adapter sums marginal prices"() {
@@ -105,7 +85,6 @@ class AdaptersSpec extends Specification {
 
         expect:
         total.money() == Money.of(50, "PLN")
-        totalCalculator.interpretation() == Interpretation.TOTAL
     }
 
     def "marginal-to-unit adapter returns the average price"() {
@@ -120,7 +99,6 @@ class AdaptersSpec extends Specification {
 
         expect:
         unit.money() == Money.of(10, "PLN")
-        unitCalculator.interpretation() == Interpretation.UNIT
     }
 
     def "unit-to-marginal adapter works for a variable unit price"() {
@@ -139,7 +117,6 @@ class AdaptersSpec extends Specification {
         expect:
         marginal6 != null
         marginal11 != null
-        marginalCalculator.interpretation() == Interpretation.MARGINAL
     }
 
     def "derived adapter evaluations retain unrelated source parameters"() {
@@ -200,9 +177,6 @@ class AdaptersSpec extends Specification {
         }
 
         @Override
-        CalculatorType getType() { CalculatorType.CUSTOM }
-
-        @Override
         CalculatorId getId() { CalculatorId.generate() }
 
         @Override
@@ -214,7 +188,5 @@ class AdaptersSpec extends Specification {
         @Override
         String formula() { "tracking" }
 
-        @Override
-        Interpretation interpretation() { interpretation }
     }
 }

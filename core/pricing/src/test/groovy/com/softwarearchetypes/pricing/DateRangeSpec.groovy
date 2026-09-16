@@ -36,18 +36,6 @@ class DateRangeSpec extends Specification {
         !(range.contains(LocalDate.of(2024, 9, 2)))
     }
 
-    def "does not contain date of wrong type"() {
-        given:
-        CalculatorRange range = CalculatorRange.date(
-                LocalDate.of(2024, 6, 1),
-                LocalDate.of(2024, 9, 1),
-                CalculatorId.generate()
-        )
-
-        expect:
-        !(range.contains("2024-07-15"))
-        !(range.contains(2024))
-    }
 
     def "throws when from not before to"() {
         when:

@@ -132,18 +132,6 @@ class DailyIncrementCalculatorSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def "calculator type is daily increment"() {
-        given:
-        DailyIncrementCalculator calculator = new DailyIncrementCalculator(
-                "presale-pricing",
-                LocalDate.of(2024, 6, 1),
-                Money.of(1999, "PLN"),
-                Money.of(100, "PLN")
-        )
-
-        expect:
-        calculator.getType() == CalculatorType.DAILY_INCREMENT
-    }
 
     def "description includes start price, increment, and date"() {
         given:

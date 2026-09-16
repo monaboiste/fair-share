@@ -94,16 +94,6 @@ class DiscretePointsCalculatorSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def "calculator type is discrete points"() {
-        given:
-        Map<BigDecimal, Money> points = new HashMap<>()
-        points.put(new BigDecimal("5"), Money.of(100, "PLN"))
-
-        DiscretePointsCalculator calculator = new DiscretePointsCalculator("Volume Discount", points)
-
-        expect:
-        calculator.getType() == CalculatorType.DISCRETE_POINTS
-    }
 
     def "description includes the number of defined points"() {
         given:

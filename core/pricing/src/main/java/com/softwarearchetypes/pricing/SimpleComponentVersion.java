@@ -49,8 +49,9 @@ public record SimpleComponentVersion(
     }
 
     /** Returns whether validity and applicability match the context. */
-    public boolean isApplicableFor(PricingContext context) {
-        return validity.isValidAt(context.timestamp()) && applicabilityConstraint.isSatisfiedBy(context);
+    public boolean isApplicableFor(Parameters parameters) {
+        LocalDateTime time = ComponentVersion.calculationTime(parameters);
+        return validity.isValidAt(time) && applicabilityConstraint.isSatisfiedBy(parameters);
     }
 
     /** Create a version with an explicit applicability constraint. */

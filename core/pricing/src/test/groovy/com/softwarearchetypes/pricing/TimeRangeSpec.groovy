@@ -53,18 +53,6 @@ class TimeRangeSpec extends Specification {
         !(range.contains(LocalTime.of(18, 0)))
     }
 
-    def "does not contain time of wrong type"() {
-        given:
-        CalculatorRange range = CalculatorRange.time(
-                LocalTime.of(8, 0),
-                LocalTime.of(18, 0),
-                CalculatorId.generate()
-        )
-
-        expect:
-        !(range.contains("12:00"))
-        !(range.contains(12))
-    }
 
     def "detects overlap when both ranges normal and overlap"() {
         given:

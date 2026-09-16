@@ -15,7 +15,6 @@ class ComponentSpec extends Specification {
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(20), "PLN")
-        component.interpretation() == Interpretation.TOTAL
     }
 
     def "simple component breakdown has no children"() {
@@ -159,24 +158,6 @@ class ComponentSpec extends Specification {
         result.money() == Money.of(BigDecimal.valueOf(115), "PLN")
     }
 
-    def "composite component handles mixed interpretations"() {
-        given:
-        Calculator totalCalc = new SimpleFixedCalculator("total", Money.of(BigDecimal.valueOf(100), "PLN"))
-        SimpleComponent totalComponent = SimpleComponent.of("total-comp", totalCalc)
-
-        Calculator unitCalc = new SimpleFixedCalculator("unit",
-                Money.of(BigDecimal.valueOf(10), "PLN"),
-                Interpretation.UNIT)
-        SimpleComponent unitComponent = SimpleComponent.of("unit-comp", unitCalc)
-
-        and:
-        CompositeComponent composite = CompositeComponent.of("mixed", totalComponent, unitComponent)
-
-        expect:
-        composite.interpretation() == Interpretation.TOTAL
-        PricingResult result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
-        result.money() == Money.of(BigDecimal.valueOf(150), "PLN")
-    }
 
     def "composite component throws when a dependent component has not been calculated yet"() {
         given:
@@ -219,26 +200,6 @@ class ComponentSpec extends Specification {
         ex.message == "Component 'non-existent' not found"
     }
 
-    def "composite component always returns total interpretation"() {
-        given:
-        Calculator calc1 = new SimpleFixedCalculator("c1",
-                Money.of(BigDecimal.valueOf(10), "PLN"),
-                Interpretation.UNIT)
-        Calculator calc2 = new SimpleFixedCalculator("c2",
-                Money.of(BigDecimal.valueOf(5), "PLN"),
-                Interpretation.UNIT)
-
-        SimpleComponent comp1 = SimpleComponent.of("comp1", calc1)
-        SimpleComponent comp2 = SimpleComponent.of("comp2", calc2)
-
-        and:
-        CompositeComponent composite = CompositeComponent.of("composite", comp1, comp2)
-
-        expect:
-        composite.interpretation() == Interpretation.TOTAL
-        PricingResult result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
-        result.money() == Money.of(BigDecimal.valueOf(75), "PLN")
-    }
 
     def "composite component passes parameters to all children"() {
         given:
@@ -314,32 +275,6 @@ class ComponentSpec extends Specification {
         result.money() == Money.of(BigDecimal.valueOf(20), "PLN")
     }
 
-    def "simple component converts to the requested interpretation using adapters"() {
-        given:
-        Calculator unitPriceCalc = new SimpleFixedCalculator("unit",
-                Money.of(BigDecimal.valueOf(10), "PLN"),
-                Interpretation.UNIT)
-
-        SimpleComponent component = SimpleComponent.of("unit-comp", unitPriceCalc)
-
-        and:
-        PricingResult resultAsTotal = component.calculate(
-                Parameters.of("quantity", BigDecimal.valueOf(5)),
-                Interpretation.TOTAL
-        )
-
-        expect:
-        resultAsTotal.money() == Money.of(BigDecimal.valueOf(50), "PLN")
-
-        and:
-        PricingResult resultAsUnit = component.calculate(
-                Parameters.of("quantity", BigDecimal.valueOf(5)),
-                Interpretation.UNIT
-        )
-
-        and:
-        resultAsUnit.money() == Money.of(BigDecimal.valueOf(10), "PLN")
-    }
 
     def "simple component converts marginal to total using an adapter"() {
         given:
@@ -388,34 +323,4 @@ class ComponentSpec extends Specification {
         result.money() == Money.of(BigDecimal.valueOf(19), "PLN")
     }
 
-    def "composite component converts children with different interpretations to total"() {
-        given:
-        Calculator marginalCalc = new StepFunctionCalculator("marginal",
-                Money.of(BigDecimal.ZERO, "PLN"),
-                BigDecimal.ONE,
-                BigDecimal.valueOf(1.0),
-                Interpretation.MARGINAL)
-
-        SimpleComponent marginalComp = SimpleComponent.of("marginal", marginalCalc)
-        Calculator unitCalc = new SimpleFixedCalculator("unit",
-                Money.of(BigDecimal.valueOf(5), "PLN"),
-                Interpretation.UNIT)
-
-        SimpleComponent unitComp = SimpleComponent.of("unit", unitCalc)
-        Calculator totalCalc = new SimpleFixedCalculator("total",
-                Money.of(BigDecimal.valueOf(10), "PLN"))
-
-        SimpleComponent totalComp = SimpleComponent.of("total", totalCalc)
-
-        and:
-        CompositeComponent composite = CompositeComponent.of("mixed",
-                marginalComp, unitComp, totalComp)
-
-        and:
-        Parameters params = Parameters.of("quantity", BigDecimal.valueOf(3))
-        PricingResult result = composite.calculate(params)
-
-        expect:
-        result.money() == Money.of(BigDecimal.valueOf(31), "PLN")
-    }
 }

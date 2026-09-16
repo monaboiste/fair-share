@@ -12,4 +12,8 @@ sealed interface ComponentVersion permits SimpleComponentVersion, CompositeCompo
 
     /** Returns when this version was defined. */
     LocalDateTime definedAt();
+
+    static LocalDateTime calculationTime(Parameters parameters) {
+        return parameters.timestamp().orElseGet(LocalDateTime::now);
+    }
 }

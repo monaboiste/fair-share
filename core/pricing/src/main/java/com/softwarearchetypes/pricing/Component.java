@@ -44,11 +44,10 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
      * Returns the price interpretation of this component. For SimpleComponent: delegates to wrapped calculator For
      * CompositeComponent: always returns TOTAL
      */
-    Interpretation interpretation();
 
     /** Calculate and return a breakdown showing individual component contributions. */
     default ComponentBreakdown calculateBreakdown(Parameters parameters) {
-        return calculateBreakdown(parameters, this.interpretation());
+        return calculateBreakdown(parameters, Interpretation.TOTAL);
     }
 
     /**
@@ -147,21 +146,17 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
     }
 
     @Override
-    public Interpretation interpretation() {
-        return versions.getFirst().calculator().interpretation();
-    }
-
-    @Override
     public PricingResult calculate(Parameters parameters, Interpretation targetInterpretation) {
-        PricingContext context = PricingContext.from(parameters);
-        SimpleComponentVersion version = versionAt(context.timestamp());
+        LocalDateTime time = ComponentVersion.calculationTime(parameters);
+        SimpleComponentVersion version = versionAt(time);
 
-        if (!version.isApplicableFor(context)) {
+        if (!version.isApplicableFor(parameters)) {
             return zeroResult(targetInterpretation);
         }
 
         Parameters transformedParams = transformParameters(parameters, version.parameterMappings());
-        Calculator adaptedCalculator = InterpretationAdapters.adapt(version.calculator(), targetInterpretation);
+        Calculator adaptedCalculator =
+                InterpretationAdapters.adapt(version.calculator(), targetInterpretation, transformedParams);
         return adaptedCalculator.calculate(transformedParams);
     }
 
@@ -339,16 +334,11 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.TOTAL;
-    }
-
-    @Override
     public PricingResult calculate(Parameters parameters, Interpretation targetInterpretation) {
-        PricingContext context = PricingContext.from(parameters);
-        CompositeComponentVersion version = versionAt(context.timestamp());
+        LocalDateTime time = ComponentVersion.calculationTime(parameters);
+        CompositeComponentVersion version = versionAt(time);
 
-        if (!version.isApplicableFor(context)) {
+        if (!version.isApplicableFor(parameters)) {
             return new TotalPrice(Money.zero("PLN"));
         }
 
@@ -376,10 +366,10 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
 
     @Override
     public ComponentBreakdown calculateBreakdown(Parameters parameters, Interpretation targetInterpretation) {
-        PricingContext context = PricingContext.from(parameters);
-        CompositeComponentVersion version = versionAt(context.timestamp());
+        LocalDateTime time = ComponentVersion.calculationTime(parameters);
+        CompositeComponentVersion version = versionAt(time);
 
-        if (!version.isApplicableFor(context)) {
+        if (!version.isApplicableFor(parameters)) {
             return new ComponentBreakdown(name, new TotalPrice(Money.zero("PLN")), List.of());
         }
 

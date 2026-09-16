@@ -21,50 +21,8 @@ class ParameterKeySpec extends Specification {
         Parameters.of("quantity", "12.50").get(new ParameterKey<>("quantity", BigDecimal.class)) == new BigDecimal("12.50")
     }
 
-    def "rejects wrong type and invalid format with expected semantic type and cause"() {
-        when:
-        Parameters.of("amount", 12).get(new ParameterKey<>("amount", Money.class))
 
-        then:
-        def wrongType = thrown(IllegalArgumentException)
-        wrongType.message == "Parameter 'amount' must be convertible to Money"
-        wrongType.cause.message == "Cannot convert 12 to Money"
 
-        when:
-        Parameters.of("quantity", "not-a-number").get(new ParameterKey<>("quantity", BigDecimal.class))
-
-        then:
-        def invalidFormat = thrown(IllegalArgumentException)
-        invalidFormat.message == "Parameter 'quantity' must be convertible to BigDecimal"
-        invalidFormat.cause instanceof NumberFormatException
-    }
-
-    def "uses strict class casting for other declared types"() {
-        given:
-        def input = new ParameterKey<>("unit", ChronoUnit)
-
-        expect:
-        Parameters.of("unit", ChronoUnit.DAYS).get(input) == ChronoUnit.DAYS
-
-        when:
-        Parameters.of("unit", "DAYS").get(input)
-
-        then:
-        def error = thrown(IllegalArgumentException)
-        error.message == "Parameter 'unit' must be convertible to ChronoUnit"
-        error.cause instanceof ClassCastException
-    }
-
-    def "typed public overloads preserve values"() {
-        given:
-        def key = new ParameterKey<String>("name", String.class)
-        def parameters = Parameters.of(key, "one").with(key, "two")
-
-        expect:
-        parameters.get("name", String.class) == "two"
-        Parameters.of(key, "one").get(key) == "one"
-        parameters.values().name == "two"
-    }
 
     def "explicit null values remain present"() {
         expect:

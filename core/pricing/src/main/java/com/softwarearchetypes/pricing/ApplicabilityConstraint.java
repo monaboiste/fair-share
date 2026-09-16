@@ -3,36 +3,12 @@ package com.softwarearchetypes.pricing;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
-/**
- * Determines whether a pricing component applies to a {@link PricingContext}.
- *
- * <p>Constraints support logical composition, for example:
- *
- * <pre>{@code
- * and(
- *     equalsTo("customerType", "B2C"),
- *     greaterThan("minutes", 10)
- * )
- * }</pre>
- *
- * @see SimpleComponentVersion#isApplicableFor(PricingContext)
- */
-public sealed interface ApplicabilityConstraint
-        permits EqualsConstraint,
-                InConstraint,
-                GreaterThanConstraint,
-                GreaterThanOrEqualConstraint,
-                LessThanConstraint,
-                LessThanOrEqualConstraint,
-                BetweenConstraint,
-                AndConstraint,
-                OrConstraint,
-                NotConstraint,
-                AlwaysTrueConstraint {
-
-    boolean isSatisfiedBy(PricingContext context);
+/** Determines whether a pricing component applies to parameters. */
+public interface ApplicabilityConstraint {
+    boolean isSatisfiedBy(Parameters parameters);
 
     static ApplicabilityConstraint alwaysTrue() {
         return new AlwaysTrueConstraint();
@@ -51,7 +27,7 @@ public sealed interface ApplicabilityConstraint
     }
 
     static ApplicabilityConstraint greaterThan(String parameterName, int threshold) {
-        return new GreaterThanConstraint(parameterName, BigDecimal.valueOf(threshold));
+        return greaterThan(parameterName, BigDecimal.valueOf(threshold));
     }
 
     static ApplicabilityConstraint greaterThan(String parameterName, BigDecimal threshold) {
@@ -59,7 +35,7 @@ public sealed interface ApplicabilityConstraint
     }
 
     static ApplicabilityConstraint greaterThanOrEqualTo(String parameterName, int threshold) {
-        return new GreaterThanOrEqualConstraint(parameterName, BigDecimal.valueOf(threshold));
+        return greaterThanOrEqualTo(parameterName, BigDecimal.valueOf(threshold));
     }
 
     static ApplicabilityConstraint greaterThanOrEqualTo(String parameterName, BigDecimal threshold) {
@@ -67,7 +43,7 @@ public sealed interface ApplicabilityConstraint
     }
 
     static ApplicabilityConstraint lessThan(String parameterName, int threshold) {
-        return new LessThanConstraint(parameterName, BigDecimal.valueOf(threshold));
+        return lessThan(parameterName, BigDecimal.valueOf(threshold));
     }
 
     static ApplicabilityConstraint lessThan(String parameterName, BigDecimal threshold) {
@@ -75,7 +51,7 @@ public sealed interface ApplicabilityConstraint
     }
 
     static ApplicabilityConstraint lessThanOrEqualTo(String parameterName, int threshold) {
-        return new LessThanOrEqualConstraint(parameterName, BigDecimal.valueOf(threshold));
+        return lessThanOrEqualTo(parameterName, BigDecimal.valueOf(threshold));
     }
 
     static ApplicabilityConstraint lessThanOrEqualTo(String parameterName, BigDecimal threshold) {
@@ -83,7 +59,7 @@ public sealed interface ApplicabilityConstraint
     }
 
     static ApplicabilityConstraint between(String parameterName, int min, int max) {
-        return new BetweenConstraint(parameterName, BigDecimal.valueOf(min), BigDecimal.valueOf(max));
+        return between(parameterName, BigDecimal.valueOf(min), BigDecimal.valueOf(max));
     }
 
     static ApplicabilityConstraint between(String parameterName, BigDecimal min, BigDecimal max) {
@@ -101,31 +77,21 @@ public sealed interface ApplicabilityConstraint
     static ApplicabilityConstraint not(ApplicabilityConstraint constraint) {
         return new NotConstraint(constraint);
     }
-}
 
-record EqualsConstraint(String parameterName, String expectedValue) implements ApplicabilityConstraint {
-    @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName)
-                .map(value -> value.equals(expectedValue))
-                .orElse(false);
+    static Optional<String> value(Parameters parameters, String name) {
+        Object value = parameters.get(name);
+        return value instanceof String s
+                ? Optional.of(s)
+                : value instanceof BigDecimal bd
+                        ? Optional.of(bd.toPlainString())
+                        : value instanceof Number n ? Optional.of(n.toString()) : Optional.empty();
     }
-}
 
-record InConstraint(String parameterName, Set<String> allowedValues) implements ApplicabilityConstraint {
-    @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName).map(allowedValues::contains).orElse(false);
-    }
-}
-
-record GreaterThanConstraint(String parameterName, BigDecimal threshold) implements ApplicabilityConstraint {
-    @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName)
-                .map(value -> {
+    static boolean numeric(Parameters p, String n, BigDecimal t, int sign) {
+        return value(p, n)
+                .map(v -> {
                     try {
-                        return new BigDecimal(value).compareTo(threshold) > 0;
+                        return new BigDecimal(v).compareTo(t) * sign > 0;
                     } catch (NumberFormatException _) {
                         return false;
                     }
@@ -134,13 +100,38 @@ record GreaterThanConstraint(String parameterName, BigDecimal threshold) impleme
     }
 }
 
+record EqualsConstraint(String parameterName, String expectedValue) implements ApplicabilityConstraint {
+    @Override
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.value(p, parameterName)
+                .map(expectedValue::equals)
+                .orElse(false);
+    }
+}
+
+record InConstraint(String parameterName, Set<String> allowedValues) implements ApplicabilityConstraint {
+    @Override
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.value(p, parameterName)
+                .map(allowedValues::contains)
+                .orElse(false);
+    }
+}
+
+record GreaterThanConstraint(String parameterName, BigDecimal threshold) implements ApplicabilityConstraint {
+    @Override
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.numeric(p, parameterName, threshold, 1);
+    }
+}
+
 record GreaterThanOrEqualConstraint(String parameterName, BigDecimal threshold) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName)
-                .map(value -> {
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.value(p, parameterName)
+                .map(v -> {
                     try {
-                        return new BigDecimal(value).compareTo(threshold) >= 0;
+                        return new BigDecimal(v).compareTo(threshold) >= 0;
                     } catch (NumberFormatException _) {
                         return false;
                     }
@@ -151,11 +142,11 @@ record GreaterThanOrEqualConstraint(String parameterName, BigDecimal threshold) 
 
 record LessThanConstraint(String parameterName, BigDecimal threshold) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName)
-                .map(value -> {
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.value(p, parameterName)
+                .map(v -> {
                     try {
-                        return new BigDecimal(value).compareTo(threshold) < 0;
+                        return new BigDecimal(v).compareTo(threshold) < 0;
                     } catch (NumberFormatException _) {
                         return false;
                     }
@@ -166,11 +157,11 @@ record LessThanConstraint(String parameterName, BigDecimal threshold) implements
 
 record LessThanOrEqualConstraint(String parameterName, BigDecimal threshold) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName)
-                .map(value -> {
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.value(p, parameterName)
+                .map(v -> {
                     try {
-                        return new BigDecimal(value).compareTo(threshold) <= 0;
+                        return new BigDecimal(v).compareTo(threshold) <= 0;
                     } catch (NumberFormatException _) {
                         return false;
                     }
@@ -181,12 +172,12 @@ record LessThanOrEqualConstraint(String parameterName, BigDecimal threshold) imp
 
 record BetweenConstraint(String parameterName, BigDecimal min, BigDecimal max) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return context.get(parameterName)
-                .map(value -> {
+    public boolean isSatisfiedBy(Parameters p) {
+        return ApplicabilityConstraint.value(p, parameterName)
+                .map(v -> {
                     try {
-                        BigDecimal numValue = new BigDecimal(value);
-                        return numValue.compareTo(min) >= 0 && numValue.compareTo(max) <= 0;
+                        BigDecimal n = new BigDecimal(v);
+                        return n.compareTo(min) >= 0 && n.compareTo(max) <= 0;
                     } catch (NumberFormatException _) {
                         return false;
                     }
@@ -197,28 +188,28 @@ record BetweenConstraint(String parameterName, BigDecimal min, BigDecimal max) i
 
 record AndConstraint(List<ApplicabilityConstraint> constraints) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return constraints.stream().allMatch(c -> c.isSatisfiedBy(context));
+    public boolean isSatisfiedBy(Parameters p) {
+        return constraints.stream().allMatch(c -> c.isSatisfiedBy(p));
     }
 }
 
 record OrConstraint(List<ApplicabilityConstraint> constraints) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return constraints.stream().anyMatch(c -> c.isSatisfiedBy(context));
+    public boolean isSatisfiedBy(Parameters p) {
+        return constraints.stream().anyMatch(c -> c.isSatisfiedBy(p));
     }
 }
 
 record NotConstraint(ApplicabilityConstraint constraint) implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
-        return !constraint.isSatisfiedBy(context);
+    public boolean isSatisfiedBy(Parameters p) {
+        return !constraint.isSatisfiedBy(p);
     }
 }
 
 record AlwaysTrueConstraint() implements ApplicabilityConstraint {
     @Override
-    public boolean isSatisfiedBy(PricingContext context) {
+    public boolean isSatisfiedBy(Parameters p) {
         return true;
     }
 }

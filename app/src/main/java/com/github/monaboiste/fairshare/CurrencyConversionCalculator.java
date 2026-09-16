@@ -2,8 +2,6 @@ package com.github.monaboiste.fairshare;
 
 import com.softwarearchetypes.pricing.Calculator;
 import com.softwarearchetypes.pricing.CalculatorId;
-import com.softwarearchetypes.pricing.CalculatorType;
-import com.softwarearchetypes.pricing.Interpretation;
 import com.softwarearchetypes.pricing.ParameterKey;
 import com.softwarearchetypes.pricing.Parameters;
 import com.softwarearchetypes.pricing.PricingResult;
@@ -31,16 +29,6 @@ record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) 
     @Override
     public String formula() {
         return "source × " + exchangeRate.value();
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return Interpretation.TOTAL;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.CUSTOM;
     }
 
     @Override

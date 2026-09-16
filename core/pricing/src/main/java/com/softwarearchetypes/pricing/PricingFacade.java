@@ -1,8 +1,6 @@
 package com.softwarearchetypes.pricing;
 
 import static java.time.LocalDateTime.now;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.time.Clock;
@@ -10,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class PricingFacade {
 
@@ -22,10 +19,6 @@ public class PricingFacade {
         this.calculatorRepository = calculatorRepository;
         this.componentRepository = componentRepository;
         this.clock = clock;
-    }
-
-    public List<CalculatorView> availableCalculators() {
-        return calculatorRepository.findAll().stream().map(CalculatorView::from).toList();
     }
 
     public Calculator addCalculator(Calculator calculator) {
@@ -51,12 +44,7 @@ public class PricingFacade {
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
 
-        Calculator totalCalc =
-                switch (calc.interpretation()) {
-                    case TOTAL -> calc;
-                    case UNIT -> UnitToTotalAdapter.wrap(calc.name() + "-to-total", calc);
-                    case MARGINAL -> MarginalToTotalAdapter.wrap(calc.name() + "-to-total", calc);
-                };
+        Calculator totalCalc = InterpretationAdapters.adapt(calc, Interpretation.TOTAL, parameters);
 
         return totalCalc.calculate(parameters).money();
     }
@@ -71,12 +59,7 @@ public class PricingFacade {
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
 
-        Calculator unitCalc =
-                switch (calc.interpretation()) {
-                    case UNIT -> calc;
-                    case TOTAL -> TotalToUnitAdapter.wrap(calc.name() + "-to-unit", calc);
-                    case MARGINAL -> MarginalToUnitAdapter.wrap(calc.name() + "-to-unit", calc);
-                };
+        Calculator unitCalc = InterpretationAdapters.adapt(calc, Interpretation.UNIT, parameters);
 
         return unitCalc.calculate(parameters).money();
     }
@@ -97,19 +80,9 @@ public class PricingFacade {
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
 
-        Calculator marginalCalc =
-                switch (calc.interpretation()) {
-                    case MARGINAL -> calc;
-                    case UNIT -> UnitToMarginalAdapter.wrap(calc.name() + "-to-marginal", calc);
-                    case TOTAL -> TotalToMarginalAdapter.wrap(calc.name() + "-to-marginal", calc);
-                };
+        Calculator marginalCalc = InterpretationAdapters.adapt(calc, Interpretation.MARGINAL, parameters);
 
         return marginalCalc.calculate(parameters).money();
-    }
-
-    public Map<CalculatorType, List<CalculatorView>> listCalculatorsWithDescriptions() {
-        return calculatorRepository.findAll().stream()
-                .collect(groupingBy(Calculator::getType, mapping(CalculatorView::from, Collectors.toList())));
     }
 
     public Component createSimpleComponent(String componentName, String calculatorName) {

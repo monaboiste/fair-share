@@ -141,11 +141,6 @@ class BankAccountFeeScenarioSpec extends Specification {
         BigDecimal.ZERO == fee.value()
     }
 
-    def "calculator type is composite"() {
-
-        expect:
-        accountFeeCalculator.getType() == CalculatorType.COMPOSITE
-    }
 
     def "formula shows piecewise function with all three tiers"() {
         given:

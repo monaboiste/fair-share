@@ -95,18 +95,6 @@ class StepFunctionCalculatorSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def "calculator type is step function"() {
-        given:
-        StepFunctionCalculator calculator = new StepFunctionCalculator(
-                "Volume Pricing",
-                Money.of(100, "PLN"),
-                new BigDecimal("10"),
-                new BigDecimal("5")
-        )
-
-        expect:
-        calculator.getType() == CalculatorType.STEP_FUNCTION
-    }
 
     def "description includes base price and step size"() {
         given:

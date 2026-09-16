@@ -274,22 +274,6 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def "calculator type is continuous linear time"() {
-        given:
-        Instant startTime = Instant.parse("2024-06-01T00:00:00Z")
-        Instant endTime = Instant.parse("2024-06-15T00:00:00Z")
-
-        ContinuousLinearTimeCalculator calculator = new ContinuousLinearTimeCalculator(
-                "auction-pricing",
-                startTime,
-                Money.of(1999, "PLN"),
-                endTime,
-                Money.of(3399, "PLN")
-        )
-
-        expect:
-        calculator.getType() == CalculatorType.CONTINUOUS_LINEAR_TIME
-    }
 
     def "description includes start and end price and dates"() {
         given:

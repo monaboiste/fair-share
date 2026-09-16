@@ -39,8 +39,6 @@ public interface Calculator {
 
     String formula();
 
-    Interpretation interpretation();
-
     /**
      * Simulates calculation for multiple points in parameter space.
      *
@@ -54,8 +52,6 @@ public interface Calculator {
         }
         return results;
     }
-
-    CalculatorType getType();
 
     CalculatorId getId();
 
@@ -80,22 +76,12 @@ record SimpleFixedCalculator(CalculatorId id, String name, Money amount, Interpr
 
     @Override
     public String describe() {
-        return getType().formatDescription(amount);
+        return "Fixed amount calculator - returns " + amount + " regardless";
     }
 
     @Override
     public String formula() {
         return "f(x) = %s".formatted(amount);
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return interpretation;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.SIMPLE_FIXED;
     }
 
     @Override
@@ -128,23 +114,14 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
 
     @Override
     public String describe() {
-        return getType().formatDescription(annualRate);
+        return "Annual interest calculator - calculates " + annualRate
+                + "% annual interest based on base and time unit";
     }
 
     @Override
     public String formula() {
         return ("f(base, unit) = base × (rate/100) × (1/unitsPerYear(unit))%n" + "where rate = %s%%")
                 .formatted(annualRate);
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return Interpretation.TOTAL;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.SIMPLE_INTEREST;
     }
 
     @Override
@@ -254,16 +231,6 @@ record StepFunctionCalculator(
     }
 
     @Override
-    public Interpretation interpretation() {
-        return interpretation;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.STEP_FUNCTION;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -312,16 +279,6 @@ record DiscretePointsCalculator(
                 .forEach(e -> sb.append("  quantity = %s → %s%n"
                         .formatted(e.getKey().stripTrailingZeros().toPlainString(), e.getValue())));
         return sb.toString().trim();
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return interpretation;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.DISCRETE_POINTS;
     }
 
     @Override
@@ -380,16 +337,6 @@ record DailyIncrementCalculator(
         return ("f(date) = startPrice + daysFromStart × dailyIncrement%n"
                         + "where:%n  startDate = %s%n  startPrice = %s%n  dailyIncrement = %s")
                 .formatted(startDate, startPrice, dailyIncrement);
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return interpretation;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.DAILY_INCREMENT;
     }
 
     @Override
@@ -469,16 +416,6 @@ record ContinuousLinearTimeCalculator(
     }
 
     @Override
-    public Interpretation interpretation() {
-        return interpretation;
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.CONTINUOUS_LINEAR_TIME;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -513,25 +450,6 @@ record CompositeFunctionCalculator(
         if (!missingIds.isEmpty()) {
             throw new IllegalArgumentException("Calculators not found in repository: %s".formatted(missingIds));
         }
-
-        var interpretations = calculatorIds.stream()
-                .map(calculators::get)
-                .map(Calculator::interpretation)
-                .distinct()
-                .toList();
-        if (interpretations.size() > 1) {
-            throw new IllegalArgumentException(
-                    "All component calculators in composite must have the same interpretation. Found: %s"
-                            .formatted(calculatorIds.stream()
-                                    .map(calculators::get)
-                                    .map(calc -> calc.name() + ":" + calc.interpretation())
-                                    .toList()));
-        }
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return calculators.get(ranges.toList().getFirst().calculatorId()).interpretation();
     }
 
     @Override
@@ -558,11 +476,6 @@ record CompositeFunctionCalculator(
     }
 
     @Override
-    public CalculatorType getType() {
-        return CalculatorType.COMPOSITE;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -574,16 +487,7 @@ record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalcula
     private static final ParameterKey<BigDecimal> QUANTITY = new ParameterKey<>("quantity", BigDecimal.class);
 
     public static UnitToTotalAdapter wrap(String name, Calculator sourceCalculator) {
-        if (sourceCalculator.interpretation() != Interpretation.UNIT) {
-            throw new IllegalArgumentException(
-                    "UnitToTotalAdapter requires UNIT calculator, got: " + sourceCalculator.interpretation());
-        }
         return new UnitToTotalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.UNIT_TO_TOTAL_ADAPTER;
     }
 
     @Override
@@ -604,11 +508,6 @@ record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.TOTAL;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -624,16 +523,7 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
     private static final ParameterKey<BigDecimal> QUANTITY = new ParameterKey<>("quantity", BigDecimal.class);
 
     public static UnitToMarginalAdapter wrap(String name, Calculator sourceCalculator) {
-        if (sourceCalculator.interpretation() != Interpretation.UNIT) {
-            throw new IllegalArgumentException(
-                    "UnitToMarginalAdapter requires UNIT calculator, got: " + sourceCalculator.interpretation());
-        }
         return new UnitToMarginalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.UNIT_TO_MARGINAL_ADAPTER;
     }
 
     @Override
@@ -670,11 +560,6 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.MARGINAL;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -686,16 +571,7 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     private static final ParameterKey<BigDecimal> QUANTITY = new ParameterKey<>("quantity", BigDecimal.class);
 
     public static TotalToUnitAdapter wrap(String name, Calculator sourceCalculator) {
-        if (sourceCalculator.interpretation() != Interpretation.TOTAL) {
-            throw new IllegalArgumentException(
-                    "TotalToUnitAdapter requires TOTAL calculator, got: " + sourceCalculator.interpretation());
-        }
         return new TotalToUnitAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.TOTAL_TO_UNIT_ADAPTER;
     }
 
     @Override
@@ -716,11 +592,6 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.UNIT;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -732,16 +603,7 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
     private static final ParameterKey<BigDecimal> QUANTITY = new ParameterKey<>("quantity", BigDecimal.class);
 
     public static TotalToMarginalAdapter wrap(String name, Calculator sourceCalculator) {
-        if (sourceCalculator.interpretation() != Interpretation.TOTAL) {
-            throw new IllegalArgumentException(
-                    "TotalToMarginalAdapter requires TOTAL calculator, got: " + sourceCalculator.interpretation());
-        }
         return new TotalToMarginalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.TOTAL_TO_MARGINAL_ADAPTER;
     }
 
     @Override
@@ -776,11 +638,6 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.MARGINAL;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -792,16 +649,7 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     private static final ParameterKey<BigDecimal> QUANTITY = new ParameterKey<>("quantity", BigDecimal.class);
 
     public static MarginalToTotalAdapter wrap(String name, Calculator sourceCalculator) {
-        if (sourceCalculator.interpretation() != Interpretation.MARGINAL) {
-            throw new IllegalArgumentException(
-                    "MarginalToTotalAdapter requires MARGINAL calculator, got: " + sourceCalculator.interpretation());
-        }
         return new MarginalToTotalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.MARGINAL_TO_TOTAL_ADAPTER;
     }
 
     @Override
@@ -831,11 +679,6 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.TOTAL;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -847,16 +690,7 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     private static final ParameterKey<BigDecimal> QUANTITY = new ParameterKey<>("quantity", BigDecimal.class);
 
     public static MarginalToUnitAdapter wrap(String name, Calculator sourceCalculator) {
-        if (sourceCalculator.interpretation() != Interpretation.MARGINAL) {
-            throw new IllegalArgumentException(
-                    "MarginalToUnitAdapter requires MARGINAL calculator, got: " + sourceCalculator.interpretation());
-        }
         return new MarginalToUnitAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public CalculatorType getType() {
-        return CalculatorType.MARGINAL_TO_UNIT_ADAPTER;
     }
 
     @Override
@@ -886,11 +720,6 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public Interpretation interpretation() {
-        return Interpretation.UNIT;
-    }
-
-    @Override
     public CalculatorId getId() {
         return id;
     }
@@ -906,11 +735,6 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
     }
 
     @Override
-    public CalculatorType getType() {
-        return CalculatorType.PERCENTAGE;
-    }
-
-    @Override
     public PricingResult calculateWithValidInputs(Parameters params) {
         Money baseAmount = params.get(BASE_AMOUNT);
         BigDecimal rate = percentageRate.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
@@ -921,11 +745,6 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
     @Override
     public String formula() {
         return "baseAmount × " + percentageRate + "%";
-    }
-
-    @Override
-    public Interpretation interpretation() {
-        return Interpretation.TOTAL;
     }
 
     @Override

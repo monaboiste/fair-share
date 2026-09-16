@@ -173,15 +173,15 @@ class ApplicabilityConstraintSpec extends Specification {
         !(constraint.isSatisfiedBy(ctx("status", "gold", "quantity", BigDecimal.valueOf(200))))
     }
 
-    private static PricingContext emptyCtx() {
-        return PricingContext.from(Parameters.empty())
+    private static Parameters emptyCtx() {
+        return Parameters.empty()
     }
 
-    private static PricingContext ctx(String k1, Object v1) {
-        return PricingContext.from(Parameters.of(k1, v1))
+    private static Parameters ctx(String k1, Object v1) {
+        return Parameters.of(k1, v1)
     }
 
-    private static PricingContext ctx(String k1, Object v1, String k2, Object v2) {
-        return PricingContext.from(Parameters.of(k1, v1, k2, v2))
+    private static Parameters ctx(String k1, Object v1, String k2, Object v2) {
+        return Parameters.of(k1, v1, k2, v2)
     }
 }

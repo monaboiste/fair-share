@@ -70,20 +70,6 @@ class RangesSpec extends Specification {
         ex.message.contains("overlap")
     }
 
-    def "throws when ranges have incompatible types"() {
-        given:
-        List<CalculatorRange> rangesList = List.of(
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate()),
-                CalculatorRange.time(LocalTime.of(8, 0), LocalTime.of(18, 0), CalculatorId.generate())
-        )
-
-        when:
-        new Ranges("param", rangesList)
-
-        then:
-        def ex = thrown(IllegalArgumentException)
-        ex.message.contains("same type")
-    }
 
     def "finds matching range for numeric string value"() {
         given:

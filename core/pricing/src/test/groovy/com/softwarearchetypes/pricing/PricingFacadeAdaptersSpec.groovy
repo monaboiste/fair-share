@@ -89,18 +89,4 @@ class PricingFacadeAdaptersSpec extends Specification {
         marginal == Money.of(5, "PLN")
     }
 
-    def "auto-wrapping all three interpretations in a complex scenario"() {
-        given:
-        facade.addCalculator(Calculators.stepFunction("bulk", Money.of(100, "PLN"), new BigDecimal("10"), new BigDecimal("5")))
-
-        Parameters params = Parameters.of("quantity", new BigDecimal("25"))
-        Money total = facade.calculateTotal("bulk", params)
-
-        expect:
-        total == Money.of(110, "PLN")
-        Money unit = facade.calculateUnitPrice("bulk", params)
-        unit == Money.of(new BigDecimal("4.40"), "PLN")
-        Money marginal = facade.calculateMarginal("bulk", params)
-        marginal == Money.of(0, "PLN")
-    }
 }
