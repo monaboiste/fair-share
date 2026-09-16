@@ -232,10 +232,9 @@ class SimpleComponentVersioningSpec extends Specification {
         result.money() == Money.zero("PLN")
     }
 
-    private static Calculator calculatorWithInput(ParameterDefinition input, Money result) {
+    private static Calculator calculatorWithInput(ParameterKey input, Money result) {
         [
-                inputs: { Set.of(input) },
-                calculateWithValidInputs: { Parameters ignored -> new TotalPrice(result) },
+                calculateWithValidInputs: { Parameters parameters -> parameters.get(input); new TotalPrice(result) },
                 getType: { CalculatorType.CUSTOM },
                 interpretation: { Interpretation.TOTAL }
         ] as Calculator

@@ -1,6 +1,5 @@
 package com.github.monaboiste.fairshare
 
-import com.softwarearchetypes.pricing.CalculatorType
 import com.softwarearchetypes.pricing.ComponentVersionId
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.SimpleComponentVersion
@@ -21,21 +20,13 @@ class CurrencyValuationSpec extends Specification {
 
     private final Pricing pricing = Pricing.standard()
 
-    def "currency conversion declares source as a Money input"() {
+    def "currency conversion calculates a source amount"() {
         given:
         CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
                 ExchangeRate.of(USD, PLN, 4.5))
 
         expect:
-        calculator.inputs().size() == 1
-        calculator.inputs().first().name() == "source"
-        calculator.getType() == CalculatorType.CUSTOM
-
-        when:
-        calculator.calculate(Parameters.of("source", Money.of(2, "USD")))
-
-        then:
-        noExceptionThrown()
+        calculator.calculate(Parameters.of("source", Money.of(2, "USD"))).money() == Money.of(9, "PLN")
     }
 
     def "currency conversion rejects a missing source before calculation"() {

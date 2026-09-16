@@ -90,7 +90,9 @@ public record Parameters(Map<String, Object> values) {
             return key.type().cast(convert(key, value));
         } catch (RuntimeException cause) {
             throw new IllegalArgumentException(
-                    "Parameter '%s' must be convertible to %s".formatted(key.name(), key.expectedType()), cause);
+                    "Parameter '%s' must be convertible to %s"
+                            .formatted(key.name(), key.type().getSimpleName()),
+                    cause);
         }
     }
 
@@ -129,7 +131,8 @@ public record Parameters(Map<String, Object> values) {
                     || key.type() == LocalDate.class
                     || key.type() == Instant.class
                     || key.type() == LocalDateTime.class) {
-                throw new IllegalArgumentException("Cannot convert " + value + " to " + key.expectedType());
+                throw new IllegalArgumentException(
+                        "Cannot convert " + value + " to " + key.type().getSimpleName());
             }
             throw new ClassCastException(value.getClass().getName() + " cannot be cast to "
                     + key.type().getName());
@@ -183,14 +186,6 @@ public record Parameters(Map<String, Object> values) {
         Object value = values.get(key);
         if (value == null) throw new IllegalArgumentException("Required parameter '%s' is absent".formatted(key));
         return value;
-    }
-
-    void validate(ParameterDefinition definition) {
-        validateKey((ParameterKey<?>) definition);
-    }
-
-    private <T> void validateKey(ParameterKey<T> key) {
-        get(key);
     }
 
     public Set<String> keys() {

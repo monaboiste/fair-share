@@ -1,7 +1,6 @@
 package com.softwarearchetypes.pricing;
 
 import static java.time.temporal.ChronoUnit.DAYS;
-import static java.util.Comparator.comparing;
 
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
@@ -17,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 
@@ -31,43 +29,11 @@ public interface Calculator {
         };
     }
 
-    Set<ParameterDefinition> inputs();
-
-    /**
-     * Validates the input contract, reads declared inputs in name order, then performs the calculation.
-     *
-     * <p>Interface defaults cannot be final, so an implementation or caller can bypass this validation by overriding
-     * this method or calling {@link #calculateWithValidInputs(Parameters)} directly.
-     */
     default PricingResult calculate(Parameters parameters) {
-        Set<ParameterDefinition> declaredInputs = Set.copyOf(inputs());
-        validateInputContract(declaredInputs);
-        declaredInputs.stream().sorted(comparing(ParameterDefinition::name)).forEach(parameters::validate);
         return calculateWithValidInputs(parameters);
     }
 
-    /**
-     * Performs calculation after input validation. Implementations must provide this hook; production callers should
-     * use {@link #calculate(Parameters)}.
-     */
     PricingResult calculateWithValidInputs(Parameters parameters);
-
-    private void validateInputContract(Set<ParameterDefinition> inputs) {
-        Map<String, ParameterDefinition> declared = new HashMap<>();
-        for (ParameterDefinition input : inputs) {
-            ParameterDefinition previous = declared.putIfAbsent(input.name(), input);
-            if (previous != null && !compatible(previous, input)) {
-                throw new IllegalStateException("Calculator '%s' declares incompatible inputs for '%s': %s and %s"
-                        .formatted(name(), input.name(), previous.expectedType(), input.expectedType()));
-            }
-        }
-    }
-
-    private static boolean compatible(ParameterDefinition first, ParameterDefinition second) {
-        return first instanceof ParameterKey<?> firstKey
-                && second instanceof ParameterKey<?> secondKey
-                && firstKey.type() == secondKey.type();
-    }
 
     String describe();
 
@@ -128,11 +94,6 @@ record SimpleFixedCalculator(CalculatorId id, String name, Money amount, Interpr
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of();
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.SIMPLE_FIXED;
     }
@@ -179,11 +140,6 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
     @Override
     public Interpretation interpretation() {
         return Interpretation.TOTAL;
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(BASE, UNIT);
     }
 
     @Override
@@ -303,11 +259,6 @@ record StepFunctionCalculator(
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(QUANTITY);
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.STEP_FUNCTION;
     }
@@ -366,11 +317,6 @@ record DiscretePointsCalculator(
     @Override
     public Interpretation interpretation() {
         return interpretation;
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(QUANTITY);
     }
 
     @Override
@@ -439,11 +385,6 @@ record DailyIncrementCalculator(
     @Override
     public Interpretation interpretation() {
         return interpretation;
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(DATE);
     }
 
     @Override
@@ -533,11 +474,6 @@ record ContinuousLinearTimeCalculator(
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(TIME);
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.CONTINUOUS_LINEAR_TIME;
     }
@@ -622,11 +558,6 @@ record CompositeFunctionCalculator(
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(ranges.selectorInput());
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.COMPOSITE;
     }
@@ -648,12 +579,6 @@ record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalcula
                     "UnitToTotalAdapter requires UNIT calculator, got: " + sourceCalculator.interpretation());
         }
         return new UnitToTotalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return java.util.stream.Stream.concat(java.util.stream.Stream.of(QUANTITY), sourceCalculator.inputs().stream())
-                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
@@ -704,12 +629,6 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
                     "UnitToMarginalAdapter requires UNIT calculator, got: " + sourceCalculator.interpretation());
         }
         return new UnitToMarginalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return java.util.stream.Stream.concat(java.util.stream.Stream.of(QUANTITY), sourceCalculator.inputs().stream())
-                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
@@ -775,12 +694,6 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return java.util.stream.Stream.concat(java.util.stream.Stream.of(QUANTITY), sourceCalculator.inputs().stream())
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.TOTAL_TO_UNIT_ADAPTER;
     }
@@ -824,12 +737,6 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
                     "TotalToMarginalAdapter requires TOTAL calculator, got: " + sourceCalculator.interpretation());
         }
         return new TotalToMarginalAdapter(CalculatorId.generate(), name, sourceCalculator);
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return java.util.stream.Stream.concat(java.util.stream.Stream.of(QUANTITY), sourceCalculator.inputs().stream())
-                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
@@ -893,12 +800,6 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return java.util.stream.Stream.concat(java.util.stream.Stream.of(QUANTITY), sourceCalculator.inputs().stream())
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.MARGINAL_TO_TOTAL_ADAPTER;
     }
@@ -954,12 +855,6 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public Set<ParameterDefinition> inputs() {
-        return java.util.stream.Stream.concat(java.util.stream.Stream.of(QUANTITY), sourceCalculator.inputs().stream())
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
     public CalculatorType getType() {
         return CalculatorType.MARGINAL_TO_UNIT_ADAPTER;
     }
@@ -1008,11 +903,6 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
 
     public PercentageCalculator(String name, BigDecimal percentageRate) {
         this(CalculatorId.generate(), name, percentageRate);
-    }
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(BASE_AMOUNT);
     }
 
     @Override

@@ -4,13 +4,11 @@ import com.softwarearchetypes.pricing.Calculator;
 import com.softwarearchetypes.pricing.CalculatorId;
 import com.softwarearchetypes.pricing.CalculatorType;
 import com.softwarearchetypes.pricing.Interpretation;
-import com.softwarearchetypes.pricing.ParameterDefinition;
 import com.softwarearchetypes.pricing.ParameterKey;
 import com.softwarearchetypes.pricing.Parameters;
 import com.softwarearchetypes.pricing.PricingResult;
 import com.softwarearchetypes.pricing.TotalPrice;
 import com.softwarearchetypes.quantity.money.Money;
-import java.util.Set;
 
 record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) implements Calculator {
 
@@ -19,11 +17,6 @@ record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) 
     }
 
     private static final ParameterKey<Money> SOURCE = new ParameterKey<>("source", Money.class);
-
-    @Override
-    public Set<ParameterDefinition> inputs() {
-        return Set.of(SOURCE);
-    }
 
     @Override
     public PricingResult calculateWithValidInputs(Parameters parameters) {

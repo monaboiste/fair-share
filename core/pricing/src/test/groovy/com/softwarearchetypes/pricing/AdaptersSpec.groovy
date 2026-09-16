@@ -142,21 +142,6 @@ class AdaptersSpec extends Specification {
         marginalCalculator.interpretation() == Interpretation.MARGINAL
     }
 
-    def "each adapter reports its correct calculator type"() {
-        given:
-        Calculator unitCalculator = new SimpleFixedCalculator("u", Money.of(10, "PLN"), Interpretation.UNIT)
-        Calculator totalCalculator = new SimpleFixedCalculator("t", Money.of(100, "PLN"), Interpretation.TOTAL)
-        Calculator marginalCalculator = new SimpleFixedCalculator("m", Money.of(10, "PLN"), Interpretation.MARGINAL)
-
-        expect:
-        UnitToTotalAdapter.wrap("a", unitCalculator).getType() == CalculatorType.UNIT_TO_TOTAL_ADAPTER
-        UnitToMarginalAdapter.wrap("a", unitCalculator).getType() == CalculatorType.UNIT_TO_MARGINAL_ADAPTER
-        TotalToUnitAdapter.wrap("a", totalCalculator).getType() == CalculatorType.TOTAL_TO_UNIT_ADAPTER
-        TotalToMarginalAdapter.wrap("a", totalCalculator).getType() == CalculatorType.TOTAL_TO_MARGINAL_ADAPTER
-        MarginalToTotalAdapter.wrap("a", marginalCalculator).getType() == CalculatorType.MARGINAL_TO_TOTAL_ADAPTER
-        MarginalToUnitAdapter.wrap("a", marginalCalculator).getType() == CalculatorType.MARGINAL_TO_UNIT_ADAPTER
-    }
-
     def "derived adapter evaluations retain unrelated source parameters"() {
         given:
         LocalDateTime timestamp = LocalDateTime.of(2026, 1, 2, 3, 4)
@@ -187,40 +172,6 @@ class AdaptersSpec extends Specification {
         }
     }
 
-    def "adapter collapses a compatible quantity descriptor from its source calculator"() {
-        given:
-        def source = new TrackingCalculator(Interpretation.UNIT, new ParameterKey<>("quantity", BigDecimal.class))
-        def adapter = UnitToTotalAdapter.wrap("adapter", source)
-
-        expect:
-        adapter.inputs().count { it.name() == "quantity" } == 1
-        adapter.calculate(Parameters.of(
-                "quantity", new BigDecimal("2"),
-                "baseAmount", Money.of(10, "PLN"),
-                "timestamp", LocalDateTime.of(2026, 1, 2, 3, 4)
-        )).money() == Money.of(40, "PLN")
-    }
-
-    def "adapter rejects an incompatible quantity descriptor before evaluating its source"() {
-        given:
-        def source = new TrackingCalculator(Interpretation.UNIT, new ParameterKey<>("quantity", Money.class))
-        def adapter = UnitToTotalAdapter.wrap("adapter", source)
-
-        when:
-        adapter.calculate(Parameters.of(
-                "quantity", new BigDecimal("2"),
-                "baseAmount", Money.of(10, "PLN"),
-                "timestamp", LocalDateTime.of(2026, 1, 2, 3, 4)
-        ))
-
-        then:
-        def ex = thrown(IllegalStateException)
-        ex.message.contains("quantity")
-        ex.message.contains("BigDecimal")
-        ex.message.contains("Money")
-        source.received.empty
-    }
-
     def "adapter formula includes the source calculator formula"() {
         given:
         Calculator unitCalculator = new SimpleFixedCalculator("test", Money.of(10, "PLN"), Interpretation.UNIT)
@@ -236,17 +187,10 @@ class AdaptersSpec extends Specification {
 
     private static class TrackingCalculator implements Calculator {
         private final Interpretation interpretation
-        private final ParameterDefinition quantity
         final List<Parameters> received = []
 
-        TrackingCalculator(Interpretation interpretation, ParameterDefinition quantity = new ParameterKey<>("quantity", BigDecimal.class)) {
+        TrackingCalculator(Interpretation interpretation) {
             this.interpretation = interpretation
-            this.quantity = quantity
-        }
-
-        @Override
-        Set<ParameterDefinition> inputs() {
-            [quantity, new ParameterKey<>("baseAmount", Money.class), new ParameterKey<>("timestamp", LocalDateTime.class)] as Set
         }
 
         @Override

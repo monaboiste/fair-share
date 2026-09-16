@@ -76,22 +76,6 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
     }
 
     /**
-     * Returns the typed input descriptor for this range selector.
-     *
-     * @return the selector descriptor
-     */
-    ParameterDefinition selectorInput() {
-        CalculatorRange range = ranges.getFirst();
-        if (range instanceof NumericRange) {
-            return new ParameterKey<>(rangeSelector, BigDecimal.class);
-        }
-        if (range instanceof DateRange) {
-            return new ParameterKey<>(rangeSelector, LocalDate.class);
-        }
-        return new ParameterKey<>(rangeSelector, java.time.LocalTime.class);
-    }
-
-    /**
      * Finds the first range that contains the converted selector value.
      *
      * @param parameters the parameters containing the selector value
@@ -102,7 +86,12 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
             throw new IllegalArgumentException(
                     "Parameter '%s' is required but not found in parameters".formatted(rangeSelector));
         }
-        Object value = parameters.get((ParameterKey<?>) selectorInput());
+        CalculatorRange selectorRange = ranges.getFirst();
+        Object value = selectorRange instanceof NumericRange
+                ? parameters.get(new ParameterKey<>(rangeSelector, BigDecimal.class))
+                : selectorRange instanceof DateRange
+                        ? parameters.get(new ParameterKey<>(rangeSelector, LocalDate.class))
+                        : parameters.get(new ParameterKey<>(rangeSelector, java.time.LocalTime.class));
 
         return ranges.stream().filter(range -> range.contains(value)).findFirst();
     }
