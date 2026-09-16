@@ -1,10 +1,10 @@
 package com.github.monaboiste.fairshare;
 
-import com.softwarearchetypes.pricing.ComponentVersionId;
-import com.softwarearchetypes.pricing.Parameters;
-import com.softwarearchetypes.pricing.PricingResult;
-import com.softwarearchetypes.pricing.SimpleComponentVersion;
-import com.softwarearchetypes.pricing.Validity;
+import com.softwarearchetypes.pricing.calculation.Parameters;
+import com.softwarearchetypes.pricing.calculation.PricingResult;
+import com.softwarearchetypes.pricing.component.ComponentVersionId;
+import com.softwarearchetypes.pricing.component.SimpleComponentVersion;
+import com.softwarearchetypes.pricing.component.Validity;
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;

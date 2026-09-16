@@ -1,11 +1,11 @@
 package com.github.monaboiste.fairshare;
 
-import com.softwarearchetypes.pricing.Calculator;
-import com.softwarearchetypes.pricing.CalculatorId;
-import com.softwarearchetypes.pricing.ParameterKey;
-import com.softwarearchetypes.pricing.Parameters;
-import com.softwarearchetypes.pricing.PricingResult;
-import com.softwarearchetypes.pricing.TotalPrice;
+import com.softwarearchetypes.pricing.calculation.Calculator;
+import com.softwarearchetypes.pricing.calculation.CalculatorId;
+import com.softwarearchetypes.pricing.calculation.ParameterKey;
+import com.softwarearchetypes.pricing.calculation.Parameters;
+import com.softwarearchetypes.pricing.calculation.PricingResult;
+import com.softwarearchetypes.pricing.calculation.TotalPrice;
 import com.softwarearchetypes.quantity.money.Money;
 
 record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) implements Calculator {
