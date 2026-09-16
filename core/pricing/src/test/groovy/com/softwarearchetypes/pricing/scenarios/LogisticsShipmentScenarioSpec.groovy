@@ -2,7 +2,7 @@ package com.softwarearchetypes.pricing.scenarios
 
 import com.softwarearchetypes.pricing.ApplicabilityConstraint
 import com.softwarearchetypes.pricing.CalculatorRange
-import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
 import com.softwarearchetypes.pricing.ParameterValue
@@ -23,45 +23,29 @@ class LogisticsShipmentScenarioSpec extends Specification {
     def setup() {
         LocalDateTime januaryFirst = LocalDateTime.of(2025, 1, 1, 0, 0)
         LocalDateTime aprilFirst = LocalDateTime.of(2025, 4, 1, 0, 0)
-        def lightRate = facade.addCalculator("base-rate-light", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(new BigDecimal("7.90"), "PLN"),
-                        "interpretation", Interpretation.UNIT))
-        def mediumRate = facade.addCalculator("base-rate-medium", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(new BigDecimal("6.10"), "PLN"),
-                        "interpretation", Interpretation.UNIT))
-        def heavyRate = facade.addCalculator("base-rate-heavy", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(new BigDecimal("5.20"), "PLN"),
-                        "interpretation", Interpretation.UNIT))
-        facade.addCalculator("base-by-weight", CalculatorType.COMPOSITE,
-                Parameters.of(
-                        "ranges", List.of(
+        def lightRate = facade.addCalculator(Calculators.fixed("base-rate-light", Money.of(new BigDecimal("7.90"), "PLN"), Interpretation.UNIT))
+        def mediumRate = facade.addCalculator(Calculators.fixed("base-rate-medium", Money.of(new BigDecimal("6.10"), "PLN"), Interpretation.UNIT))
+        def heavyRate = facade.addCalculator(Calculators.fixed("base-rate-heavy", Money.of(new BigDecimal("5.20"), "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.composite(
+                "base-by-weight",
+                "quantity",
+                List.of(
                         CalculatorRange.numeric(
                                 new BigDecimal("1"), new BigDecimal("5"), lightRate.getId()),
                         CalculatorRange.numeric(
                                 new BigDecimal("5"), new BigDecimal("30"), mediumRate.getId()),
                         CalculatorRange.numeric(
                                 new BigDecimal("30"), new BigDecimal("70"), heavyRate.getId())),
-                        "rangeSelector", "quantity"))
+                [lightRate, mediumRate, heavyRate]))
 
-        facade.addCalculator("fuel-rate-4.5", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("4.5")))
-        facade.addCalculator("fuel-rate-5.0", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("5.0")))
-        facade.addCalculator("adr-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("50")))
-        facade.addCalculator("oversized-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("35")))
-        facade.addCalculator("time-window-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("25")))
-        facade.addCalculator("cod-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("2")))
-        facade.addCalculator("insurance-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("0.15")))
-        facade.addCalculator("vat-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", new BigDecimal("23")))
+        facade.addCalculator(Calculators.percentage("fuel-rate-4.5", new BigDecimal("4.5")))
+        facade.addCalculator(Calculators.percentage("fuel-rate-5.0", new BigDecimal("5.0")))
+        facade.addCalculator(Calculators.percentage("adr-rate", new BigDecimal("50")))
+        facade.addCalculator(Calculators.percentage("oversized-rate", new BigDecimal("35")))
+        facade.addCalculator(Calculators.percentage("time-window-rate", new BigDecimal("25")))
+        facade.addCalculator(Calculators.percentage("cod-rate", new BigDecimal("2")))
+        facade.addCalculator(Calculators.percentage("insurance-rate", new BigDecimal("0.15")))
+        facade.addCalculator(Calculators.percentage("vat-rate", new BigDecimal("23")))
 
         facade.createSimpleComponent(
                 "base-component",

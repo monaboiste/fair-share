@@ -10,29 +10,20 @@ class CompositeCalculatorSpec extends Specification {
     private CalculatorId fixedId
     private CalculatorId stepId
     private CalculatorId discreteId
+    private Map<CalculatorId, Calculator> calculators
 
     def setup() {
         facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
+        calculators = [:]
         fixedId = addFixedCalculator("fixed-100", Money.of(100, "PLN"))
-        stepId = facade.addCalculator(
-                "step-calc",
-                CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(200, "PLN"),
-                        "stepSize", new BigDecimal("10"),
-                        "stepIncrement", new BigDecimal("10"),
-                        "interpretation", Interpretation.TOTAL,
-                        "stepBoundary", StepBoundary.EXCLUSIVE))
-                .getId()
-        discreteId = facade.addCalculator(
-                "discrete-calc",
-                CalculatorType.DISCRETE_POINTS,
-                Parameters.of(
-                        "points", Map.of(
+        Calculator step = facade.addCalculator(Calculators.stepFunction("step-calc", Money.of(200, "PLN"), new BigDecimal("10"), new BigDecimal("10"), Interpretation.TOTAL, StepBoundary.EXCLUSIVE))
+        calculators[step.getId()] = step
+        stepId = step.getId()
+        Calculator discrete = facade.addCalculator(Calculators.discretePoints("discrete-calc", Map.of(
                                 new BigDecimal("50"), Money.of(500, "PLN"),
-                                new BigDecimal("75"), Money.of(700, "PLN")),
-                        "interpretation", Interpretation.TOTAL))
-                .getId()
+                                new BigDecimal("75"), Money.of(700, "PLN")), Interpretation.TOTAL))
+        calculators[discrete.getId()] = discrete
+        discreteId = discrete.getId()
     }
 
     def "delegates to first range calculator"() {
@@ -172,7 +163,7 @@ class CompositeCalculatorSpec extends Specification {
 
         then:
         def ex = thrown(IllegalArgumentException)
-        ex.message.contains("not found in repository")
+        ex.message.contains("not found")
     }
 
     def "fails when component calculators have different interpretations"() {
@@ -221,17 +212,12 @@ class CompositeCalculatorSpec extends Specification {
 
     private CalculatorId addFixedCalculator(
             String name, Money amount, Interpretation interpretation = Interpretation.TOTAL) {
-        facade.addCalculator(
-                name,
-                CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", amount, "interpretation", interpretation))
-                .getId()
+        Calculator calculator = facade.addCalculator(Calculators.fixed(name, amount, interpretation))
+        calculators[calculator.getId()] = calculator
+        calculator.getId()
     }
 
     private Calculator addCompositeCalculator(String name, CalculatorRange... ranges) {
-        facade.addCalculator(
-                name,
-                CalculatorType.COMPOSITE,
-                Parameters.of("rangeSelector", "quantity", "ranges", ranges.toList()))
+        facade.addCalculator(Calculators.composite(name, "quantity", ranges.toList(), calculators.values()))
     }
 }

@@ -1,6 +1,6 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
 import com.softwarearchetypes.pricing.ParameterValue
@@ -25,30 +25,15 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     }
 
     private void registerCalculators() {
-        facade.addCalculator("energy-2.50", CalculatorType.SIMPLE_FIXED, Parameters.of(
-                "amount", Money.of(2.50, "PLN"),
-                "interpretation", Interpretation.UNIT
-        ))
+        facade.addCalculator(Calculators.fixed("energy-2.50", Money.of(2.50, "PLN"), Interpretation.UNIT))
 
-        facade.addCalculator("energy-2.00", CalculatorType.SIMPLE_FIXED, Parameters.of(
-                "amount", Money.of(2.00, "PLN"),
-                "interpretation", Interpretation.UNIT
-        ))
+        facade.addCalculator(Calculators.fixed("energy-2.00", Money.of(2.00, "PLN"), Interpretation.UNIT))
 
-        facade.addCalculator("energy-2.80", CalculatorType.SIMPLE_FIXED, Parameters.of(
-                "amount", Money.of(2.80, "PLN"),
-                "interpretation", Interpretation.UNIT
-        ))
-        facade.addCalculator("vat-23", CalculatorType.PERCENTAGE, Parameters.of(
-                "percentageRate", BigDecimal.valueOf(23)
-        ))
-        facade.addCalculator("parking-5", CalculatorType.SIMPLE_FIXED, Parameters.of(
-                "amount", Money.of(5, "PLN")
-        ))
+        facade.addCalculator(Calculators.fixed("energy-2.80", Money.of(2.80, "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.percentage("vat-23", BigDecimal.valueOf(23)))
+        facade.addCalculator(Calculators.fixed("parking-5", Money.of(5, "PLN")))
 
-        facade.addCalculator("parking-8", CalculatorType.SIMPLE_FIXED, Parameters.of(
-                "amount", Money.of(8, "PLN")
-        ))
+        facade.addCalculator(Calculators.fixed("parking-8", Money.of(8, "PLN")))
     }
 
     private void createInitialComponents() {

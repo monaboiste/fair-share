@@ -13,16 +13,11 @@ class CompositeComponentApplicabilitySpec extends Specification {
     private PricingFacade facade = PricingTestConfiguration.inMemory(clock)
 
     def setup() {
-        facade.addCalculator("fixed-100", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(100), "PLN")))
-        facade.addCalculator("fixed-50", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(50), "PLN")))
-        facade.addCalculator("fixed-30", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(30), "PLN")))
-        facade.addCalculator("fixed-20", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(20), "PLN")))
-        facade.addCalculator("pct-10", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(10)))
+        facade.addCalculator(Calculators.fixed("fixed-100", Money.of(BigDecimal.valueOf(100), "PLN")))
+        facade.addCalculator(Calculators.fixed("fixed-50", Money.of(BigDecimal.valueOf(50), "PLN")))
+        facade.addCalculator(Calculators.fixed("fixed-30", Money.of(BigDecimal.valueOf(30), "PLN")))
+        facade.addCalculator(Calculators.fixed("fixed-20", Money.of(BigDecimal.valueOf(20), "PLN")))
+        facade.addCalculator(Calculators.percentage("pct-10", BigDecimal.valueOf(10)))
     }
 
     def "composite component returns zero when its applicability constraint is not satisfied"() {

@@ -168,23 +168,11 @@ class CalculationSimulationSpec extends Specification {
         given:
         PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
-        Calculator lowTier = facade.addCalculator(
-                "low-tier",
-                CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(20, "PLN"))
-        )
+        Calculator lowTier = facade.addCalculator(Calculators.fixed("low-tier", Money.of(20, "PLN")))
 
-        Calculator mediumTier = facade.addCalculator(
-                "medium-tier",
-                CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(10, "PLN"))
-        )
+        Calculator mediumTier = facade.addCalculator(Calculators.fixed("medium-tier", Money.of(10, "PLN")))
 
-        Calculator highTier = facade.addCalculator(
-                "high-tier",
-                CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(0, "PLN"))
-        )
+        Calculator highTier = facade.addCalculator(Calculators.fixed("high-tier", Money.of(0, "PLN")))
 
         List<CalculatorRange> ranges = List.of(
                 new NumericRange(BigDecimal.ZERO, new BigDecimal("1000"), lowTier.getId()),
@@ -193,13 +181,7 @@ class CalculationSimulationSpec extends Specification {
         )
 
         CompositeFunctionCalculator composite = (CompositeFunctionCalculator) facade.addCalculator(
-                "account-fee",
-                CalculatorType.COMPOSITE,
-                Parameters.of(
-                        "rangeSelector", "monthlyIncome",
-                        "ranges", ranges
-                )
-        )
+                Calculators.composite("account-fee", "monthlyIncome", ranges, [lowTier, mediumTier, highTier]))
         List<Parameters> points = List.of(
                 Parameters.of("monthlyIncome", BigDecimal.ZERO),
                 Parameters.of("monthlyIncome", new BigDecimal("500")),

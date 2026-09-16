@@ -10,42 +10,18 @@ class BankAccountFeeScenarioSpec extends Specification {
     private CompositeFunctionCalculator accountFeeCalculator
 
     def setup() {
-        Calculator feeTier1 = facade.addCalculator(
-                "acc-fee-tier-1",
-                CalculatorType.SIMPLE_FIXED,
-                new Parameters(Map.of(
-                        "amount", Money.of(new BigDecimal("20.00"), "PLN")
-                ))
-        )
+        Calculator feeTier1 = facade.addCalculator(Calculators.fixed("acc-fee-tier-1", Money.of(new BigDecimal("20.00"), "PLN")))
 
-        Calculator feeTier2 = facade.addCalculator(
-                "acc-fee-tier-2",
-                CalculatorType.SIMPLE_FIXED,
-                new Parameters(Map.of(
-                        "amount", Money.of(new BigDecimal("10.00"), "PLN")
-                ))
-        )
+        Calculator feeTier2 = facade.addCalculator(Calculators.fixed("acc-fee-tier-2", Money.of(new BigDecimal("10.00"), "PLN")))
 
-        Calculator feeTier3 = facade.addCalculator(
-                "acc-fee-tier-3",
-                CalculatorType.SIMPLE_FIXED,
-                new Parameters(Map.of(
-                        "amount", Money.of(new BigDecimal("0.00"), "PLN")
-                ))
-        )
+        Calculator feeTier3 = facade.addCalculator(Calculators.fixed("acc-fee-tier-3", Money.of(new BigDecimal("0.00"), "PLN")))
         List<CalculatorRange> ranges = List.of(
                 new NumericRange(BigDecimal.ZERO, new BigDecimal("1000"), feeTier1.getId()),
                 new NumericRange(new BigDecimal("1000"), new BigDecimal("4000"), feeTier2.getId()),
                 new NumericRange(new BigDecimal("4000"), new BigDecimal(Integer.MAX_VALUE), feeTier3.getId())
         )
         accountFeeCalculator = (CompositeFunctionCalculator) facade.addCalculator(
-                "account-fee",
-                CalculatorType.COMPOSITE,
-                new Parameters(Map.of(
-                        "rangeSelector", "monthlyIncome",
-                        "ranges", ranges
-                ))
-        )
+                Calculators.composite("account-fee", "monthlyIncome", ranges, [feeTier1, feeTier2, feeTier3]))
     }
 
     def "income of zero is charged 20 PLN"() {

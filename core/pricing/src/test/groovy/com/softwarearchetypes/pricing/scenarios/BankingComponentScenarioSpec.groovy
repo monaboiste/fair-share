@@ -1,6 +1,6 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.ParameterValue
 import com.softwarearchetypes.pricing.Parameters
@@ -18,28 +18,17 @@ class BankingComponentScenarioSpec extends Specification {
     private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def setup() {
-        facade.addCalculator("loan-interest", CalculatorType.SIMPLE_INTEREST,
-                Parameters.of("annualRate", BigDecimal.valueOf(5.5)))
+        facade.addCalculator(Calculators.simpleInterest("loan-interest", BigDecimal.valueOf(5.5)))
 
-        facade.addCalculator("insurance-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(2)))
+        facade.addCalculator(Calculators.percentage("insurance-rate", BigDecimal.valueOf(2)))
 
-        facade.addCalculator("processing-fee", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(500), "PLN")))
-        facade.addCalculator("monthly-account-fee", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(15), "PLN")))
+        facade.addCalculator(Calculators.fixed("processing-fee", Money.of(BigDecimal.valueOf(500), "PLN")))
+        facade.addCalculator(Calculators.fixed("monthly-account-fee", Money.of(BigDecimal.valueOf(15), "PLN")))
 
-        facade.addCalculator("transaction-fee", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.ZERO, "PLN"),
-                        "stepSize", BigDecimal.ONE,
-                        "stepIncrement", BigDecimal.valueOf(0.50)
-                ))
-        facade.addCalculator("management-fee", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(1.5)))
+        facade.addCalculator(Calculators.stepFunction("transaction-fee", Money.of(BigDecimal.ZERO, "PLN"), BigDecimal.ONE, BigDecimal.valueOf(0.50)))
+        facade.addCalculator(Calculators.percentage("management-fee", BigDecimal.valueOf(1.5)))
 
-        facade.addCalculator("performance-fee", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(20)))
+        facade.addCalculator(Calculators.percentage("performance-fee", BigDecimal.valueOf(20)))
     }
 
     def "loan cost with insurance is calculated as a dependency on the base"() {

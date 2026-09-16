@@ -1,6 +1,6 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.ParameterValue
 import com.softwarearchetypes.pricing.Parameters
@@ -16,28 +16,15 @@ class TelcoComponentScenarioSpec extends Specification {
     private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def setup() {
-        facade.addCalculator("network-maintenance", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(25), "PLN")))
+        facade.addCalculator(Calculators.fixed("network-maintenance", Money.of(BigDecimal.valueOf(25), "PLN")))
 
-        facade.addCalculator("commission", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(20), "PLN")))
+        facade.addCalculator(Calculators.fixed("commission", Money.of(BigDecimal.valueOf(20), "PLN")))
 
-        facade.addCalculator("data-overage", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.ZERO, "PLN"),
-                        "stepSize", BigDecimal.ONE,
-                        "stepIncrement", BigDecimal.valueOf(2)
-                ))
+        facade.addCalculator(Calculators.stepFunction("data-overage", Money.of(BigDecimal.ZERO, "PLN"), BigDecimal.ONE, BigDecimal.valueOf(2)))
 
-        facade.addCalculator("roaming-overage", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.ZERO, "PLN"),
-                        "stepSize", BigDecimal.ONE,
-                        "stepIncrement", BigDecimal.valueOf(1.5)
-                ))
+        facade.addCalculator(Calculators.stepFunction("roaming-overage", Money.of(BigDecimal.ZERO, "PLN"), BigDecimal.ONE, BigDecimal.valueOf(1.5)))
 
-        facade.addCalculator("percentage-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(23)))
+        facade.addCalculator(Calculators.percentage("percentage-rate", BigDecimal.valueOf(23)))
     }
 
     def "monthly bill with base fees only totals the sum of included fees"() {

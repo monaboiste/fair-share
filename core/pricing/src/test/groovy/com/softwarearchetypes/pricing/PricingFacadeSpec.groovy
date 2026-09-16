@@ -10,14 +10,8 @@ class PricingFacadeSpec extends Specification {
 
     def "available calculators includes the pre-registered default calculators"() {
         given:
-        facade.addCalculator(
-                "simple-fixed-20",
-                CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(20), "PLN")))
-        facade.addCalculator(
-                "simple-interest-6",
-                CalculatorType.SIMPLE_INTEREST,
-                Parameters.of("annualRate", BigDecimal.valueOf(6)))
+        facade.addCalculator(Calculators.fixed("simple-fixed-20", Money.of(BigDecimal.valueOf(20), "PLN")))
+        facade.addCalculator(Calculators.simpleInterest("simple-interest-6", BigDecimal.valueOf(6)))
 
         and:
         List<CalculatorView> views = facade.availableCalculators()
@@ -31,8 +25,7 @@ class PricingFacadeSpec extends Specification {
     def "available calculators grows when a new calculator is registered"() {
         given:
         int before = facade.availableCalculators().size()
-        facade.addCalculator("extra-fixed", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(50, "PLN")))
+        facade.addCalculator(Calculators.fixed("extra-fixed", Money.of(50, "PLN")))
 
         and:
         List<CalculatorView> views = facade.availableCalculators()
@@ -44,8 +37,7 @@ class PricingFacadeSpec extends Specification {
 
     def "available calculators includes the correct type for each entry"() {
         given:
-        facade.addCalculator("my-fixed", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(100, "PLN")))
+        facade.addCalculator(Calculators.fixed("my-fixed", Money.of(100, "PLN")))
 
         and:
         CalculatorView view = facade.availableCalculators().find { it.name() == "my-fixed" }
@@ -59,12 +51,9 @@ class PricingFacadeSpec extends Specification {
 
     def "list calculators with descriptions groups by calculator type"() {
         given:
-        facade.addCalculator("fixed-extra-1", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(10, "PLN")))
-        facade.addCalculator("fixed-extra-2", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(20, "PLN")))
-        facade.addCalculator("pct-extra", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(5)))
+        facade.addCalculator(Calculators.fixed("fixed-extra-1", Money.of(10, "PLN")))
+        facade.addCalculator(Calculators.fixed("fixed-extra-2", Money.of(20, "PLN")))
+        facade.addCalculator(Calculators.percentage("pct-extra", BigDecimal.valueOf(5)))
 
         and:
         Map<CalculatorType, List<CalculatorView>> grouped = facade.listCalculatorsWithDescriptions()
@@ -72,21 +61,6 @@ class PricingFacadeSpec extends Specification {
         expect:
         grouped.get(CalculatorType.SIMPLE_FIXED).size() >= 2
         grouped.get(CalculatorType.PERCENTAGE).size() >= 1
-    }
-
-    def "available calculator types returns all defined types"() {
-        given:
-        List<CalculatorType> types = facade.availableCalculatorTypes()
-
-        expect:
-        types.containsAll([
-                CalculatorType.SIMPLE_FIXED,
-                CalculatorType.STEP_FUNCTION,
-                CalculatorType.PERCENTAGE,
-                CalculatorType.COMPOSITE,
-                CalculatorType.DAILY_INCREMENT,
-                CalculatorType.CONTINUOUS_LINEAR_TIME
-        ])
     }
 
     def "calculate throws when calculator name is not found"() {
@@ -145,8 +119,7 @@ class PricingFacadeSpec extends Specification {
 
     def "addCalculator returns the created calculator"() {
         given:
-        Calculator calc = facade.addCalculator("my-calc", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(99, "PLN")))
+        Calculator calc = facade.addCalculator(Calculators.fixed("my-calc", Money.of(99, "PLN")))
 
         expect:
         calc != null
@@ -156,8 +129,7 @@ class PricingFacadeSpec extends Specification {
 
     def "calculate delegates to the named calculator"() {
         given:
-        facade.addCalculator("flat-100", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(100, "PLN")))
+        facade.addCalculator(Calculators.fixed("flat-100", Money.of(100, "PLN")))
 
         and:
         Money result = facade.calculate("flat-100", Parameters.empty())

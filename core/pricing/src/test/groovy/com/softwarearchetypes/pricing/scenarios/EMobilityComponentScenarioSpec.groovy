@@ -1,6 +1,6 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
+import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
 import com.softwarearchetypes.pricing.ParameterValue
@@ -18,43 +18,14 @@ class EMobilityComponentScenarioSpec extends Specification {
     private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
 
     def setup() {
-        facade.addCalculator("energy-wholesale", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.valueOf(0.60), "PLN"),
-                        "stepSize", BigDecimal.valueOf(5),
-                        "stepIncrement", BigDecimal.valueOf(0.10),
-                        "stepBoundary", StepBoundary.INCLUSIVE,
-                        "interpretation", Interpretation.MARGINAL
-                ))
-        facade.addCalculator("energy-grid", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(0.15), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("cpo-session-fee", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(new BigDecimal("1.50"), "PLN"),
-                        "interpretation", Interpretation.TOTAL))
-        facade.addCalculator("cpo-per-kwh", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(0.25), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("cpo-per-minute", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(BigDecimal.valueOf(0.10), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("emsp-per-kwh", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(BigDecimal.valueOf(0.10), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("emsp-per-minute", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(BigDecimal.valueOf(0.05), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("vat-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(23),
-                        "interpretation", Interpretation.TOTAL))
+        facade.addCalculator(Calculators.stepFunction("energy-wholesale", Money.of(BigDecimal.valueOf(0.60), "PLN"), BigDecimal.valueOf(5), BigDecimal.valueOf(0.10), Interpretation.MARGINAL, StepBoundary.INCLUSIVE))
+        facade.addCalculator(Calculators.fixed("energy-grid", Money.of(BigDecimal.valueOf(0.15), "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.fixed("cpo-session-fee", Money.of(new BigDecimal("1.50"), "PLN"), Interpretation.TOTAL))
+        facade.addCalculator(Calculators.fixed("cpo-per-kwh", Money.of(BigDecimal.valueOf(0.25), "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.fixed("cpo-per-minute", Money.of(BigDecimal.valueOf(0.10), "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.fixed("emsp-per-kwh", Money.of(BigDecimal.valueOf(0.10), "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.fixed("emsp-per-minute", Money.of(BigDecimal.valueOf(0.05), "PLN"), Interpretation.UNIT))
+        facade.addCalculator(Calculators.percentage("vat-rate", BigDecimal.valueOf(23)))
     }
 
     def "complete EV charging session is calculated with a full cost breakdown"() {

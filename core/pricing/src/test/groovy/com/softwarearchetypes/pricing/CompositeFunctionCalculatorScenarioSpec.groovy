@@ -8,6 +8,7 @@ import spock.lang.Specification
 class CompositeFunctionCalculatorScenarioSpec extends Specification {
 
     private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
+    private final Map<CalculatorId, Calculator> calculators = [:]
 
     def "parking price depends on time of day"() {
         given: "day rate of 5 PLN (06:00-22:00) and night rate of 2 PLN (22:00-06:00)"
@@ -124,13 +125,12 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
     }
 
     private CalculatorId addFixedCalculator(String name, Money amount) {
-        facade.addCalculator(name, CalculatorType.SIMPLE_FIXED, Parameters.of("amount", amount)).getId()
+        Calculator calculator = facade.addCalculator(Calculators.fixed(name, amount))
+        calculators[calculator.getId()] = calculator
+        calculator.getId()
     }
 
     private void addCompositeCalculator(String name, String rangeSelector, CalculatorRange... ranges) {
-        facade.addCalculator(
-                name,
-                CalculatorType.COMPOSITE,
-                Parameters.of("rangeSelector", rangeSelector, "ranges", ranges.toList()))
+        facade.addCalculator(Calculators.composite(name, rangeSelector, ranges.toList(), calculators.values()))
     }
 }

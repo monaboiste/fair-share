@@ -5,10 +5,8 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 
 import com.softwarearchetypes.quantity.money.Money;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +28,7 @@ public class PricingFacade {
         return calculatorRepository.findAll().stream().map(CalculatorView::from).toList();
     }
 
-    public Calculator addCalculator(String name, CalculatorType type, Parameters parameters) {
-        Calculator calculator = createCalculator(name, type, parameters);
+    public Calculator addCalculator(Calculator calculator) {
         calculatorRepository.save(calculator);
         return calculator;
     }
@@ -113,10 +110,6 @@ public class PricingFacade {
     public Map<CalculatorType, List<CalculatorView>> listCalculatorsWithDescriptions() {
         return calculatorRepository.findAll().stream()
                 .collect(groupingBy(Calculator::getType, mapping(CalculatorView::from, Collectors.toList())));
-    }
-
-    public List<CalculatorType> availableCalculatorTypes() {
-        return Arrays.asList(CalculatorType.values());
     }
 
     public Component createSimpleComponent(String componentName, String calculatorName) {
@@ -284,83 +277,5 @@ public class PricingFacade {
                 .orElseThrow(() -> new IllegalArgumentException("Component '%s' not found".formatted(componentName)));
 
         return component.calculateBreakdown(parameters);
-    }
-
-    private Calculator createCalculator(String name, CalculatorType type, Parameters parameters) {
-        if (!parameters.containsAll(type.requiredCreationFields())) {
-            throw new IllegalArgumentException("Calculator %s requires fields %s, but received %s"
-                    .formatted(type, type.requiredCreationFields(), parameters.keys()));
-        }
-
-        Interpretation interpretation =
-                parameters.contains("interpretation") ? (Interpretation) parameters.get("interpretation") : null;
-
-        return switch (type) {
-            case SIMPLE_FIXED ->
-                interpretation != null
-                        ? new SimpleFixedCalculator(name, parameters.getMoney("amount"), interpretation)
-                        : new SimpleFixedCalculator(name, parameters.getMoney("amount"));
-            case SIMPLE_INTEREST -> new SimpleInterestCalculator(name, parameters.getBigDecimal("annualRate"));
-            case STEP_FUNCTION -> {
-                StepBoundary stepBoundary = (StepBoundary) parameters.get("stepBoundary");
-                yield new StepFunctionCalculator(
-                        name,
-                        parameters.getMoney("basePrice"),
-                        parameters.getBigDecimal("stepSize"),
-                        parameters.getBigDecimal("stepIncrement"),
-                        interpretation,
-                        stepBoundary);
-            }
-            case DISCRETE_POINTS -> {
-                Map<BigDecimal, Money> points = new HashMap<>();
-                ((Map<?, ?>) parameters.require("points"))
-                        .forEach((quantity, price) -> points.put((BigDecimal) quantity, (Money) price));
-                yield interpretation != null
-                        ? new DiscretePointsCalculator(name, points, interpretation)
-                        : new DiscretePointsCalculator(name, points);
-            }
-            case DAILY_INCREMENT ->
-                interpretation != null
-                        ? new DailyIncrementCalculator(
-                                name,
-                                parameters.getLocalDate("startDate"),
-                                parameters.getMoney("startPrice"),
-                                parameters.getMoney("dailyIncrement"),
-                                interpretation)
-                        : new DailyIncrementCalculator(
-                                name,
-                                parameters.getLocalDate("startDate"),
-                                parameters.getMoney("startPrice"),
-                                parameters.getMoney("dailyIncrement"));
-            case CONTINUOUS_LINEAR_TIME ->
-                interpretation != null
-                        ? new ContinuousLinearTimeCalculator(
-                                name,
-                                parameters.getInstant("startTime"),
-                                parameters.getMoney("startPrice"),
-                                parameters.getInstant("endTime"),
-                                parameters.getMoney("endPrice"),
-                                interpretation)
-                        : new ContinuousLinearTimeCalculator(
-                                name,
-                                parameters.getInstant("startTime"),
-                                parameters.getMoney("startPrice"),
-                                parameters.getInstant("endTime"),
-                                parameters.getMoney("endPrice"));
-            case COMPOSITE -> {
-                @SuppressWarnings("unchecked")
-                List<CalculatorRange> rangesList = (List<CalculatorRange>) parameters.require("ranges");
-                String rangeSelector = (String) parameters.require("rangeSelector");
-
-                Ranges ranges = new Ranges(rangeSelector, rangesList);
-                yield new CompositeFunctionCalculator(name, ranges, calculatorRepository);
-            }
-            case PERCENTAGE -> {
-                BigDecimal percentageRate = (BigDecimal) parameters.require("percentageRate");
-                yield new PercentageCalculator(name, percentageRate);
-            }
-            default ->
-                throw new IllegalArgumentException("Calculator type %s cannot be created directly".formatted(type));
-        };
     }
 }

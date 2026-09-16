@@ -11,8 +11,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -538,46 +541,46 @@ record ContinuousLinearTimeCalculator(
     }
 }
 
-/**
- * Selects a calculator based on a numeric, time, or date range.
- *
- * <p>Each range delegates to one calculator registered in the repository.
- */
-record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, CalculatorRepository repository)
-        implements Calculator {
+/** Selects a calculator based on a numeric, time, or date range. */
+record CompositeFunctionCalculator(
+        CalculatorId id, String name, Ranges ranges, Map<CalculatorId, Calculator> calculators) implements Calculator {
 
-    public CompositeFunctionCalculator(String name, Ranges ranges, CalculatorRepository repository) {
-        this(CalculatorId.generate(), name, ranges, repository);
+    public CompositeFunctionCalculator(String name, Ranges ranges, Collection<Calculator> calculators) {
+        this(CalculatorId.generate(), name, ranges, calculatorMap(calculators));
     }
 
     public CompositeFunctionCalculator {
-        validateUniformInterpretation(ranges, repository);
+        calculators = Collections.unmodifiableMap(new LinkedHashMap<>(calculators));
+        validateCalculators(ranges, calculators);
     }
 
-    private static void validateUniformInterpretation(Ranges ranges, CalculatorRepository repository) {
-        var calculatorIds =
-                ranges.toList().stream().map(CalculatorRange::calculatorId).collect(Collectors.toSet());
+    private static Map<CalculatorId, Calculator> calculatorMap(Collection<Calculator> calculators) {
+        Map<CalculatorId, Calculator> byId = new LinkedHashMap<>();
+        calculators.forEach(calculator -> byId.put(calculator.getId(), calculator));
+        return byId;
+    }
 
-        if (calculatorIds.isEmpty()) {
-            throw new IllegalArgumentException("Composite calculator must have at least one range");
-        }
-
-        var calculators = repository.findByIds(calculatorIds);
-
-        if (calculators.size() != calculatorIds.size()) {
-            var foundIds = calculators.stream().map(Calculator::getId).toList();
-            var missingIds =
-                    calculatorIds.stream().filter(id -> !foundIds.contains(id)).toList();
+    private static void validateCalculators(Ranges ranges, Map<CalculatorId, Calculator> calculators) {
+        var calculatorIds = ranges.toList().stream()
+                .map(CalculatorRange::calculatorId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        var missingIds = calculatorIds.stream()
+                .filter(id -> !calculators.containsKey(id))
+                .toList();
+        if (!missingIds.isEmpty()) {
             throw new IllegalArgumentException("Calculators not found in repository: %s".formatted(missingIds));
         }
 
-        var interpretations =
-                calculators.stream().map(Calculator::interpretation).distinct().toList();
-
+        var interpretations = calculatorIds.stream()
+                .map(calculators::get)
+                .map(Calculator::interpretation)
+                .distinct()
+                .toList();
         if (interpretations.size() > 1) {
             throw new IllegalArgumentException(
                     "All component calculators in composite must have the same interpretation. Found: %s"
-                            .formatted(calculators.stream()
+                            .formatted(calculatorIds.stream()
+                                    .map(calculators::get)
                                     .map(calc -> calc.name() + ":" + calc.interpretation())
                                     .toList()));
         }
@@ -585,25 +588,14 @@ record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, 
 
     @Override
     public Interpretation interpretation() {
-        return ranges.toList().stream()
-                .findFirst()
-                .map(CalculatorRange::calculatorId)
-                .flatMap(repository::findById)
-                .map(Calculator::interpretation)
-                .orElse(Interpretation.TOTAL);
+        return calculators.get(ranges.toList().getFirst().calculatorId()).interpretation();
     }
 
     @Override
     public Money calculateWithValidInputs(Parameters parameters) {
         CalculatorRange matchingRange = ranges.findMatching(parameters)
                 .orElseThrow(() -> new IllegalArgumentException("No matching range found in %s".formatted(ranges)));
-
-        Calculator calculator = repository
-                .findById(matchingRange.calculatorId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Calculator '%s' not found in repository".formatted(matchingRange.calculatorId())));
-
-        return calculator.calculate(parameters);
+        return calculators.get(matchingRange.calculatorId()).calculate(parameters);
     }
 
     @Override
@@ -615,10 +607,7 @@ record CompositeFunctionCalculator(CalculatorId id, String name, Ranges ranges, 
     public String formula() {
         StringBuilder sb = new StringBuilder("f(x) = piecewise function:%n".formatted());
         ranges.toList().forEach(range -> {
-            Calculator calc = repository
-                    .findById(range.calculatorId())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException("Calculator '%s' not found".formatted(range.calculatorId())));
+            Calculator calc = calculators.get(range.calculatorId());
             sb.append("  %s → %s: %s%n"
                     .formatted(range.describe(), calc.name(), calc.formula().replaceAll("\\R", " ")));
         });
