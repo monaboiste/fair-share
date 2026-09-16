@@ -1,25 +1,12 @@
 package com.softwarearchetypes.pricing.calculation;
 
-import com.softwarearchetypes.quantity.money.Money;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public interface Calculator {
 
-    static PricingResult result(Interpretation interpretation, Money money) {
-        return switch (interpretation) {
-            case TOTAL -> new TotalPrice(money);
-            case UNIT -> new UnitPrice(money);
-            case MARGINAL -> new MarginalPrice(money);
-        };
-    }
-
-    default PricingResult calculate(Parameters parameters) {
-        return calculateWithValidInputs(parameters);
-    }
-
-    PricingResult calculateWithValidInputs(Parameters parameters);
+    PricingResult calculate(Parameters parameters);
 
     String describe();
 

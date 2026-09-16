@@ -18,7 +18,7 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters params) {
+    public PricingResult calculate(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
         if (quantity.compareTo(BigDecimal.ONE) < 0) {
@@ -55,5 +55,3 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
         return id;
     }
 }
-
-/** Converts a total price to an average unit price by dividing it by the quantity. */

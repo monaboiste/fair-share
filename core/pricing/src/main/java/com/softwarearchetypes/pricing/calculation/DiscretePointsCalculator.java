@@ -21,7 +21,7 @@ record DiscretePointsCalculator(
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
 
         BigDecimal quantity = parameters.get(QUANTITY);
 
@@ -32,7 +32,7 @@ record DiscretePointsCalculator(
                             .formatted(quantity, points.keySet()));
         }
 
-        return Calculator.result(interpretation, price);
+        return PricingResults.of(interpretation, price);
     }
 
     @Override
@@ -55,9 +55,3 @@ record DiscretePointsCalculator(
         return id;
     }
 }
-
-/**
- * Calculates a price that increases by a fixed amount for each full day after the start date.
- *
- * <p>The price is constant throughout each day.
- */

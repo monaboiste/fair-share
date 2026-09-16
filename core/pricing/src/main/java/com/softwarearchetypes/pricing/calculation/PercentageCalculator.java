@@ -14,7 +14,7 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters params) {
+    public PricingResult calculate(Parameters params) {
         Money baseAmount = params.get(BASE_AMOUNT);
         BigDecimal rate = percentageRate.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
         Money result = baseAmount.multiply(rate);

@@ -17,7 +17,7 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters params) {
+    public PricingResult calculate(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
         if (quantity.compareTo(BigDecimal.ONE) < 0) {
@@ -52,5 +52,3 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
         return id;
     }
 }
-
-/** Converts a marginal price to a total price by summing marginal prices from one through the quantity. */

@@ -39,7 +39,7 @@ record CompositeFunctionCalculator(
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
         CalculatorRange matchingRange = ranges.findMatching(parameters)
                 .orElseThrow(() -> new IllegalArgumentException("No matching range found in %s".formatted(ranges)));
         return calculators.get(matchingRange.calculatorId()).calculate(parameters);
@@ -66,5 +66,3 @@ record CompositeFunctionCalculator(
         return id;
     }
 }
-
-/** Converts a unit price to a total price by multiplying it by the quantity. */

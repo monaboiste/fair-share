@@ -17,7 +17,7 @@ record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) 
     private static final ParameterKey<Money> SOURCE = new ParameterKey<>("source", Money.class);
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
         return new TotalPrice(exchangeRate.convert(parameters.get(SOURCE)));
     }
 

@@ -1,16 +1,14 @@
-package com.softwarearchetypes.pricing.calculation
+package com.softwarearchetypes.pricing.component
 
+import com.softwarearchetypes.pricing.calculation.Calculator
 import com.softwarearchetypes.pricing.calculation.CalculatorId
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
+import com.softwarearchetypes.pricing.calculation.MarginalPrice
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.pricing.calculation.PricingResult
-import com.softwarearchetypes.pricing.component.MarginalToTotalAdapter
-import com.softwarearchetypes.pricing.component.MarginalToUnitAdapter
-import com.softwarearchetypes.pricing.component.TotalToMarginalAdapter
-import com.softwarearchetypes.pricing.component.TotalToUnitAdapter
-import com.softwarearchetypes.pricing.component.UnitToMarginalAdapter
-import com.softwarearchetypes.pricing.component.UnitToTotalAdapter
+import com.softwarearchetypes.pricing.calculation.TotalPrice
+import com.softwarearchetypes.pricing.calculation.UnitPrice
 import com.softwarearchetypes.quantity.money.Money
 import java.time.LocalDateTime
 import spock.lang.Specification
@@ -126,8 +124,8 @@ class AdaptersSpec extends Specification {
         PricingResult marginal11 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("11")))
 
         expect:
-        marginal6 != null
-        marginal11 != null
+        marginal6.money() == Money.of(100, "PLN")
+        marginal11.money() == Money.of(105, "PLN")
     }
 
     def "derived adapter evaluations retain unrelated source parameters"() {
@@ -182,9 +180,16 @@ class AdaptersSpec extends Specification {
         }
 
         @Override
-        PricingResult calculateWithValidInputs(Parameters parameters) {
+        PricingResult calculate(Parameters parameters) {
             received << parameters
-            Calculator.result(interpretation, parameters.getMoney("baseAmount").multiply(parameters.getBigDecimal("quantity")))
+            def money = parameters.getMoney("baseAmount").multiply(parameters.getBigDecimal("quantity"))
+            if (interpretation == Interpretation.TOTAL) {
+                return new TotalPrice(money)
+            }
+            if (interpretation == Interpretation.UNIT) {
+                return new UnitPrice(money)
+            }
+            return new MarginalPrice(money)
         }
 
         @Override

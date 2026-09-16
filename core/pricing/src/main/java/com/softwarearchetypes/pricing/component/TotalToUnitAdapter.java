@@ -17,7 +17,7 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters params) {
+    public PricingResult calculate(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
         PricingResult total = sourceCalculator.calculate(params);
         return new UnitPrice(total.money().divide(quantity));
@@ -38,5 +38,3 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
         return id;
     }
 }
-
-/** Converts a total price to a marginal price using the difference between consecutive totals. */

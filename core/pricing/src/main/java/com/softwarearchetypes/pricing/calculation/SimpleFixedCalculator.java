@@ -14,8 +14,8 @@ record SimpleFixedCalculator(CalculatorId id, String name, Money amount, Interpr
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
-        return Calculator.result(interpretation, amount);
+    public PricingResult calculate(Parameters parameters) {
+        return PricingResults.of(interpretation, amount);
     }
 
     @Override

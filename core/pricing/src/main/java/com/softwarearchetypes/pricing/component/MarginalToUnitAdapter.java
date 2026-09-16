@@ -18,7 +18,7 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters params) {
+    public PricingResult calculate(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
         PricingResult first = sourceCalculator.calculate(params.with(QUANTITY, BigDecimal.ONE));
@@ -48,5 +48,3 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
         return id;
     }
 }
-
-/** Calculates a configured percentage of the {@code baseAmount} parameter. */

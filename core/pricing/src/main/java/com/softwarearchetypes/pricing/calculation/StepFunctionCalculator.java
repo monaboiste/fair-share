@@ -59,12 +59,12 @@ record StepFunctionCalculator(
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
 
         BigDecimal totalIncrementValue = calculateTotalIncrementValue(parameters);
         Money incrementTotal = Money.of(totalIncrementValue, basePrice.currency());
 
-        return Calculator.result(interpretation, basePrice.add(incrementTotal));
+        return PricingResults.of(interpretation, basePrice.add(incrementTotal));
     }
 
     private BigDecimal calculateTotalIncrementValue(Parameters parameters) {
@@ -100,5 +100,3 @@ record StepFunctionCalculator(
         return id;
     }
 }
-
-/** Calculator that looks up prices from predefined quantity-price pairs. */

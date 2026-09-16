@@ -32,7 +32,7 @@ record DailyIncrementCalculator(
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
 
         LocalDate date = parameters.get(DATE);
 
@@ -41,7 +41,7 @@ record DailyIncrementCalculator(
         BigDecimal daysDecimal = BigDecimal.valueOf(daysFromStart);
         Money totalIncrement = dailyIncrement.multiply(daysDecimal);
 
-        return Calculator.result(interpretation, startPrice.add(totalIncrement));
+        return PricingResults.of(interpretation, startPrice.add(totalIncrement));
     }
 
     @Override
@@ -63,9 +63,3 @@ record DailyIncrementCalculator(
         return id;
     }
 }
-
-/**
- * Calculates a price by linearly interpolating between two {@link Instant} endpoints.
- *
- * <p>The query time must be within the inclusive endpoint range.
- */

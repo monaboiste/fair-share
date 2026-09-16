@@ -39,7 +39,7 @@ record ContinuousLinearTimeCalculator(
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
 
         Instant queryTime = parameters.get(TIME);
 
@@ -58,7 +58,7 @@ record ContinuousLinearTimeCalculator(
         Money priceRange = endPrice.subtract(startPrice);
         Money interpolatedIncrease = priceRange.multiply(progress);
 
-        return Calculator.result(interpretation, startPrice.add(interpolatedIncrease));
+        return PricingResults.of(interpretation, startPrice.add(interpolatedIncrease));
     }
 
     @Override
@@ -81,5 +81,3 @@ record ContinuousLinearTimeCalculator(
         return id;
     }
 }
-
-/** Selects a calculator based on a numeric, time, or date range. */

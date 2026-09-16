@@ -18,7 +18,7 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters params) {
+    public PricingResult calculate(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
         PricingResult first = sourceCalculator.calculate(params.with(QUANTITY, BigDecimal.ONE));
@@ -48,5 +48,3 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
         return id;
     }
 }
-
-/** Converts a marginal price to an average unit price by summing marginal prices and dividing by the quantity. */

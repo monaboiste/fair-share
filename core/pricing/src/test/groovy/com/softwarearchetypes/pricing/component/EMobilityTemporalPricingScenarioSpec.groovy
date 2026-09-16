@@ -1,11 +1,9 @@
 package com.softwarearchetypes.pricing.component
 
 import com.softwarearchetypes.pricing.calculation.Calculator
-
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.Parameters
-import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.TotalPrice
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
@@ -13,7 +11,6 @@ import java.time.LocalDateTime
 import spock.lang.Specification
 
 class EMobilityTemporalPricingScenarioSpec extends Specification {
-
 
     private Calculator parking8
     private Calculator parking5

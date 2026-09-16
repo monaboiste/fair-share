@@ -18,7 +18,7 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
     }
 
     @Override
-    public PricingResult calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculate(Parameters parameters) {
 
         Money base = parameters.get(BASE);
         ChronoUnit unit = parameters.get(UNIT);

@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-/** Represents a semantic part of a price calculation. Components can depend on one another. */
 /**
  * A composite component with a time-versioned child composition.
  *
