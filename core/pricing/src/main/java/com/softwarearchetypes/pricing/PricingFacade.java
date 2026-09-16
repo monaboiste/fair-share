@@ -36,7 +36,7 @@ public class PricingFacade {
     public Money calculate(String calculatorName, Parameters parameters) {
         return calculatorRepository
                 .findByName(calculatorName)
-                .map(c -> c.calculate(parameters))
+                .map(c -> c.calculate(parameters).money())
                 .orElseThrow(
                         () -> new IllegalArgumentException("could not find calculator %s".formatted(calculatorName)));
     }
@@ -58,7 +58,7 @@ public class PricingFacade {
                     case MARGINAL -> MarginalToTotalAdapter.wrap(calc.name() + "-to-total", calc);
                 };
 
-        return totalCalc.calculate(parameters);
+        return totalCalc.calculate(parameters).money();
     }
 
     /**
@@ -78,7 +78,7 @@ public class PricingFacade {
                     case MARGINAL -> MarginalToUnitAdapter.wrap(calc.name() + "-to-unit", calc);
                 };
 
-        return unitCalc.calculate(parameters);
+        return unitCalc.calculate(parameters).money();
     }
 
     /**
@@ -104,7 +104,7 @@ public class PricingFacade {
                     case TOTAL -> TotalToMarginalAdapter.wrap(calc.name() + "-to-marginal", calc);
                 };
 
-        return marginalCalc.calculate(parameters);
+        return marginalCalc.calculate(parameters).money();
     }
 
     public Map<CalculatorType, List<CalculatorView>> listCalculatorsWithDescriptions() {
@@ -268,7 +268,7 @@ public class PricingFacade {
                 .findByName(componentName)
                 .orElseThrow(() -> new IllegalArgumentException("Component '%s' not found".formatted(componentName)));
 
-        return component.calculate(parameters);
+        return component.calculate(parameters).money();
     }
 
     public ComponentBreakdown calculateComponentBreakdown(String componentName, Parameters parameters) {

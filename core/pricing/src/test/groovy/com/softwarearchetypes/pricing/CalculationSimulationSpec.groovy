@@ -26,18 +26,18 @@ class CalculationSimulationSpec extends Specification {
         }
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(points)
+        Map<Parameters, PricingResult> results = calculator.simulate(points)
 
         expect:
         results != null
         results.size() == 7
-        new BigDecimal("100.00") == results.get(Parameters.of("quantity", BigDecimal.ZERO)).value()
-        new BigDecimal("100.00") == results.get(Parameters.of("quantity", new BigDecimal("5"))).value()
-        new BigDecimal("105.00") == results.get(Parameters.of("quantity", new BigDecimal("10"))).value()
-        new BigDecimal("105.00") == results.get(Parameters.of("quantity", new BigDecimal("15"))).value()
-        new BigDecimal("110.00") == results.get(Parameters.of("quantity", new BigDecimal("20"))).value()
-        new BigDecimal("110.00") == results.get(Parameters.of("quantity", new BigDecimal("25"))).value()
-        new BigDecimal("115.00") == results.get(Parameters.of("quantity", new BigDecimal("30"))).value()
+        new BigDecimal("100.00") == results.get(Parameters.of("quantity", BigDecimal.ZERO)).money().value()
+        new BigDecimal("100.00") == results.get(Parameters.of("quantity", new BigDecimal("5"))).money().value()
+        new BigDecimal("105.00") == results.get(Parameters.of("quantity", new BigDecimal("10"))).money().value()
+        new BigDecimal("105.00") == results.get(Parameters.of("quantity", new BigDecimal("15"))).money().value()
+        new BigDecimal("110.00") == results.get(Parameters.of("quantity", new BigDecimal("20"))).money().value()
+        new BigDecimal("110.00") == results.get(Parameters.of("quantity", new BigDecimal("25"))).money().value()
+        new BigDecimal("115.00") == results.get(Parameters.of("quantity", new BigDecimal("30"))).money().value()
     }
 
     def "daily increment calculator can be simulated over a date range"() {
@@ -55,20 +55,20 @@ class CalculationSimulationSpec extends Specification {
         }
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(points)
+        Map<Parameters, PricingResult> results = calculator.simulate(points)
 
         expect:
         results != null
         results.size() == 8
 
-        new BigDecimal("1999.00") == results.get(Parameters.of("date", startDate)).value()
-        new BigDecimal("2199.00") == results.get(Parameters.of("date", startDate.plusDays(2))).value()
-        new BigDecimal("2399.00") == results.get(Parameters.of("date", startDate.plusDays(4))).value()
-        new BigDecimal("2599.00") == results.get(Parameters.of("date", startDate.plusDays(6))).value()
-        new BigDecimal("2799.00") == results.get(Parameters.of("date", startDate.plusDays(8))).value()
-        new BigDecimal("2999.00") == results.get(Parameters.of("date", startDate.plusDays(10))).value()
-        new BigDecimal("3199.00") == results.get(Parameters.of("date", startDate.plusDays(12))).value()
-        new BigDecimal("3399.00") == results.get(Parameters.of("date", startDate.plusDays(14))).value()
+        new BigDecimal("1999.00") == results.get(Parameters.of("date", startDate)).money().value()
+        new BigDecimal("2199.00") == results.get(Parameters.of("date", startDate.plusDays(2))).money().value()
+        new BigDecimal("2399.00") == results.get(Parameters.of("date", startDate.plusDays(4))).money().value()
+        new BigDecimal("2599.00") == results.get(Parameters.of("date", startDate.plusDays(6))).money().value()
+        new BigDecimal("2799.00") == results.get(Parameters.of("date", startDate.plusDays(8))).money().value()
+        new BigDecimal("2999.00") == results.get(Parameters.of("date", startDate.plusDays(10))).money().value()
+        new BigDecimal("3199.00") == results.get(Parameters.of("date", startDate.plusDays(12))).money().value()
+        new BigDecimal("3399.00") == results.get(Parameters.of("date", startDate.plusDays(14))).money().value()
     }
 
     def "continuous linear time calculator can be simulated"() {
@@ -92,21 +92,21 @@ class CalculationSimulationSpec extends Specification {
         )
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(points)
+        Map<Parameters, PricingResult> results = calculator.simulate(points)
 
         and:
-        Money at25Percent = results.get(Parameters.of("time", startTime.plus(3, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
-        Money at75Percent = results.get(Parameters.of("time", startTime.plus(10, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
+        PricingResult at25Percent = results.get(Parameters.of("time", startTime.plus(3, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
+        PricingResult at75Percent = results.get(Parameters.of("time", startTime.plus(10, ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS)))
 
         expect:
         results != null
         results.size() == 5
-        new BigDecimal("1999.00") == results.get(Parameters.of("time", startTime)).value()
-        new BigDecimal("2699.00") == results.get(Parameters.of("time", startTime.plus(7, ChronoUnit.DAYS))).value()
-        new BigDecimal("3399.00") == results.get(Parameters.of("time", endTime)).value()
-        new BigDecimal("2349") == at25Percent.value().setScale(0, RoundingMode.HALF_UP)
+        new BigDecimal("1999.00") == results.get(Parameters.of("time", startTime)).money().value()
+        new BigDecimal("2699.00") == results.get(Parameters.of("time", startTime.plus(7, ChronoUnit.DAYS))).money().value()
+        new BigDecimal("3399.00") == results.get(Parameters.of("time", endTime)).money().value()
+        new BigDecimal("2349") == at25Percent.money().value().setScale(0, RoundingMode.HALF_UP)
 
-        new BigDecimal("3049") == at75Percent.value().setScale(0, RoundingMode.HALF_UP)
+        new BigDecimal("3049") == at75Percent.money().value().setScale(0, RoundingMode.HALF_UP)
     }
 
     def "simple fixed calculator always returns the same price when simulated"() {
@@ -123,14 +123,14 @@ class CalculationSimulationSpec extends Specification {
         )
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(points)
+        Map<Parameters, PricingResult> results = calculator.simulate(points)
 
         expect:
         results != null
         results.size() == 4
 
         results.values().each { price ->
-            new BigDecimal("50.00") == price.value()
+            new BigDecimal("50.00") == price.money().value()
         }
     }
 
@@ -153,15 +153,15 @@ class CalculationSimulationSpec extends Specification {
         )
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(points)
+        Map<Parameters, PricingResult> results = calculator.simulate(points)
 
         expect:
         results != null
         results.size() == 3
 
-        new BigDecimal("100.00") == results.get(Parameters.of("quantity", new BigDecimal("5"))).value()
-        new BigDecimal("180.00") == results.get(Parameters.of("quantity", new BigDecimal("10"))).value()
-        new BigDecimal("350.00") == results.get(Parameters.of("quantity", new BigDecimal("20"))).value()
+        new BigDecimal("100.00") == results.get(Parameters.of("quantity", new BigDecimal("5"))).money().value()
+        new BigDecimal("180.00") == results.get(Parameters.of("quantity", new BigDecimal("10"))).money().value()
+        new BigDecimal("350.00") == results.get(Parameters.of("quantity", new BigDecimal("20"))).money().value()
     }
 
     def "composite calculator can be simulated"() {
@@ -192,17 +192,17 @@ class CalculationSimulationSpec extends Specification {
         )
 
         and:
-        Map<Parameters, Money> results = composite.simulate(points)
+        Map<Parameters, PricingResult> results = composite.simulate(points)
 
         expect:
         results != null
         results.size() == 6
-        new BigDecimal("20.00") == results.get(Parameters.of("monthlyIncome", BigDecimal.ZERO)).value()
-        new BigDecimal("20.00") == results.get(Parameters.of("monthlyIncome", new BigDecimal("500"))).value()
-        new BigDecimal("10.00") == results.get(Parameters.of("monthlyIncome", new BigDecimal("1000"))).value()
-        new BigDecimal("10.00") == results.get(Parameters.of("monthlyIncome", new BigDecimal("2500"))).value()
-        BigDecimal.ZERO == results.get(Parameters.of("monthlyIncome", new BigDecimal("4000"))).value()
-        BigDecimal.ZERO == results.get(Parameters.of("monthlyIncome", new BigDecimal("10000"))).value()
+        new BigDecimal("20.00") == results.get(Parameters.of("monthlyIncome", BigDecimal.ZERO)).money().value()
+        new BigDecimal("20.00") == results.get(Parameters.of("monthlyIncome", new BigDecimal("500"))).money().value()
+        new BigDecimal("10.00") == results.get(Parameters.of("monthlyIncome", new BigDecimal("1000"))).money().value()
+        new BigDecimal("10.00") == results.get(Parameters.of("monthlyIncome", new BigDecimal("2500"))).money().value()
+        BigDecimal.ZERO == results.get(Parameters.of("monthlyIncome", new BigDecimal("4000"))).money().value()
+        BigDecimal.ZERO == results.get(Parameters.of("monthlyIncome", new BigDecimal("10000"))).money().value()
     }
 
     def "simulation results preserve input order"() {
@@ -221,7 +221,7 @@ class CalculationSimulationSpec extends Specification {
         )
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(points)
+        Map<Parameters, PricingResult> results = calculator.simulate(points)
         List<Parameters> resultKeys = new ArrayList<>(results.keySet())
 
         expect:
@@ -239,7 +239,7 @@ class CalculationSimulationSpec extends Specification {
         )
 
         and:
-        Map<Parameters, Money> results = calculator.simulate(List.of())
+        Map<Parameters, PricingResult> results = calculator.simulate(List.of())
 
         expect:
         results != null

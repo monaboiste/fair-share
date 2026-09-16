@@ -16,10 +16,10 @@ class DiscretePointsCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("10")))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("180.00") == result.value()
+        new BigDecimal("180.00") == result.money().value()
     }
 
     def "correct price is returned for every defined point"() {
@@ -32,16 +32,16 @@ class DiscretePointsCalculatorSpec extends Specification {
         DiscretePointsCalculator calculator = new DiscretePointsCalculator("Volume Discount", points)
 
         and:
-        Money result5 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("5"))))
+        PricingResult result5 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("5"))))
 
         expect:
-        new BigDecimal("100.00") == result5.value()
+        new BigDecimal("100.00") == result5.money().value()
 
-        Money result10 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("10"))))
-        new BigDecimal("180.00") == result10.value()
+        PricingResult result10 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("10"))))
+        new BigDecimal("180.00") == result10.money().value()
 
-        Money result20 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("20"))))
-        new BigDecimal("350.00") == result20.value()
+        PricingResult result20 = calculator.calculate(new Parameters(Map.of("quantity", new BigDecimal("20"))))
+        new BigDecimal("350.00") == result20.money().value()
     }
 
     def "undefined quantity raises an exception"() {
@@ -131,9 +131,9 @@ class DiscretePointsCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("1")))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("50.00") == result.value()
+        new BigDecimal("50.00") == result.money().value()
     }
 }

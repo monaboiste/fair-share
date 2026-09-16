@@ -18,10 +18,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 1)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("1999.00") == result.value()
+        new BigDecimal("1999.00") == result.money().value()
     }
 
     def "one day after start returns start price plus one increment"() {
@@ -36,10 +36,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 2)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("2099.00") == result.value()
+        new BigDecimal("2099.00") == result.money().value()
     }
 
     def "seven days after start returns start price plus seven increments"() {
@@ -54,10 +54,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 8)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("2699.00") == result.value()
+        new BigDecimal("2699.00") == result.money().value()
     }
 
     def "fourteen days after start returns the accumulated price"() {
@@ -72,10 +72,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 15)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("3399.00") == result.value()
+        new BigDecimal("3399.00") == result.money().value()
     }
 
     def "date before start returns start price minus the elapsed decrement"() {
@@ -89,10 +89,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 5, 31)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("1899.00") == result.value()
+        new BigDecimal("1899.00") == result.money().value()
     }
 
     def "daily increment works with different currencies"() {
@@ -107,10 +107,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 8)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("269.00") == result.value()
+        new BigDecimal("269.00") == result.money().value()
         result.toString().contains("EUR")
     }
 
@@ -176,10 +176,10 @@ class DailyIncrementCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("date", LocalDate.of(2024, 6, 11)))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("4000.00") == result.value()
+        new BigDecimal("4000.00") == result.money().value()
     }
 
     def "formula shows daily increment expression"() {

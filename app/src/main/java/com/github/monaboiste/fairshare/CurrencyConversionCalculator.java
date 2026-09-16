@@ -7,6 +7,8 @@ import com.softwarearchetypes.pricing.Interpretation;
 import com.softwarearchetypes.pricing.ParameterDefinition;
 import com.softwarearchetypes.pricing.ParameterKey;
 import com.softwarearchetypes.pricing.Parameters;
+import com.softwarearchetypes.pricing.PricingResult;
+import com.softwarearchetypes.pricing.TotalPrice;
 import com.softwarearchetypes.quantity.money.Money;
 import java.util.Set;
 
@@ -24,8 +26,8 @@ record CurrencyConversionCalculator(CalculatorId id, ExchangeRate exchangeRate) 
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
-        return exchangeRate.convert(parameters.get(SOURCE));
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
+        return new TotalPrice(exchangeRate.convert(parameters.get(SOURCE)));
     }
 
     @Override

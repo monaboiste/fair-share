@@ -1,6 +1,5 @@
 package com.softwarearchetypes.pricing;
 
-import static com.softwarearchetypes.pricing.CalculatorType.COMPOSITE;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.util.Comparator.comparing;
 
@@ -24,6 +23,14 @@ import org.jspecify.annotations.Nullable;
 
 public interface Calculator {
 
+    static PricingResult result(Interpretation interpretation, Money money) {
+        return switch (interpretation) {
+            case TOTAL -> new TotalPrice(money);
+            case UNIT -> new UnitPrice(money);
+            case MARGINAL -> new MarginalPrice(money);
+        };
+    }
+
     Set<ParameterDefinition> inputs();
 
     /**
@@ -32,7 +39,7 @@ public interface Calculator {
      * <p>Interface defaults cannot be final, so an implementation or caller can bypass this validation by overriding
      * this method or calling {@link #calculateWithValidInputs(Parameters)} directly.
      */
-    default Money calculate(Parameters parameters) {
+    default PricingResult calculate(Parameters parameters) {
         Set<ParameterDefinition> declaredInputs = Set.copyOf(inputs());
         validateInputContract(declaredInputs);
         declaredInputs.stream().sorted(comparing(ParameterDefinition::name)).forEach(parameters::validate);
@@ -43,7 +50,7 @@ public interface Calculator {
      * Performs calculation after input validation. Implementations must provide this hook; production callers should
      * use {@link #calculate(Parameters)}.
      */
-    Money calculateWithValidInputs(Parameters parameters);
+    PricingResult calculateWithValidInputs(Parameters parameters);
 
     private void validateInputContract(Set<ParameterDefinition> inputs) {
         Map<String, ParameterDefinition> declared = new HashMap<>();
@@ -74,8 +81,8 @@ public interface Calculator {
      * @param points list of parameter sets to evaluate
      * @return map from each parameter set to its calculated price
      */
-    default Map<Parameters, Money> simulate(List<Parameters> points) {
-        Map<Parameters, Money> results = new LinkedHashMap<>();
+    default Map<Parameters, PricingResult> simulate(List<Parameters> points) {
+        Map<Parameters, PricingResult> results = new LinkedHashMap<>();
         for (Parameters params : points) {
             results.put(params, calculate(params));
         }
@@ -101,8 +108,8 @@ record SimpleFixedCalculator(CalculatorId id, String name, Money amount, Interpr
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
-        return amount;
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
+        return Calculator.result(interpretation, amount);
     }
 
     @Override
@@ -147,7 +154,7 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
 
         Money base = parameters.get(BASE);
         ChronoUnit unit = parameters.get(UNIT);
@@ -155,7 +162,7 @@ record SimpleInterestCalculator(CalculatorId id, String name, BigDecimal annualR
         BigDecimal rate = annualRate.divide(BigDecimal.valueOf(100), SCALE, RoundingMode.HALF_UP);
         BigDecimal unitRate = rate.divide(unitsPerYear(unit), SCALE, RoundingMode.HALF_UP);
 
-        return base.multiply(unitRate);
+        return new TotalPrice(base.multiply(unitRate));
     }
 
     @Override
@@ -254,12 +261,12 @@ record StepFunctionCalculator(
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
 
         BigDecimal totalIncrementValue = calculateTotalIncrementValue(parameters);
         Money incrementTotal = Money.of(totalIncrementValue, basePrice.currency());
 
-        return basePrice.add(incrementTotal);
+        return Calculator.result(interpretation, basePrice.add(incrementTotal));
     }
 
     private BigDecimal calculateTotalIncrementValue(Parameters parameters) {
@@ -327,7 +334,7 @@ record DiscretePointsCalculator(
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
 
         BigDecimal quantity = parameters.get(QUANTITY);
 
@@ -338,7 +345,7 @@ record DiscretePointsCalculator(
                             .formatted(quantity, points.keySet()));
         }
 
-        return price;
+        return Calculator.result(interpretation, price);
     }
 
     @Override
@@ -403,7 +410,7 @@ record DailyIncrementCalculator(
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
 
         LocalDate date = parameters.get(DATE);
 
@@ -412,7 +419,7 @@ record DailyIncrementCalculator(
         BigDecimal daysDecimal = BigDecimal.valueOf(daysFromStart);
         Money totalIncrement = dailyIncrement.multiply(daysDecimal);
 
-        return startPrice.add(totalIncrement);
+        return Calculator.result(interpretation, startPrice.add(totalIncrement));
     }
 
     @Override
@@ -483,7 +490,7 @@ record ContinuousLinearTimeCalculator(
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
 
         Instant queryTime = parameters.get(TIME);
 
@@ -502,7 +509,7 @@ record ContinuousLinearTimeCalculator(
         Money priceRange = endPrice.subtract(startPrice);
         Money interpolatedIncrease = priceRange.multiply(progress);
 
-        return startPrice.add(interpolatedIncrease);
+        return Calculator.result(interpretation, startPrice.add(interpolatedIncrease));
     }
 
     @Override
@@ -592,7 +599,7 @@ record CompositeFunctionCalculator(
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters parameters) {
+    public PricingResult calculateWithValidInputs(Parameters parameters) {
         CalculatorRange matchingRange = ranges.findMatching(parameters)
                 .orElseThrow(() -> new IllegalArgumentException("No matching range found in %s".formatted(ranges)));
         return calculators.get(matchingRange.calculatorId()).calculate(parameters);
@@ -621,7 +628,7 @@ record CompositeFunctionCalculator(
 
     @Override
     public CalculatorType getType() {
-        return COMPOSITE;
+        return CalculatorType.COMPOSITE;
     }
 
     @Override
@@ -655,10 +662,10 @@ record UnitToTotalAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
-        Money unitPrice = sourceCalculator.calculate(params);
-        return unitPrice.multiply(quantity);
+        PricingResult unitPrice = sourceCalculator.calculate(params);
+        return new TotalPrice(unitPrice.money().multiply(quantity));
     }
 
     @Override
@@ -711,26 +718,26 @@ record UnitToMarginalAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
         if (quantity.compareTo(BigDecimal.ONE) < 0) {
             throw new IllegalArgumentException("Marginal price requires quantity >= 1");
         }
 
-        Money unitPriceN = sourceCalculator.calculate(params);
-        Money totalN = unitPriceN.multiply(quantity);
+        PricingResult unitPriceN = sourceCalculator.calculate(params);
+        Money totalN = unitPriceN.money().multiply(quantity);
 
         if (quantity.compareTo(BigDecimal.ONE) == 0) {
-            return totalN;
+            return new MarginalPrice(totalN);
         }
 
         BigDecimal quantityMinusOne = quantity.subtract(BigDecimal.ONE);
         Parameters paramsN1 = params.with(QUANTITY, quantityMinusOne);
-        Money unitPriceN1 = sourceCalculator.calculate(paramsN1);
-        Money totalN1 = unitPriceN1.multiply(quantityMinusOne);
+        PricingResult unitPriceN1 = sourceCalculator.calculate(paramsN1);
+        Money totalN1 = unitPriceN1.money().multiply(quantityMinusOne);
 
-        return totalN.subtract(totalN1);
+        return new MarginalPrice(totalN.subtract(totalN1));
     }
 
     @Override
@@ -779,10 +786,10 @@ record TotalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalcula
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
-        Money total = sourceCalculator.calculate(params);
-        return total.divide(quantity);
+        PricingResult total = sourceCalculator.calculate(params);
+        return new UnitPrice(total.money().divide(quantity));
     }
 
     @Override
@@ -831,24 +838,24 @@ record TotalToMarginalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
         if (quantity.compareTo(BigDecimal.ONE) < 0) {
             throw new IllegalArgumentException("Marginal price requires quantity >= 1");
         }
 
-        Money totalN = sourceCalculator.calculate(params);
+        PricingResult totalN = sourceCalculator.calculate(params);
 
         if (quantity.compareTo(BigDecimal.ONE) == 0) {
-            return totalN;
+            return new MarginalPrice(totalN.money());
         }
 
         BigDecimal quantityMinusOne = quantity.subtract(BigDecimal.ONE);
         Parameters paramsN1 = params.with(QUANTITY, quantityMinusOne);
-        Money totalN1 = sourceCalculator.calculate(paramsN1);
+        PricingResult totalN1 = sourceCalculator.calculate(paramsN1);
 
-        return totalN.subtract(totalN1);
+        return new MarginalPrice(totalN.money().subtract(totalN1.money()));
     }
 
     @Override
@@ -897,18 +904,19 @@ record MarginalToTotalAdapter(CalculatorId id, String name, Calculator sourceCal
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
-        Money total = sourceCalculator.calculate(params.with(QUANTITY, BigDecimal.ONE));
+        PricingResult first = sourceCalculator.calculate(params.with(QUANTITY, BigDecimal.ONE));
+        Money total = first.money();
 
         for (int i = 2; i <= quantity.intValue(); i++) {
             Parameters marginalParams = params.with(QUANTITY, new BigDecimal(i));
-            Money marginal = sourceCalculator.calculate(marginalParams);
-            total = total.add(marginal);
+            PricingResult marginal = sourceCalculator.calculate(marginalParams);
+            total = total.add(marginal.money());
         }
 
-        return total;
+        return new TotalPrice(total);
     }
 
     @Override
@@ -957,18 +965,19 @@ record MarginalToUnitAdapter(CalculatorId id, String name, Calculator sourceCalc
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         BigDecimal quantity = params.get(QUANTITY);
 
-        Money total = sourceCalculator.calculate(params.with(QUANTITY, BigDecimal.ONE));
+        PricingResult first = sourceCalculator.calculate(params.with(QUANTITY, BigDecimal.ONE));
+        Money total = first.money();
 
         for (int i = 2; i <= quantity.intValue(); i++) {
             Parameters marginalParams = params.with(QUANTITY, new BigDecimal(i));
-            Money marginal = sourceCalculator.calculate(marginalParams);
-            total = total.add(marginal);
+            PricingResult marginal = sourceCalculator.calculate(marginalParams);
+            total = total.add(marginal.money());
         }
 
-        return total.divide(quantity);
+        return new UnitPrice(total.divide(quantity));
     }
 
     @Override
@@ -1012,11 +1021,11 @@ record PercentageCalculator(CalculatorId id, String name, BigDecimal percentageR
     }
 
     @Override
-    public Money calculateWithValidInputs(Parameters params) {
+    public PricingResult calculateWithValidInputs(Parameters params) {
         Money baseAmount = params.get(BASE_AMOUNT);
         BigDecimal rate = percentageRate.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP);
         Money result = baseAmount.multiply(rate);
-        return Money.of(result.value().setScale(2, RoundingMode.HALF_UP), result.currency());
+        return new TotalPrice(Money.of(result.value().setScale(2, RoundingMode.HALF_UP), result.currency()));
     }
 
     @Override

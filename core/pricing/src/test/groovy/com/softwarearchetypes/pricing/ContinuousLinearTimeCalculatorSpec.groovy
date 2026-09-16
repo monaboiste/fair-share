@@ -22,10 +22,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", startTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("1999.00") == result.value()
+        new BigDecimal("1999.00") == result.money().value()
     }
 
     def "end price is returned at end time"() {
@@ -44,10 +44,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", endTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("3399.00") == result.value()
+        new BigDecimal("3399.00") == result.money().value()
     }
 
     def "time before the start boundary raises an exception"() {
@@ -110,10 +110,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", midTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("2699.00") == result.value()
+        new BigDecimal("2699.00") == result.money().value()
     }
 
     def "price is interpolated at a half-day offset with precision"() {
@@ -132,11 +132,11 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
         BigDecimal expected = new BigDecimal("2049")
 
         expect:
-        result.value().subtract(expected).abs() < new BigDecimal("1")
+        result.money().value().subtract(expected).abs() < new BigDecimal("1")
     }
 
     def "price is interpolated at the quarter point"() {
@@ -155,11 +155,11 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
         BigDecimal expected = new BigDecimal("2349")
 
         expect:
-        result.value().subtract(expected).abs() < new BigDecimal("1")
+        result.money().value().subtract(expected).abs() < new BigDecimal("1")
     }
 
     def "price is interpolated at the three-quarters point"() {
@@ -178,11 +178,11 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
         BigDecimal expected = new BigDecimal("3049")
 
         expect:
-        result.value().subtract(expected).abs() < new BigDecimal("1")
+        result.money().value().subtract(expected).abs() < new BigDecimal("1")
     }
 
     def "price is interpolated with minute precision"() {
@@ -201,10 +201,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("150.00") == result.value()
+        new BigDecimal("150.00") == result.money().value()
     }
 
     def "interpolation works with different currencies"() {
@@ -223,10 +223,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", midTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("269.00") == result.value()
+        new BigDecimal("269.00") == result.money().value()
         result.toString().contains("EUR")
     }
 
@@ -246,10 +246,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", midTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("3000.00") == result.value()
+        new BigDecimal("3000.00") == result.money().value()
     }
 
     def "missing time parameter raises an exception"() {
@@ -331,10 +331,10 @@ class ContinuousLinearTimeCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("time", queryTime))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("150.00") == result.value()
+        new BigDecimal("150.00") == result.money().value()
     }
 
     def "formula shows linear interpolation expression"() {

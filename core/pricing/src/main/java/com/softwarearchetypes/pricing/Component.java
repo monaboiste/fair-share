@@ -26,8 +26,8 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
      * @param parameters input parameters for calculation
      * @return calculated money amount for this component
      */
-    default Money calculate(Parameters parameters) {
-        return calculateBreakdown(parameters).total();
+    default PricingResult calculate(Parameters parameters) {
+        return calculateBreakdown(parameters).result();
     }
 
     /**
@@ -38,7 +38,7 @@ public sealed interface Component permits SimpleComponent, CompositeComponent {
      * @param targetInterpretation desired price interpretation
      * @return calculated money amount in target interpretation
      */
-    Money calculate(Parameters parameters, Interpretation targetInterpretation);
+    PricingResult calculate(Parameters parameters, Interpretation targetInterpretation);
 
     /**
      * Returns the price interpretation of this component. For SimpleComponent: delegates to wrapped calculator For
@@ -152,12 +152,12 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
     }
 
     @Override
-    public Money calculate(Parameters parameters, Interpretation targetInterpretation) {
+    public PricingResult calculate(Parameters parameters, Interpretation targetInterpretation) {
         PricingContext context = PricingContext.from(parameters);
         SimpleComponentVersion version = versionAt(context.timestamp());
 
         if (!version.isApplicableFor(context)) {
-            return Money.zero("PLN");
+            return zeroResult(targetInterpretation);
         }
 
         Parameters transformedParams = transformParameters(parameters, version.parameterMappings());
@@ -167,7 +167,7 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
 
     @Override
     public ComponentBreakdown calculateBreakdown(Parameters parameters, Interpretation targetInterpretation) {
-        Money result = this.calculate(parameters, targetInterpretation);
+        PricingResult result = this.calculate(parameters, targetInterpretation);
         return new ComponentBreakdown(name, result, List.of());
     }
 
@@ -184,6 +184,15 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
                         .thenComparing(SimpleComponentVersion::definedAt))
                 .orElseThrow(() -> new IllegalStateException(
                         "No version of component '%s' (%s) valid at %s".formatted(name, id, time)));
+    }
+
+    private PricingResult zeroResult(Interpretation interpretation) {
+        Money zero = Money.zero("PLN");
+        return switch (interpretation) {
+            case TOTAL -> new TotalPrice(zero);
+            case UNIT -> new UnitPrice(zero);
+            case MARGINAL -> new MarginalPrice(zero);
+        };
     }
 
     /** Transform parameters from component parameter names to calculator parameter names. */
@@ -335,12 +344,12 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     }
 
     @Override
-    public Money calculate(Parameters parameters, Interpretation targetInterpretation) {
+    public PricingResult calculate(Parameters parameters, Interpretation targetInterpretation) {
         PricingContext context = PricingContext.from(parameters);
         CompositeComponentVersion version = versionAt(context.timestamp());
 
         if (!version.isApplicableFor(context)) {
-            return Money.zero("PLN");
+            return new TotalPrice(Money.zero("PLN"));
         }
 
         if (version.children().isEmpty()) {
@@ -356,13 +365,13 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
         for (Component child : version.children()) {
             Parameters enrichedParams = enrichParameters(child, parameters, componentResults, version.dependencies());
 
-            Money childResult = child.calculate(enrichedParams, targetInterpretation);
+            PricingResult childResult = child.calculate(enrichedParams, targetInterpretation);
 
-            componentResults.put(child, childResult);
-            total = (total == null) ? childResult : total.add(childResult);
+            componentResults.put(child, childResult.money());
+            total = (total == null) ? childResult.money() : total.add(childResult.money());
         }
 
-        return Objects.requireNonNull(total);
+        return new TotalPrice(Objects.requireNonNull(total));
     }
 
     @Override
@@ -371,7 +380,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
         CompositeComponentVersion version = versionAt(context.timestamp());
 
         if (!version.isApplicableFor(context)) {
-            return new ComponentBreakdown(name, Money.zero("PLN"), List.of());
+            return new ComponentBreakdown(name, new TotalPrice(Money.zero("PLN")), List.of());
         }
 
         if (version.children().isEmpty()) {
@@ -391,13 +400,13 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
 
             ComponentBreakdown childBreakdown = child.calculateBreakdown(enrichedParams, targetInterpretation);
 
-            componentResults.put(child, childBreakdown.total());
+            componentResults.put(child, childBreakdown.result().money());
             childBreakdowns.add(childBreakdown);
 
             total = (total == null) ? childBreakdown.total() : total.add(childBreakdown.total());
         }
 
-        return new ComponentBreakdown(name, Objects.requireNonNull(total), childBreakdowns);
+        return new ComponentBreakdown(name, new TotalPrice(Objects.requireNonNull(total)), childBreakdowns);
     }
 
     /**

@@ -39,7 +39,7 @@ class CompositeComponentVersioningSpec extends Specification {
         expect:
         total.name() == "Total Price"
         Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
-        total.calculate(params) == Money.of(123, "PLN")
+        total.calculate(params).money() == Money.of(123, "PLN")
     }
 
     def "composition of children changes over time"() {
@@ -84,10 +84,10 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0))
 
         expect:
-        total.calculate(april) == Money.of(123, "PLN")
+        total.calculate(april).money() == Money.of(123, "PLN")
 
         Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
-        total.calculate(may) == Money.of(133, "PLN")
+        total.calculate(may).money() == Money.of(133, "PLN")
     }
 
     def "versioned children are resolved independently at each point in time"() {
@@ -130,13 +130,13 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
 
         expect:
-        total.calculate(jan15) == Money.of(123, "PLN")
+        total.calculate(jan15).money() == Money.of(123, "PLN")
 
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
-        total.calculate(feb15) == Money.of(103, "PLN")
+        total.calculate(feb15).money() == Money.of(103, "PLN")
 
         Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
-        total.calculate(mar15) == Money.of(123, "PLN")
+        total.calculate(mar15).money() == Money.of(123, "PLN")
     }
 
     def "a child can be removed from the composition in a new version"() {
@@ -180,10 +180,10 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters feb = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
 
         expect:
-        total.calculate(feb) == Money.of(133, "PLN")
+        total.calculate(feb).money() == Money.of(133, "PLN")
 
         Parameters mar = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
-        total.calculate(mar) == Money.of(123, "PLN")
+        total.calculate(mar).money() == Money.of(123, "PLN")
     }
 
     def "a child can be replaced in the composition in a new version"() {
@@ -228,10 +228,10 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0))
 
         expect:
-        total.calculate(april) == Money.of(123, "PLN")
+        total.calculate(april).money() == Money.of(123, "PLN")
 
         Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
-        total.calculate(may) == Money.of(173, "PLN")
+        total.calculate(may).money() == Money.of(173, "PLN")
     }
 
     def "when multiple versions overlap the youngest version wins"() {
@@ -283,6 +283,6 @@ class CompositeComponentVersioningSpec extends Specification {
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
 
         expect:
-        composite.calculate(feb15) == Money.of(300, "PLN")
+        composite.calculate(feb15).money() == Money.of(300, "PLN")
     }
 }

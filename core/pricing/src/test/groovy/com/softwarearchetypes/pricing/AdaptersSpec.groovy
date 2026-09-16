@@ -14,10 +14,10 @@ class AdaptersSpec extends Specification {
                 Interpretation.UNIT
         )
         Calculator totalCalculator = UnitToTotalAdapter.wrap("adapter", unitCalculator)
-        Money total = totalCalculator.calculate(Parameters.of("quantity", new BigDecimal("15")))
+        PricingResult total = totalCalculator.calculate(Parameters.of("quantity", new BigDecimal("15")))
 
         expect:
-        total == Money.of(150, "PLN")
+        total.money() == Money.of(150, "PLN")
         totalCalculator.interpretation() == Interpretation.TOTAL
     }
 
@@ -45,12 +45,12 @@ class AdaptersSpec extends Specification {
                 Interpretation.UNIT
         )
         Calculator marginalCalculator = UnitToMarginalAdapter.wrap("adapter", unitCalculator)
-        Money marginal5 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("5")))
-        Money marginal15 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("15")))
+        PricingResult marginal5 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("5")))
+        PricingResult marginal15 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("15")))
 
         expect:
-        marginal5 == Money.of(10, "PLN")
-        marginal15 == Money.of(10, "PLN")
+        marginal5.money() == Money.of(10, "PLN")
+        marginal15.money() == Money.of(10, "PLN")
         marginalCalculator.interpretation() == Interpretation.MARGINAL
     }
 
@@ -64,10 +64,10 @@ class AdaptersSpec extends Specification {
                 Interpretation.TOTAL
         )
         Calculator unitCalculator = TotalToUnitAdapter.wrap("adapter", totalCalculator)
-        Money unit = unitCalculator.calculate(Parameters.of("quantity", new BigDecimal("15")))
+        PricingResult unit = unitCalculator.calculate(Parameters.of("quantity", new BigDecimal("15")))
 
         expect:
-        unit == Money.of(7, "PLN")
+        unit.money() == Money.of(7, "PLN")
         unitCalculator.interpretation() == Interpretation.UNIT
     }
 
@@ -81,14 +81,14 @@ class AdaptersSpec extends Specification {
                 Interpretation.TOTAL
         )
         Calculator marginalCalculator = TotalToMarginalAdapter.wrap("adapter", totalCalculator)
-        Money marginal1 = marginalCalculator.calculate(Parameters.of("quantity", BigDecimal.ONE))
+        PricingResult marginal1 = marginalCalculator.calculate(Parameters.of("quantity", BigDecimal.ONE))
 
         expect:
-        marginal1 == Money.of(100, "PLN")
-        Money marginal10 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("10")))
-        marginal10 == Money.of(5, "PLN")
-        Money marginal11 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("11")))
-        marginal11 == Money.of(0, "PLN")
+        marginal1.money() == Money.of(100, "PLN")
+        PricingResult marginal10 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("10")))
+        marginal10.money() == Money.of(5, "PLN")
+        PricingResult marginal11 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("11")))
+        marginal11.money() == Money.of(0, "PLN")
 
         marginalCalculator.interpretation() == Interpretation.MARGINAL
     }
@@ -101,10 +101,10 @@ class AdaptersSpec extends Specification {
                 Interpretation.MARGINAL
         )
         Calculator totalCalculator = MarginalToTotalAdapter.wrap("adapter", marginalCalculator)
-        Money total = totalCalculator.calculate(Parameters.of("quantity", new BigDecimal("5")))
+        PricingResult total = totalCalculator.calculate(Parameters.of("quantity", new BigDecimal("5")))
 
         expect:
-        total == Money.of(50, "PLN")
+        total.money() == Money.of(50, "PLN")
         totalCalculator.interpretation() == Interpretation.TOTAL
     }
 
@@ -116,10 +116,10 @@ class AdaptersSpec extends Specification {
                 Interpretation.MARGINAL
         )
         Calculator unitCalculator = MarginalToUnitAdapter.wrap("adapter", marginalCalculator)
-        Money unit = unitCalculator.calculate(Parameters.of("quantity", new BigDecimal("5")))
+        PricingResult unit = unitCalculator.calculate(Parameters.of("quantity", new BigDecimal("5")))
 
         expect:
-        unit == Money.of(10, "PLN")
+        unit.money() == Money.of(10, "PLN")
         unitCalculator.interpretation() == Interpretation.UNIT
     }
 
@@ -133,8 +133,8 @@ class AdaptersSpec extends Specification {
                 Interpretation.UNIT
         )
         Calculator marginalCalculator = UnitToMarginalAdapter.wrap("adapter", unitCalculator)
-        Money marginal6 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("6")))
-        Money marginal11 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("11")))
+        PricingResult marginal6 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("6")))
+        PricingResult marginal11 = marginalCalculator.calculate(Parameters.of("quantity", new BigDecimal("11")))
 
         expect:
         marginal6 != null
@@ -198,7 +198,7 @@ class AdaptersSpec extends Specification {
                 "quantity", new BigDecimal("2"),
                 "baseAmount", Money.of(10, "PLN"),
                 "timestamp", LocalDateTime.of(2026, 1, 2, 3, 4)
-        )) == Money.of(40, "PLN")
+        )).money() == Money.of(40, "PLN")
     }
 
     def "adapter rejects an incompatible quantity descriptor before evaluating its source"() {
@@ -250,9 +250,9 @@ class AdaptersSpec extends Specification {
         }
 
         @Override
-        Money calculateWithValidInputs(Parameters parameters) {
+        PricingResult calculateWithValidInputs(Parameters parameters) {
             received << parameters
-            parameters.getMoney("baseAmount").multiply(parameters.getBigDecimal("quantity"))
+            Calculator.result(interpretation, parameters.getMoney("baseAmount").multiply(parameters.getBigDecimal("quantity")))
         }
 
         @Override

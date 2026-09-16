@@ -2,6 +2,7 @@ package com.github.monaboiste.fairshare;
 
 import com.softwarearchetypes.pricing.ComponentVersionId;
 import com.softwarearchetypes.pricing.Parameters;
+import com.softwarearchetypes.pricing.PricingResult;
 import com.softwarearchetypes.pricing.SimpleComponentVersion;
 import com.softwarearchetypes.pricing.Validity;
 import com.softwarearchetypes.quantity.money.Money;
@@ -63,8 +64,8 @@ final class StandardPricing implements Pricing {
                 || !exchangeRate.targetCurrency().equals(targetCurrency)) {
             throw new IllegalArgumentException("Exchange Rate direction does not match the Valuation currencies");
         }
-        Money amount = calculator.calculate(Parameters.of("source", source));
-        return new Valuation(amount, exchangeRate, version);
+        PricingResult result = calculator.calculate(Parameters.of("source", source));
+        return new Valuation(result, exchangeRate, version);
     }
 
     private SimpleComponentVersion versionAt(

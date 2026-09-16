@@ -26,7 +26,7 @@ class CalculatorValidationSpec extends Specification {
 
         expect:
         calculator.inputs() == Set.of()
-        calculator.calculate(Parameters.empty()) == Money.of(1, "PLN")
+        calculator.calculate(Parameters.empty()).money() == Money.of(1, "PLN")
     }
 
     def "simulation uses the same validation path"() {
@@ -47,7 +47,7 @@ class CalculatorValidationSpec extends Specification {
         def calculator = new TestCalculator(input, new ParameterKey<>("quantity", BigDecimal.class))
 
         expect:
-        calculator.calculate(Parameters.of("quantity", 2)) == Money.of(1, "PLN")
+        calculator.calculate(Parameters.of("quantity", 2)).money() == Money.of(1, "PLN")
         calculator.calculations == 1
     }
 
@@ -79,9 +79,9 @@ class CalculatorValidationSpec extends Specification {
         }
 
         @Override
-        Money calculateWithValidInputs(Parameters parameters) {
+        PricingResult calculateWithValidInputs(Parameters parameters) {
             calculations++
-            Money.of(1, "PLN")
+            new TotalPrice(Money.of(1, "PLN"))
         }
 
         @Override

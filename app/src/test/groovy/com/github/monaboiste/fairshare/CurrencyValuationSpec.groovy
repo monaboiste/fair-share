@@ -71,7 +71,7 @@ class CurrencyValuationSpec extends Specification {
                 ExchangeRate.of(USD, PLN, 4.5))
 
         expect:
-        calculator.calculate(Parameters.of("source", "USD 2.00")) == Money.of(9, "PLN")
+        calculator.calculate(Parameters.of("source", "USD 2.00")).money() == Money.of(9, "PLN")
     }
 
     def "currency conversion rejects a source with the wrong type"() {

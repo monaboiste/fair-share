@@ -17,10 +17,10 @@ class StepFunctionCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("5")))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("100.00") == result.value()
+        new BigDecimal("100.00") == result.money().value()
     }
 
     def "price increases by one increment for quantities in the second step"() {
@@ -35,10 +35,10 @@ class StepFunctionCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("15")))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("105.00") == result.value()
+        new BigDecimal("105.00") == result.money().value()
     }
 
     def "price increases by one increment per step crossed"() {
@@ -53,10 +53,10 @@ class StepFunctionCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("35")))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("115.00") == result.value()
+        new BigDecimal("115.00") == result.money().value()
     }
 
     def "price at an exact step boundary applies the next increment"() {
@@ -71,10 +71,10 @@ class StepFunctionCalculatorSpec extends Specification {
         Parameters params = new Parameters(Map.of("quantity", new BigDecimal("20")))
 
         and:
-        Money result = calculator.calculate(params)
+        PricingResult result = calculator.calculate(params)
 
         expect:
-        new BigDecimal("110.00") == result.value()
+        new BigDecimal("110.00") == result.money().value()
     }
 
     def "missing quantity parameter raises an exception"() {

@@ -11,10 +11,10 @@ class ComponentSpec extends Specification {
         SimpleComponent component = SimpleComponent.of("base-fee", calculator)
 
         and:
-        Money result = component.calculate(Parameters.empty())
+        PricingResult result = component.calculate(Parameters.empty())
 
         expect:
-        result == Money.of(BigDecimal.valueOf(20), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(20), "PLN")
         component.interpretation() == Interpretation.TOTAL
     }
 
@@ -41,10 +41,10 @@ class ComponentSpec extends Specification {
         CompositeComponent composite = CompositeComponent.of("total-fees", fee1, fee2)
 
         and:
-        Money result = composite.calculate(Parameters.empty())
+        PricingResult result = composite.calculate(Parameters.empty())
 
         expect:
-        result == Money.of(BigDecimal.valueOf(40), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(40), "PLN")
     }
 
     def "composite component provides a hierarchical breakdown"() {
@@ -92,10 +92,10 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total-with-vat", dependencies, base, vat)
 
         and:
-        Money result = total.calculate(Parameters.empty())
+        PricingResult result = total.calculate(Parameters.empty())
 
         expect:
-        result == Money.of(BigDecimal.valueOf(123), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(123), "PLN")
     }
 
     def "composite component supports sum-of dependencies"() {
@@ -113,10 +113,10 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total-with-tax", dependencies, fee1, fee2, tax)
 
         and:
-        Money result = total.calculate(Parameters.empty())
+        PricingResult result = total.calculate(Parameters.empty())
 
         expect:
-        result == Money.of(BigDecimal.valueOf(88), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(88), "PLN")
     }
 
     def "composite component supports difference-of dependencies"() {
@@ -134,10 +134,10 @@ class ComponentSpec extends Specification {
         CompositeComponent financials = CompositeComponent.of("financials", dependencies, revenue, costs, profitTax)
 
         and:
-        Money result = financials.calculate(Parameters.empty())
+        PricingResult result = financials.calculate(Parameters.empty())
 
         expect:
-        result == Money.of(BigDecimal.valueOf(1514), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(1514), "PLN")
     }
 
     def "composite component supports product-of dependencies"() {
@@ -153,10 +153,10 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total", dependencies, baseAmount, enhanced)
 
         and:
-        Money result = total.calculate(Parameters.empty())
+        PricingResult result = total.calculate(Parameters.empty())
 
         expect:
-        result == Money.of(BigDecimal.valueOf(115), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(115), "PLN")
     }
 
     def "composite component handles mixed interpretations"() {
@@ -174,8 +174,8 @@ class ComponentSpec extends Specification {
 
         expect:
         composite.interpretation() == Interpretation.TOTAL
-        Money result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
-        result == Money.of(BigDecimal.valueOf(150), "PLN")
+        PricingResult result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
+        result.money() == Money.of(BigDecimal.valueOf(150), "PLN")
     }
 
     def "composite component throws when a dependent component has not been calculated yet"() {
@@ -236,8 +236,8 @@ class ComponentSpec extends Specification {
 
         expect:
         composite.interpretation() == Interpretation.TOTAL
-        Money result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
-        result == Money.of(BigDecimal.valueOf(75), "PLN")
+        PricingResult result = composite.calculate(Parameters.of("quantity", BigDecimal.valueOf(5)))
+        result.money() == Money.of(BigDecimal.valueOf(75), "PLN")
     }
 
     def "composite component passes parameters to all children"() {
@@ -259,10 +259,10 @@ class ComponentSpec extends Specification {
 
         and:
         Parameters params = Parameters.of("quantity", BigDecimal.valueOf(5))
-        Money result = composite.calculate(params)
+        PricingResult result = composite.calculate(params)
 
         expect:
-        result == Money.of(BigDecimal.valueOf(25), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(25), "PLN")
     }
 
     def "composite component throws when it has no children"() {
@@ -288,10 +288,10 @@ class ComponentSpec extends Specification {
                 Map.of("my_quantity", "quantity"))
 
         and:
-        Money result = component.calculate(Parameters.of("my_quantity", BigDecimal.valueOf(5)))
+        PricingResult result = component.calculate(Parameters.of("my_quantity", BigDecimal.valueOf(5)))
 
         expect:
-        result == Money.of(BigDecimal.valueOf(15), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(15), "PLN")
     }
 
     def "simple component passes unmapped parameters through"() {
@@ -308,10 +308,10 @@ class ComponentSpec extends Specification {
         Parameters params = Parameters.of("my_qty", BigDecimal.valueOf(10))
                 .with("time", BigDecimal.valueOf(5))
 
-        Money result = component.calculate(params)
+        PricingResult result = component.calculate(params)
 
         expect:
-        result == Money.of(BigDecimal.valueOf(20), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(20), "PLN")
     }
 
     def "simple component converts to the requested interpretation using adapters"() {
@@ -323,22 +323,22 @@ class ComponentSpec extends Specification {
         SimpleComponent component = SimpleComponent.of("unit-comp", unitPriceCalc)
 
         and:
-        Money resultAsTotal = component.calculate(
+        PricingResult resultAsTotal = component.calculate(
                 Parameters.of("quantity", BigDecimal.valueOf(5)),
                 Interpretation.TOTAL
         )
 
         expect:
-        resultAsTotal == Money.of(BigDecimal.valueOf(50), "PLN")
+        resultAsTotal.money() == Money.of(BigDecimal.valueOf(50), "PLN")
 
         and:
-        Money resultAsUnit = component.calculate(
+        PricingResult resultAsUnit = component.calculate(
                 Parameters.of("quantity", BigDecimal.valueOf(5)),
                 Interpretation.UNIT
         )
 
         and:
-        resultAsUnit == Money.of(BigDecimal.valueOf(10), "PLN")
+        resultAsUnit.money() == Money.of(BigDecimal.valueOf(10), "PLN")
     }
 
     def "simple component converts marginal to total using an adapter"() {
@@ -352,13 +352,13 @@ class ComponentSpec extends Specification {
         SimpleComponent component = SimpleComponent.of("marginal-comp", marginalCalc)
 
         and:
-        Money resultAsTotal = component.calculate(
+        PricingResult resultAsTotal = component.calculate(
                 Parameters.of("quantity", BigDecimal.valueOf(10)),
                 Interpretation.TOTAL
         )
 
         expect:
-        resultAsTotal == Money.of(BigDecimal.valueOf(27.5), "PLN")
+        resultAsTotal.money() == Money.of(BigDecimal.valueOf(27.5), "PLN")
     }
 
     def "composite component works with children that have parameter mappings"() {
@@ -382,10 +382,10 @@ class ComponentSpec extends Specification {
         Parameters params = Parameters.of("tier1_qty", BigDecimal.valueOf(5))
                 .with("tier2_qty", BigDecimal.valueOf(3))
 
-        Money result = composite.calculate(params)
+        PricingResult result = composite.calculate(params)
 
         expect:
-        result == Money.of(BigDecimal.valueOf(19), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(19), "PLN")
     }
 
     def "composite component converts children with different interpretations to total"() {
@@ -413,9 +413,9 @@ class ComponentSpec extends Specification {
 
         and:
         Parameters params = Parameters.of("quantity", BigDecimal.valueOf(3))
-        Money result = composite.calculate(params)
+        PricingResult result = composite.calculate(params)
 
         expect:
-        result == Money.of(BigDecimal.valueOf(31), "PLN")
+        result.money() == Money.of(BigDecimal.valueOf(31), "PLN")
     }
 }

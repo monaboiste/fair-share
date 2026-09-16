@@ -37,10 +37,10 @@ class SimpleComponentVersioningSpec extends Specification {
 
         and:
         Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
-        Money result = component.calculate(params)
+        PricingResult result = component.calculate(params)
 
         expect:
-        result == Money.of(100, "PLN")
+        result.money() == Money.of(100, "PLN")
     }
 
     def "adding a new version keeps the old one for its validity period"() {
@@ -67,13 +67,13 @@ class SimpleComponentVersioningSpec extends Specification {
         Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
 
         expect:
-        updated.calculate(jan15) == Money.of(100, "PLN")
+        updated.calculate(jan15).money() == Money.of(100, "PLN")
 
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
-        updated.calculate(feb15) == Money.of(80, "PLN")
+        updated.calculate(feb15).money() == Money.of(80, "PLN")
 
         Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
-        updated.calculate(mar15) == Money.of(100, "PLN")
+        updated.calculate(mar15).money() == Money.of(100, "PLN")
     }
 
     def "when versions overlap the one with the youngest valid.from wins"() {
@@ -94,7 +94,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
 
         expect:
-        component.calculate(feb15) == Money.of(90, "PLN")
+        component.calculate(feb15).money() == Money.of(90, "PLN")
     }
 
     def "calculation fails when no version is valid at the given timestamp"() {
@@ -123,10 +123,10 @@ class SimpleComponentVersioningSpec extends Specification {
 
         and:
         Parameters params = Parameters.empty()
-        Money result = component.calculate(params)
+        PricingResult result = component.calculate(params)
 
         expect:
-        result == Money.of(100, "PLN")
+        result.money() == Money.of(100, "PLN")
     }
 
     def "version with identical validity is rejected by default"() {
@@ -162,7 +162,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
 
         expect:
-        updated.calculate(params) == Money.of(200, "PLN")
+        updated.calculate(params).money() == Money.of(200, "PLN")
     }
 
     def "overlapping versions are rejected with the REJECT_OVERLAPPING strategy"() {
@@ -208,10 +208,10 @@ class SimpleComponentVersioningSpec extends Specification {
         expect:
         component.calculate(Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 1, 15, 0, 0),
-                "legacyAmount", "legacy")) == Money.of(10, "PLN")
+                "legacyAmount", "legacy")).money() == Money.of(10, "PLN")
         component.calculate(Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 2, 15, 0, 0),
-                "currentQuantity", BigDecimal.ONE)) == Money.of(20, "PLN")
+                "currentQuantity", BigDecimal.ONE)).money() == Money.of(20, "PLN")
     }
 
     def "applicability is checked before selected calculator validation"() {
@@ -226,16 +226,16 @@ class SimpleComponentVersioningSpec extends Specification {
                 clock)
 
         when:
-        Money result = component.calculate(Parameters.of("customer", "included"))
+        PricingResult result = component.calculate(Parameters.of("customer", "included"))
 
         then:
-        result == Money.zero("PLN")
+        result.money() == Money.zero("PLN")
     }
 
     private static Calculator calculatorWithInput(ParameterDefinition input, Money result) {
         [
                 inputs: { Set.of(input) },
-                calculateWithValidInputs: { Parameters ignored -> result },
+                calculateWithValidInputs: { Parameters ignored -> new TotalPrice(result) },
                 getType: { CalculatorType.CUSTOM },
                 interpretation: { Interpretation.TOTAL }
         ] as Calculator
@@ -265,9 +265,9 @@ class SimpleComponentVersioningSpec extends Specification {
                 "timestamp", LocalDateTime.of(2024, 1, 15, 0, 0),
                 "kwh", BigDecimal.valueOf(15)
         )
-        Money result = component.calculate(params)
+        PricingResult result = component.calculate(params)
 
         expect:
-        result == Money.of(105, "PLN")
+        result.money() == Money.of(105, "PLN")
     }
 }
