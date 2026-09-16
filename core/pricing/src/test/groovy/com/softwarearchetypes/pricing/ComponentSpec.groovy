@@ -84,9 +84,9 @@ class ComponentSpec extends Specification {
         SimpleComponent base = SimpleComponent.of("base-price", baseCalculator)
         Calculator percentageCalc = new PercentageCalculator("vat", BigDecimal.valueOf(23))
         SimpleComponent vat = SimpleComponent.of("vat", percentageCalc)
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "vat", Map.of(
-                "baseAmount", new ValueOf("base-price")
+                "baseAmount", ParameterExpression.valueOf("base-price")
         ))
         CompositeComponent total = CompositeComponent.of("total-with-vat", dependencies, base, vat)
 
@@ -105,9 +105,9 @@ class ComponentSpec extends Specification {
                 new SimpleFixedCalculator("c2", Money.of(BigDecimal.valueOf(30), "PLN")))
         SimpleComponent tax = SimpleComponent.of("tax",
                 new PercentageCalculator("tax-calc", BigDecimal.valueOf(10)))
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "tax", Map.of(
-                "baseAmount", new SumOf("fee-1", "fee-2")
+                "baseAmount", ParameterExpression.sumOf("fee-1", "fee-2")
         ))
         CompositeComponent total = CompositeComponent.of("total-with-tax", dependencies, fee1, fee2, tax)
 
@@ -126,9 +126,9 @@ class ComponentSpec extends Specification {
                 new SimpleFixedCalculator("cost", Money.of(BigDecimal.valueOf(400), "PLN")))
         SimpleComponent profitTax = SimpleComponent.of("profit-tax",
                 new PercentageCalculator("tax", BigDecimal.valueOf(19)))
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "profit-tax", Map.of(
-                "baseAmount", new DifferenceOf("revenue", "costs")
+                "baseAmount", ParameterExpression.differenceOf("revenue", "costs")
         ))
         CompositeComponent financials = CompositeComponent.of("financials", dependencies, revenue, costs, profitTax)
 
@@ -145,9 +145,9 @@ class ComponentSpec extends Specification {
                 new SimpleFixedCalculator("base", Money.of(BigDecimal.valueOf(100), "PLN")))
         SimpleComponent enhanced = SimpleComponent.of("enhanced",
                 new PercentageCalculator("calc", BigDecimal.valueOf(10)))
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "enhanced", Map.of(
-                "baseAmount", new ProductOf("base", BigDecimal.valueOf(1.5))
+                "baseAmount", ParameterExpression.productOf("base", BigDecimal.valueOf(1.5))
         ))
         CompositeComponent total = CompositeComponent.of("total", dependencies, baseAmount, enhanced)
 
@@ -167,8 +167,8 @@ class ComponentSpec extends Specification {
                 new PercentageCalculator("c2", BigDecimal.valueOf(10)))
         List<Component> childrenInWrongOrder = List.of(comp2, comp1)
 
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "comp-2", Map.of("baseAmount", new ValueOf("comp-1")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "comp-2", Map.of("baseAmount", ParameterExpression.valueOf("comp-1")))
         CompositeComponent composite = CompositeComponent.of(
                 "invalid-order", dependencies, childrenInWrongOrder
         )
@@ -186,8 +186,8 @@ class ComponentSpec extends Specification {
         SimpleComponent comp = SimpleComponent.of("comp",
                 new PercentageCalculator("c", BigDecimal.valueOf(10)))
 
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "comp", Map.of("baseAmount", new ValueOf("non-existent")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "comp", Map.of("baseAmount", ParameterExpression.valueOf("non-existent")))
         CompositeComponent composite = CompositeComponent.of(
                 "invalid-ref", dependencies, comp
         )

@@ -235,7 +235,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     public static CompositeComponent withInitialVersion(
             String name,
             List<Component> children,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
             Validity validity,
             Clock clock) {
@@ -248,7 +248,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     public static CompositeComponent withInitialVersion(
             String name,
             List<Component> children,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies,
             Validity validity,
             Clock clock) {
         return withInitialVersion(name, children, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, clock);
@@ -278,7 +278,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     }
 
     public static CompositeComponent of(
-            String name, Map<String, Map<String, ParameterValue>> nameDependencies, Component... children) {
+            String name, Map<String, Map<String, ParameterExpression>> nameDependencies, Component... children) {
         return of(name, nameDependencies, Arrays.asList(children));
     }
 
@@ -287,10 +287,10 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
      * IDs). Valid "always" - for testing and simple use cases.
      */
     public static CompositeComponent of(
-            String name, Map<String, Map<String, ParameterValue>> nameDependencies, List<Component> children) {
-        Map<ComponentId, Map<String, ParameterValue>> idDependencies = new HashMap<>();
+            String name, Map<String, Map<String, ParameterExpression>> nameDependencies, List<Component> children) {
+        Map<ComponentId, Map<String, ParameterExpression>> idDependencies = new HashMap<>();
 
-        for (Map.Entry<String, Map<String, ParameterValue>> entry : nameDependencies.entrySet()) {
+        for (Map.Entry<String, Map<String, ParameterExpression>> entry : nameDependencies.entrySet()) {
             String childName = entry.getKey();
             Component child = children.stream()
                     .filter(c -> c.name().equals(childName))
@@ -346,7 +346,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
-        Map<Component, @Nullable Money> componentResults = new HashMap<>();
+        Map<Component, @Nullable PricingResult> componentResults = new HashMap<>();
         for (Component child : version.children()) {
             componentResults.put(child, null);
         }
@@ -357,7 +357,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
 
             PricingResult childResult = child.calculate(enrichedParams, targetInterpretation);
 
-            componentResults.put(child, childResult.money());
+            componentResults.put(child, childResult);
             total = (total == null) ? childResult.money() : total.add(childResult.money());
         }
 
@@ -377,7 +377,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             throw new IllegalStateException("Composite component %s has no children".formatted(name));
         }
 
-        Map<Component, @Nullable Money> componentResults = new HashMap<>();
+        Map<Component, @Nullable PricingResult> componentResults = new HashMap<>();
         for (Component child : version.children()) {
             componentResults.put(child, null);
         }
@@ -390,7 +390,7 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
 
             ComponentBreakdown childBreakdown = child.calculateBreakdown(enrichedParams, targetInterpretation);
 
-            componentResults.put(child, childBreakdown.result().money());
+            componentResults.put(child, childBreakdown.result());
             childBreakdowns.add(childBreakdown);
 
             total = (total == null) ? childBreakdown.total() : total.add(childBreakdown.total());
@@ -418,18 +418,18 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
     private Parameters enrichParameters(
             Component child,
             Parameters baseParameters,
-            Map<Component, @Nullable Money> componentResults,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies) {
-        Map<String, ParameterValue> childDependencies = dependencies.get(child.id());
+            Map<Component, @Nullable PricingResult> componentResults,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies) {
+        Map<String, ParameterExpression> childDependencies = dependencies.get(child.id());
 
         if (childDependencies == null || childDependencies.isEmpty()) {
             return baseParameters;
         }
 
         Parameters enriched = baseParameters;
-        for (Map.Entry<String, ParameterValue> entry : childDependencies.entrySet()) {
+        for (Map.Entry<String, ParameterExpression> entry : childDependencies.entrySet()) {
             String targetParamName = entry.getKey();
-            ParameterValue expression = entry.getValue();
+            ParameterExpression expression = entry.getValue();
 
             Money value = expression.evaluate(componentResults);
             enriched = enriched.with(targetParamName, value);

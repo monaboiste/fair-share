@@ -5,12 +5,11 @@ import com.softwarearchetypes.pricing.CalculatorRange
 import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
-import com.softwarearchetypes.pricing.ParameterValue
+import com.softwarearchetypes.pricing.ParameterExpression
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.PricingTestConfiguration
 import com.softwarearchetypes.pricing.Validity
-import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import java.time.LocalDateTime
@@ -96,11 +95,11 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "vat-rate",
                 Map.of(),
                 Validity.from(januaryFirst))
-        Map<String, Map<String, ParameterValue>> nettoDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "fuel-component", Map.of("baseAmount", new ValueOf("base-component")),
-                "adr-component", Map.of("baseAmount", new ValueOf("base-component")),
-                "oversized-component", Map.of("baseAmount", new ValueOf("base-component")),
-                "time-window-component", Map.of("baseAmount", new ValueOf("base-component")))
+        Map<String, Map<String, ParameterExpression>> nettoDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "fuel-component", Map.of("baseAmount", ParameterExpression.valueOf("base-component")),
+                "adr-component", Map.of("baseAmount", ParameterExpression.valueOf("base-component")),
+                "oversized-component", Map.of("baseAmount", ParameterExpression.valueOf("base-component")),
+                "time-window-component", Map.of("baseAmount", ParameterExpression.valueOf("base-component")))
         facade.createCompositeComponent(
                 "netto", nettoDependencies,
                 Validity.from(januaryFirst),
@@ -112,8 +111,8 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cod-component",
                 "insurance-component")
 
-        Map<String, Map<String, ParameterValue>> totalDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
+        Map<String, Map<String, ParameterExpression>> totalDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("netto")))
         facade.createCompositeComponent(
                 "total-cost", totalDependencies,
                 Validity.from(januaryFirst),

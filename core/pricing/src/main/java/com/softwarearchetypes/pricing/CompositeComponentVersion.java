@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 record CompositeComponentVersion(
         ComponentVersionId id,
         List<Component> children,
-        Map<ComponentId, Map<String, ParameterValue>> dependencies,
+        Map<ComponentId, Map<String, ParameterExpression>> dependencies,
         ApplicabilityConstraint applicabilityConstraint,
         Validity validity,
         LocalDateTime definedAt)
@@ -32,7 +32,7 @@ record CompositeComponentVersion(
 
     public CompositeComponentVersion(
             List<Component> children,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
             Validity validity,
             LocalDateTime definedAt) {
@@ -42,7 +42,7 @@ record CompositeComponentVersion(
     /** Backward-compatible constructor - composite always applicable (no business condition). */
     public CompositeComponentVersion(
             List<Component> children,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies,
             Validity validity,
             LocalDateTime definedAt) {
         this(children, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
@@ -60,7 +60,7 @@ record CompositeComponentVersion(
     /** Create a version with an explicit applicability constraint. */
     public static CompositeComponentVersion of(
             List<Component> children,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
             Validity validity,
             Clock clock) {
@@ -71,7 +71,7 @@ record CompositeComponentVersion(
     /** Create a version with clock - definedAt will be set now(clock). */
     public static CompositeComponentVersion of(
             List<Component> children,
-            Map<ComponentId, Map<String, ParameterValue>> dependencies,
+            Map<ComponentId, Map<String, ParameterExpression>> dependencies,
             Validity validity,
             Clock clock) {
         return new CompositeComponentVersion(

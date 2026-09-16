@@ -3,12 +3,11 @@ package com.softwarearchetypes.pricing.scenarios
 import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
-import com.softwarearchetypes.pricing.ParameterValue
+import com.softwarearchetypes.pricing.ParameterExpression
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.PricingTestConfiguration
 import com.softwarearchetypes.pricing.StepBoundary
-import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import spock.lang.Specification
@@ -57,8 +56,8 @@ class EMobilityComponentScenarioSpec extends Specification {
         )
         facade.createSimpleComponent("vat-component", "vat-rate")
 
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("netto")))
         facade.createCompositeComponent("total-session-cost", dependencies,
                 "netto", "vat-component"
         )
@@ -129,8 +128,8 @@ class EMobilityComponentScenarioSpec extends Specification {
                 "energy-net", "cpo-markup", "emsp-markup")
 
         facade.createSimpleComponent("vat-component", "vat-rate")
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("netto")))
         facade.createCompositeComponent("total-session-cost", dependencies,
                 "netto", "vat-component")
 

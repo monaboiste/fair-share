@@ -2,12 +2,10 @@ package com.softwarearchetypes.pricing.scenarios
 
 import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
-import com.softwarearchetypes.pricing.ParameterValue
+import com.softwarearchetypes.pricing.ParameterExpression
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.PricingTestConfiguration
-import com.softwarearchetypes.pricing.SumOf
-import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import java.time.temporal.ChronoUnit
@@ -42,8 +40,8 @@ class BankingComponentScenarioSpec extends Specification {
                 "principal-interest", "processing"
         )
 
-        Map<String, Map<String, ParameterValue>> loanDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "loan-insurance", Map.of("baseAmount", new ValueOf("loan-base")))
+        Map<String, Map<String, ParameterExpression>> loanDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "loan-insurance", Map.of("baseAmount", ParameterExpression.valueOf("loan-base")))
         facade.createCompositeComponent(
                 "total-loan-cost", loanDependencies,
                 "loan-base", "loan-insurance"
@@ -108,8 +106,8 @@ class BankingComponentScenarioSpec extends Specification {
         given: "1,000,000 PLN portfolio with 1.5% management fee and 20% performance bonus on the management fee"
         facade.createSimpleComponent("base-management", "management-fee")
         facade.createSimpleComponent("performance-bonus", "performance-fee")
-        Map<String, Map<String, ParameterValue>> managementDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "performance-bonus", Map.of("baseAmount", new ValueOf("base-management")))
+        Map<String, Map<String, ParameterExpression>> managementDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "performance-bonus", Map.of("baseAmount", ParameterExpression.valueOf("base-management")))
         facade.createCompositeComponent(
                 "total-management-fees", managementDependencies,
                 "base-management", "performance-bonus"
@@ -144,8 +142,8 @@ class BankingComponentScenarioSpec extends Specification {
         facade.createSimpleComponent("interest", "loan-interest")
         facade.createSimpleComponent("processing", "processing-fee")
         facade.createSimpleComponent("insurance", "insurance-rate")
-        Map<String, Map<String, ParameterValue>> financingDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "insurance", Map.of("baseAmount", new SumOf("interest", "processing")))
+        Map<String, Map<String, ParameterExpression>> financingDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "insurance", Map.of("baseAmount", ParameterExpression.sumOf("interest", "processing")))
         facade.createCompositeComponent(
                 "financing-costs", financingDependencies,
                 "interest", "processing", "insurance"

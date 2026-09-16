@@ -3,13 +3,11 @@ package com.softwarearchetypes.pricing.scenarios
 import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
 import com.softwarearchetypes.pricing.Interpretation
-import com.softwarearchetypes.pricing.ParameterValue
+import com.softwarearchetypes.pricing.ParameterExpression
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.PricingTestConfiguration
-import com.softwarearchetypes.pricing.SumOf
 import com.softwarearchetypes.pricing.Validity
-import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import java.time.LocalDateTime
@@ -55,8 +53,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 Map.of(),
                 Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0))
         )
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "VAT", Map.of("baseAmount", new ValueOf("EnergyCharge")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "VAT", Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge")))
         facade.createCompositeComponent(
                 "TotalPrice", dependencies,
                 Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0)),
@@ -133,8 +131,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
 
     def "parking fee is added to the composite in May"() {
         given: "a new composite version that includes ParkingFee from May onwards"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice", dependencies,
                 Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)),
@@ -159,8 +157,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
 
     def "summer energy rate increase is applied in July"() {
         given: "composite updated for May, and energy raised to 2.80 PLN for July-August"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
                 dependencies,
@@ -192,8 +190,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
 
     def "price reverts automatically to the base rate in September"() {
         given: "composite updated for May, summer increase registered for July-August"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
                 dependencies,
@@ -226,8 +224,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
 
     def "winter parking fee increase takes effect in November"() {
         given: "full year pricing with composite, summer rate, and winter parking fee"
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
                 dependencies,
@@ -325,8 +323,8 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 Map.of(),
                 Validity.from(LocalDateTime.of(2024, 11, 1, 0, 0))
         )
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "VAT", Map.of("baseAmount", new SumOf("EnergyCharge", "ParkingFee")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "VAT", Map.of("baseAmount", ParameterExpression.sumOf("EnergyCharge", "ParkingFee")))
         facade.createCompositeComponent(
                 "TotalPrice",
                 dependencies,

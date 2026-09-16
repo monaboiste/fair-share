@@ -162,7 +162,7 @@ public class PricingFacade {
 
     public Component createCompositeComponent(
             String compositeName,
-            Map<String, Map<String, ParameterValue>> dependencies,
+            Map<String, Map<String, ParameterExpression>> dependencies,
             String... childComponentNames) {
         return createCompositeComponent(
                 compositeName,
@@ -174,7 +174,7 @@ public class PricingFacade {
 
     public Component createCompositeComponent(
             String compositeName,
-            Map<String, Map<String, ParameterValue>> dependencies,
+            Map<String, Map<String, ParameterExpression>> dependencies,
             Validity validity,
             String... childComponentNames) {
         return createCompositeComponent(
@@ -183,7 +183,7 @@ public class PricingFacade {
 
     public Component createCompositeComponent(
             String compositeName,
-            Map<String, Map<String, ParameterValue>> dependencies,
+            Map<String, Map<String, ParameterExpression>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
             String... childComponentNames) {
         return createCompositeComponent(
@@ -192,7 +192,7 @@ public class PricingFacade {
 
     public Component createCompositeComponent(
             String compositeName,
-            Map<String, Map<String, ParameterValue>> dependencies,
+            Map<String, Map<String, ParameterExpression>> dependencies,
             ApplicabilityConstraint applicabilityConstraint,
             Validity validity,
             String... childComponentNames) {
@@ -204,8 +204,8 @@ public class PricingFacade {
             children.add(child);
         }
 
-        Map<ComponentId, Map<String, ParameterValue>> idBasedDeps = new HashMap<>();
-        for (Map.Entry<String, Map<String, ParameterValue>> entry : dependencies.entrySet()) {
+        Map<ComponentId, Map<String, ParameterExpression>> idBasedDeps = new HashMap<>();
+        for (Map.Entry<String, Map<String, ParameterExpression>> entry : dependencies.entrySet()) {
             String childName = entry.getKey();
             Component child = children.stream()
                     .filter(c -> c.name().equals(childName))

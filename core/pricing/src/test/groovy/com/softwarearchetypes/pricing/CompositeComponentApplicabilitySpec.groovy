@@ -171,8 +171,8 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 ApplicabilityConstraint.equalsTo("tier", "enterprise"),
                 "surcharge")
 
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "surcharge-bundle", Map.of("baseAmount", new ValueOf("base-service")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "surcharge-bundle", Map.of("baseAmount", ParameterExpression.valueOf("base-service")))
         facade.createCompositeComponent("service-cost", dependencies,
                 "base-service", "surcharge-bundle")
 

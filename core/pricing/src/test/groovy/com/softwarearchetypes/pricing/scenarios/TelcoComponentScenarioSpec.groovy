@@ -2,11 +2,10 @@ package com.softwarearchetypes.pricing.scenarios
 
 import com.softwarearchetypes.pricing.Calculators
 import com.softwarearchetypes.pricing.ComponentBreakdown
-import com.softwarearchetypes.pricing.ParameterValue
+import com.softwarearchetypes.pricing.ParameterExpression
 import com.softwarearchetypes.pricing.Parameters
 import com.softwarearchetypes.pricing.PricingFacade
 import com.softwarearchetypes.pricing.PricingTestConfiguration
-import com.softwarearchetypes.pricing.ValueOf
 import com.softwarearchetypes.quantity.money.Money
 import java.time.Clock
 import spock.lang.Specification
@@ -131,8 +130,8 @@ class TelcoComponentScenarioSpec extends Specification {
                 "base-fee", "data-overage-component"
         )
         facade.createSimpleComponent("vat-component", "percentage-rate")
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("net-amount")))
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("net-amount")))
         facade.createCompositeComponent(
                 "total-bill", dependencies,
                 "net-amount", "vat-component"
