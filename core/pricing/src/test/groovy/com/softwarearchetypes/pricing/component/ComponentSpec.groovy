@@ -1,18 +1,10 @@
 package com.softwarearchetypes.pricing.component
 
 import com.softwarearchetypes.pricing.calculation.Calculator
-import com.softwarearchetypes.pricing.calculation.CalculatorId
-import com.softwarearchetypes.pricing.calculation.CalculatorRange
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
-import com.softwarearchetypes.pricing.calculation.MarginalPrice
-import com.softwarearchetypes.pricing.calculation.ParameterKey
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.pricing.calculation.PricingResult
-import com.softwarearchetypes.pricing.calculation.StepBoundary
-import com.softwarearchetypes.pricing.calculation.TotalPrice
-import com.softwarearchetypes.pricing.calculation.UnitPrice
-
 import com.softwarearchetypes.quantity.money.Money
 import spock.lang.Specification
 
@@ -97,7 +89,7 @@ class ComponentSpec extends Specification {
         SimpleComponent base = SimpleComponent.of("base-price", baseCalculator)
         Calculator percentageCalc = Calculators.percentage("vat", BigDecimal.valueOf(23))
         SimpleComponent vat = SimpleComponent.of("vat", percentageCalc)
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+        def dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "vat", Map.of(
                 "baseAmount", ParameterExpression.valueOf("base-price")
         ))
@@ -118,7 +110,7 @@ class ComponentSpec extends Specification {
                 Calculators.fixed("c2", Money.of(BigDecimal.valueOf(30), "PLN")))
         SimpleComponent tax = SimpleComponent.of("tax",
                 Calculators.percentage("tax-calc", BigDecimal.valueOf(10)))
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+        def dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "tax", Map.of(
                 "baseAmount", ParameterExpression.sumOf("fee-1", "fee-2")
         ))
@@ -139,7 +131,7 @@ class ComponentSpec extends Specification {
                 Calculators.fixed("cost", Money.of(BigDecimal.valueOf(400), "PLN")))
         SimpleComponent profitTax = SimpleComponent.of("profit-tax",
                 Calculators.percentage("tax", BigDecimal.valueOf(19)))
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+        def dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "profit-tax", Map.of(
                 "baseAmount", ParameterExpression.differenceOf("revenue", "costs")
         ))
@@ -158,7 +150,7 @@ class ComponentSpec extends Specification {
                 Calculators.fixed("base", Money.of(BigDecimal.valueOf(100), "PLN")))
         SimpleComponent enhanced = SimpleComponent.of("enhanced",
                 Calculators.percentage("calc", BigDecimal.valueOf(10)))
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+        def dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "enhanced", Map.of(
                 "baseAmount", ParameterExpression.productOf("base", BigDecimal.valueOf(1.5))
         ))
@@ -180,7 +172,7 @@ class ComponentSpec extends Specification {
                 Calculators.percentage("c2", BigDecimal.valueOf(10)))
         List<Component> childrenInWrongOrder = List.of(comp2, comp1)
 
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+        def dependencies = Map.<String, Map<String, ParameterExpression>> of(
                 "comp-2", Map.of("baseAmount", ParameterExpression.valueOf("comp-1")))
         CompositeComponent composite = CompositeComponent.of(
                 "invalid-order", dependencies, childrenInWrongOrder
@@ -196,13 +188,13 @@ class ComponentSpec extends Specification {
 
     def "composite component throws when a referenced component is not found"() {
         given:
-        SimpleComponent comp = SimpleComponent.of("comp",
+        SimpleComponent simple = SimpleComponent.of("simple",
                 Calculators.percentage("c", BigDecimal.valueOf(10)))
 
-        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
-                "comp", Map.of("baseAmount", ParameterExpression.valueOf("non-existent")))
+        def dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "simple", Map.of("baseAmount", ParameterExpression.valueOf("non-existent")))
         CompositeComponent composite = CompositeComponent.of(
-                "invalid-ref", dependencies, comp
+                "invalid-ref", dependencies, simple
         )
 
         when:

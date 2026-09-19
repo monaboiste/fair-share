@@ -3,7 +3,6 @@ package com.softwarearchetypes.rules.discounting.fixture.client.rules
 import com.softwarearchetypes.quantity.money.Money
 import com.softwarearchetypes.rules.discounting.fixture.client.ClientContext
 import com.softwarearchetypes.rules.discounting.fixture.client.ClientStatus
-
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit

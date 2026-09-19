@@ -1,11 +1,9 @@
 package com.softwarearchetypes.pricing.component
 
 import com.softwarearchetypes.pricing.calculation.Calculator
-
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.quantity.money.Money
-import java.time.Clock
 import java.time.temporal.ChronoUnit
 import spock.lang.Specification
 

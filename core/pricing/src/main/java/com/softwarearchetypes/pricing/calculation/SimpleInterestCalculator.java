@@ -1,7 +1,5 @@
 package com.softwarearchetypes.pricing.calculation;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-
 import com.softwarearchetypes.quantity.money.Money;
 import java.math.BigDecimal;
 import java.math.RoundingMode;

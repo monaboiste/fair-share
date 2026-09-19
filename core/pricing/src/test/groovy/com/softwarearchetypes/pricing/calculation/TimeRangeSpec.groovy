@@ -15,8 +15,8 @@ class TimeRangeSpec extends Specification {
 
         expect:
         range.supports(LocalTime.of(12, 0))
-        !(range.supports("12:00"))
-        !(range.supports(12))
+        !range.supports("12:00")
+        !range.supports(12)
     }
 
     def "contains time in normal range"() {
@@ -30,9 +30,9 @@ class TimeRangeSpec extends Specification {
         range.contains(LocalTime.of(8, 0))
         range.contains(LocalTime.of(12, 0))
         range.contains(LocalTime.of(17, 59))
-        !(range.contains(LocalTime.of(18, 0)))
-        !(range.contains(LocalTime.of(7, 59)))
-        !(range.contains(LocalTime.of(18, 1)))
+        !range.contains(LocalTime.of(18, 0))
+        !range.contains(LocalTime.of(7, 59))
+        !range.contains(LocalTime.of(18, 1))
     }
 
     def "contains time in range crossing midnight"() {
@@ -48,10 +48,9 @@ class TimeRangeSpec extends Specification {
         range.contains(LocalTime.of(0, 0))
         range.contains(LocalTime.of(3, 0))
         range.contains(LocalTime.of(5, 59))
-        // TODO(MSZ): cleanup redundant parenthesis
         !range.contains(LocalTime.of(6, 0))
-        !(range.contains(LocalTime.of(12, 0)))
-        !(range.contains(LocalTime.of(18, 0)))
+        !range.contains(LocalTime.of(12, 0))
+        !range.contains(LocalTime.of(18, 0))
     }
 
 
@@ -87,8 +86,8 @@ class TimeRangeSpec extends Specification {
         )
 
         expect:
-        !(range1.overlaps(range2))
-        !(range2.overlaps(range1))
+        !range1.overlaps(range2)
+        !range2.overlaps(range1)
     }
 
     def "does not detect overlap when one crosses midnight and other fits in gap"() {
@@ -105,8 +104,8 @@ class TimeRangeSpec extends Specification {
         )
 
         expect:
-        !(night.overlaps(day))
-        !(day.overlaps(night))
+        !night.overlaps(day)
+        !day.overlaps(night)
     }
 
     def "detects overlap when one crosses midnight and other overlaps"() {
@@ -176,7 +175,7 @@ class TimeRangeSpec extends Specification {
         )
 
         expect:
-        !(timeRange.isCompatibleWith(numericRange))
+        !timeRange.isCompatibleWith(numericRange)
     }
 
     def "throws when checking overlap with incompatible range"() {

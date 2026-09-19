@@ -1,17 +1,5 @@
 package com.softwarearchetypes.pricing.component
 
-import com.softwarearchetypes.pricing.calculation.Calculator
-import com.softwarearchetypes.pricing.calculation.CalculatorId
-import com.softwarearchetypes.pricing.calculation.CalculatorRange
-import com.softwarearchetypes.pricing.calculation.Calculators
-import com.softwarearchetypes.pricing.calculation.Interpretation
-import com.softwarearchetypes.pricing.calculation.MarginalPrice
-import com.softwarearchetypes.pricing.calculation.ParameterKey
-import com.softwarearchetypes.pricing.calculation.Parameters
-import com.softwarearchetypes.pricing.calculation.PricingResult
-import com.softwarearchetypes.pricing.calculation.StepBoundary
-import com.softwarearchetypes.pricing.calculation.TotalPrice
-import com.softwarearchetypes.pricing.calculation.UnitPrice
 
 import java.time.LocalDateTime
 import spock.lang.Specification
@@ -76,12 +64,12 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-        !(validity.isValidAt(LocalDateTime.of(2024, 1, 31, 23, 59)))
+        !validity.isValidAt(LocalDateTime.of(2024, 1, 31, 23, 59))
         validity.isValidAt(LocalDateTime.of(2024, 2, 1, 0, 0))
         validity.isValidAt(LocalDateTime.of(2024, 2, 15, 0, 0))
         validity.isValidAt(LocalDateTime.of(2024, 2, 28, 23, 59))
         validity.isValidAt(LocalDateTime.of(2024, 3, 1, 0, 0))
-        !(validity.isValidAt(LocalDateTime.of(2024, 3, 2, 0, 0)))
+        !validity.isValidAt(LocalDateTime.of(2024, 3, 2, 0, 0))
     }
 
     def "overlapping validity periods are detected"() {
@@ -138,8 +126,8 @@ class ValiditySpec extends Specification {
         )
 
         expect:
-        !(validity.hasExpired(LocalDateTime.of(2024, 1, 15, 0, 0)))
-        !(validity.hasExpired(LocalDateTime.of(2024, 2, 1, 0, 0)))
+        !validity.hasExpired(LocalDateTime.of(2024, 1, 15, 0, 0))
+        !validity.hasExpired(LocalDateTime.of(2024, 2, 1, 0, 0))
         validity.hasExpired(LocalDateTime.of(2024, 3, 1, 0, 0))
     }
 
@@ -149,8 +137,8 @@ class ValiditySpec extends Specification {
 
         expect:
         validity.hasNotStartedYet(LocalDateTime.of(2024, 1, 15, 0, 0))
-        !(validity.hasNotStartedYet(LocalDateTime.of(2024, 2, 1, 0, 0)))
-        !(validity.hasNotStartedYet(LocalDateTime.of(2024, 3, 1, 0, 0)))
+        !validity.hasNotStartedYet(LocalDateTime.of(2024, 2, 1, 0, 0))
+        !validity.hasNotStartedYet(LocalDateTime.of(2024, 3, 1, 0, 0))
     }
 
     def "always validity is valid at any point in time"() {

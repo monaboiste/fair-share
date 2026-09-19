@@ -1,13 +1,11 @@
 package com.softwarearchetypes.pricing.component
 
 import com.softwarearchetypes.pricing.calculation.Calculator
-
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.pricing.calculation.StepBoundary
 import com.softwarearchetypes.quantity.money.Money
-import java.time.Clock
 import spock.lang.Specification
 
 class EMobilityComponentScenarioSpec extends Specification {

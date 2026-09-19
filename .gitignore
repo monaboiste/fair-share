@@ -39,3 +39,4 @@ bin/
 
 # Agents
 .lavish
+.agents/plans

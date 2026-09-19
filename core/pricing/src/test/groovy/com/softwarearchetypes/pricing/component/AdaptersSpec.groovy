@@ -11,7 +11,6 @@ import com.softwarearchetypes.pricing.calculation.TotalPrice
 import com.softwarearchetypes.pricing.calculation.UnitPrice
 import com.softwarearchetypes.quantity.money.Money
 import java.time.LocalDateTime
-import org.jspecify.annotations.NonNull
 import spock.lang.Specification
 
 class AdaptersSpec extends Specification {
@@ -159,6 +158,47 @@ class AdaptersSpec extends Specification {
         }
     }
 
+    def "marginal adapters reject quantities below one"() {
+        given:
+        Calculator total = Calculators.fixed("total", Money.of(10, "PLN"), Interpretation.TOTAL)
+        Calculator unit = Calculators.fixed("unit", Money.of(10, "PLN"), Interpretation.UNIT)
+        def toMarginalAdapter = new TotalToMarginalAdapter(CalculatorId.generate(), "adapter", total)
+        def unitToMarginalAdapter = new UnitToMarginalAdapter(CalculatorId.generate(), "adapter", unit)
+
+        when:
+        toMarginalAdapter.calculate(Parameters.of("quantity", new BigDecimal("0.5")))
+
+        then:
+        thrown(IllegalArgumentException)
+
+        when:
+        unitToMarginalAdapter.calculate(Parameters.of("quantity", BigDecimal.ZERO))
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "adapter metadata describes each conversion"() {
+        given:
+        Calculator source = Calculators.fixed("source", Money.of(10, "PLN"), interpretation)
+        Calculator adapted = InterpretationAdapters.adapt(source, target, Parameters.empty())
+
+        expect:
+        adapted.name().contains(target.name().toLowerCase())
+        adapted.describe()
+        adapted.formula()
+        adapted.getId() != null
+
+        where:
+        interpretation        | target
+        Interpretation.UNIT   | Interpretation.TOTAL
+        Interpretation.UNIT   | Interpretation.MARGINAL
+        Interpretation.TOTAL  | Interpretation.UNIT
+        Interpretation.TOTAL  | Interpretation.MARGINAL
+        Interpretation.MARGINAL | Interpretation.TOTAL
+        Interpretation.MARGINAL | Interpretation.UNIT
+    }
+
     def "adapter formula includes the source calculator formula"() {
         given:
         Calculator unitCalculator = Calculators.fixed("test", Money.of(10, "PLN"), Interpretation.UNIT)
@@ -172,7 +212,6 @@ class AdaptersSpec extends Specification {
         formula.contains("f(x) = PLN 10")
     }
 
-    @NonNull
     private static class TrackingCalculator implements Calculator {
         private final Interpretation interpretation
         final List<Parameters> received = []

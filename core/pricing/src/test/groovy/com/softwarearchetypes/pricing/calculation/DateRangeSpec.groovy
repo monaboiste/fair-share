@@ -16,8 +16,8 @@ class DateRangeSpec extends Specification {
 
         expect:
         range.supports(LocalDate.of(2024, 7, 15))
-        !(range.supports("2024-07-15"))
-        !(range.supports(2024))
+        !range.supports("2024-07-15")
+        !range.supports(2024)
     }
 
     def "contains date in range"() {
@@ -31,9 +31,9 @@ class DateRangeSpec extends Specification {
         range.contains(LocalDate.of(2024, 6, 1))
         range.contains(LocalDate.of(2024, 7, 15))
         range.contains(LocalDate.of(2024, 8, 31))
-        !(range.contains(LocalDate.of(2024, 9, 1)))
-        !(range.contains(LocalDate.of(2024, 5, 31)))
-        !(range.contains(LocalDate.of(2024, 9, 2)))
+        !range.contains(LocalDate.of(2024, 9, 1))
+        !range.contains(LocalDate.of(2024, 5, 31))
+        !range.contains(LocalDate.of(2024, 9, 2))
     }
 
 
@@ -93,8 +93,8 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-        !(summer.overlaps(fall))
-        !(fall.overlaps(summer))
+        !summer.overlaps(fall)
+        !fall.overlaps(summer)
     }
 
     def "detects overlap when one range contains another"() {
@@ -146,6 +146,6 @@ class DateRangeSpec extends Specification {
         )
 
         expect:
-        !(dateRange.isCompatibleWith(timeRange))
+        !dateRange.isCompatibleWith(timeRange)
     }
 }

@@ -20,17 +20,13 @@ final class DefaultParameterValueConverter implements ParameterValueConverter {
     private final List<ValueConverter<?, ?>> converters;
 
     DefaultParameterValueConverter() {
-        this(List.of(
+        this.converters = List.of(
                 new StringToMoneyConverter(),
                 new StringToBigDecimalConverter(),
                 new NumberToBigDecimalConverter(),
                 new StringToLocalDateConverter(),
                 new StringToInstantConverter(),
-                new StringToLocalDateTimeConverter()));
-    }
-
-    private DefaultParameterValueConverter(List<ValueConverter<?, ?>> converters) {
-        this.converters = List.copyOf(converters);
+                new StringToLocalDateTimeConverter());
     }
 
     @Override

@@ -14,9 +14,9 @@ class NumericRangeSpec extends Specification {
 
         expect:
         range.supports(new BigDecimal("5"))
-        !(range.supports(5))
-        !(range.supports("5"))
-        !(range.supports(5.0d))
+        !range.supports(5)
+        !range.supports("5")
+        !range.supports(5.0d)
     }
 
     def "contains value in range"() {
@@ -30,9 +30,9 @@ class NumericRangeSpec extends Specification {
         expect:
         range.contains(new BigDecimal("10"))
         range.contains(new BigDecimal("15"))
-        !(range.contains(new BigDecimal("20")))
-        !(range.contains(new BigDecimal("5")))
-        !(range.contains(new BigDecimal("25")))
+        !range.contains(new BigDecimal("20"))
+        !range.contains(new BigDecimal("5"))
+        !range.contains(new BigDecimal("25"))
     }
 
 
@@ -92,8 +92,8 @@ class NumericRangeSpec extends Specification {
         )
 
         expect:
-        !(range1.overlaps(range2))
-        !(range2.overlaps(range1))
+        !range1.overlaps(range2)
+        !range2.overlaps(range1)
     }
 
     def "detects overlap when one range contains another"() {
