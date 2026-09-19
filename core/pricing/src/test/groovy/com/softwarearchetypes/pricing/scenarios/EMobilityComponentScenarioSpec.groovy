@@ -1,167 +1,128 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
-import com.softwarearchetypes.pricing.ComponentBreakdown
-import com.softwarearchetypes.pricing.Interpretation
-import com.softwarearchetypes.pricing.ParameterValue
-import com.softwarearchetypes.pricing.Parameters
-import com.softwarearchetypes.pricing.PricingFacade
-import com.softwarearchetypes.pricing.PricingTestConfiguration
-import com.softwarearchetypes.pricing.StepBoundary
-import com.softwarearchetypes.pricing.ValueOf
+import com.softwarearchetypes.pricing.calculation.Calculator
+import com.softwarearchetypes.pricing.calculation.Calculators
+import com.softwarearchetypes.pricing.calculation.Interpretation
+import com.softwarearchetypes.pricing.calculation.Parameters
+import com.softwarearchetypes.pricing.calculation.StepBoundary
+import com.softwarearchetypes.pricing.component.Component
+import com.softwarearchetypes.pricing.component.ComponentBreakdown
+import com.softwarearchetypes.pricing.component.ParameterExpression
 import com.softwarearchetypes.quantity.money.Money
-import java.time.Clock
 import spock.lang.Specification
 
 class EMobilityComponentScenarioSpec extends Specification {
 
-    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
+
+    private Calculator vatrate
+    private Calculator emspperminute
+    private Calculator emspperkwh
+    private Calculator cpoperminute
+    private Calculator cpoperkwh
+    private Calculator cposessionfee
+    private Calculator energygrid
+    private Calculator energywholesale
 
     def setup() {
-        facade.addCalculator("energy-wholesale", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.valueOf(0.60), "PLN"),
-                        "stepSize", BigDecimal.valueOf(5),
-                        "stepIncrement", BigDecimal.valueOf(0.10),
-                        "stepBoundary", StepBoundary.INCLUSIVE,
-                        "interpretation", Interpretation.MARGINAL
-                ))
-        facade.addCalculator("energy-grid", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(0.15), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("cpo-session-fee", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(new BigDecimal("1.50"), "PLN"),
-                        "interpretation", Interpretation.TOTAL))
-        facade.addCalculator("cpo-per-kwh", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(0.25), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("cpo-per-minute", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(BigDecimal.valueOf(0.10), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("emsp-per-kwh", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(BigDecimal.valueOf(0.10), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("emsp-per-minute", CalculatorType.SIMPLE_FIXED,
-                Parameters.of(
-                        "amount", Money.of(BigDecimal.valueOf(0.05), "PLN"),
-                        "interpretation", Interpretation.UNIT
-                ))
-        facade.addCalculator("vat-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(23),
-                        "interpretation", Interpretation.TOTAL))
+        energywholesale = Calculators.stepFunction("energy-wholesale", Money.of(BigDecimal.valueOf(0.60), "PLN"), BigDecimal.valueOf(5), BigDecimal.valueOf(0.10), Interpretation.MARGINAL, StepBoundary.INCLUSIVE)
+        energygrid = Calculators.fixed("energy-grid", Money.of(BigDecimal.valueOf(0.15), "PLN"), Interpretation.UNIT)
+        cposessionfee = Calculators.fixed("cpo-session-fee", Money.of(new BigDecimal("1.50"), "PLN"), Interpretation.TOTAL)
+        cpoperkwh = Calculators.fixed("cpo-per-kwh", Money.of(BigDecimal.valueOf(0.25), "PLN"), Interpretation.UNIT)
+        cpoperminute = Calculators.fixed("cpo-per-minute", Money.of(BigDecimal.valueOf(0.10), "PLN"), Interpretation.UNIT)
+        emspperkwh = Calculators.fixed("emsp-per-kwh", Money.of(BigDecimal.valueOf(0.10), "PLN"), Interpretation.UNIT)
+        emspperminute = Calculators.fixed("emsp-per-minute", Money.of(BigDecimal.valueOf(0.05), "PLN"), Interpretation.UNIT)
+        vatrate = Calculators.percentage("vat-rate", BigDecimal.valueOf(23))
     }
 
     def "complete EV charging session is calculated with a full cost breakdown"() {
         given: "a 12 kWh, 40-minute charging session with energy, CPO, EMSP, and VAT components"
-        facade.createSimpleComponent("energy-wholesale-component", "energy-wholesale")
-        facade.createSimpleComponent("energy-grid-component", "energy-grid")
-        facade.createCompositeComponent("energy-net",
-                Map.of(),
-                "energy-wholesale-component", "energy-grid-component"
-        )
-        facade.createSimpleComponent("cpo-session-component", "cpo-session-fee")
-        facade.createSimpleComponent("cpo-kwh-component", "cpo-per-kwh")
-        facade.createSimpleComponent("cpo-time-component", "cpo-per-minute", Map.of("time", "quantity"))
+        def energyWholesale = Component.simple("energy-wholesale-component", energywholesale)
+        def energyGrid = Component.simple("energy-grid-component", energygrid)
+        def energyNet = Component.composite("energy-net", Map.of(), energyWholesale, energyGrid)
+        def cpoSession = Component.simple("cpo-session-component", cposessionfee)
+        def cpoKwh = Component.simple("cpo-kwh-component", cpoperkwh)
+        def cpoTime = Component.simple("cpo-time-component", cpoperminute, Map.of("time", "quantity"))
 
-        facade.createCompositeComponent("cpo-markup",
-                Map.of(),
-                "cpo-session-component", "cpo-kwh-component", "cpo-time-component"
-        )
-        facade.createSimpleComponent("emsp-kwh-component", "emsp-per-kwh")
-        facade.createSimpleComponent("emsp-time-component", "emsp-per-minute", Map.of("time", "quantity"))
+        def cpoMarkup = Component.composite("cpo-markup", Map.of(), cpoSession, cpoKwh, cpoTime)
+        def emspKwh = Component.simple("emsp-kwh-component", emspperkwh)
+        def emspTime = Component.simple("emsp-time-component", emspperminute, Map.of("time", "quantity"))
 
-        facade.createCompositeComponent("emsp-markup",
-                Map.of(),
-                "emsp-kwh-component", "emsp-time-component"
-        )
-        facade.createCompositeComponent("netto",
-                Map.of(),
-                "energy-net", "cpo-markup", "emsp-markup"
-        )
-        facade.createSimpleComponent("vat-component", "vat-rate")
+        def emspMarkup = Component.composite("emsp-markup", Map.of(), emspKwh, emspTime)
+        def netto = Component.composite("netto", Map.of(), energyNet, cpoMarkup, emspMarkup)
+        def vat = Component.simple("vat-component", vatrate)
 
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
-        facade.createCompositeComponent("total-session-cost", dependencies,
-                "netto", "vat-component"
-        )
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("netto")))
+        def totalSessionCost = Component.composite("total-session-cost", dependencies, netto, vat)
 
         Parameters sessionParams = Parameters.of(
                 "quantity", BigDecimal.valueOf(12),
                 "time", BigDecimal.valueOf(40)
         )
 
-        Money result = facade.calculateComponent("total-session-cost", sessionParams)
+        Money result = totalSessionCost.calculate(sessionParams).money()
 
         Money expectedTotal = Money.of(new BigDecimal("26.57"), "PLN")
 
         expect:
         result == expectedTotal
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-session-cost", sessionParams)
+        ComponentBreakdown breakdown = totalSessionCost.calculateBreakdown(sessionParams)
 
         breakdown.name() == "total-session-cost"
         breakdown.total() == Money.of(new BigDecimal("26.57"), "PLN")
-        breakdown.children().size() == 2
-        breakdown.children().find { it.name() == "netto" }.total() == Money.of(new BigDecimal("21.60"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().size() == 3
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.total() == Money.of(new BigDecimal("9.90"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().size() == 2
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().find { it.name() == "energy-wholesale-component" }.total() == Money.of(new BigDecimal("8.10"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().find { it.name() == "energy-wholesale-component" }.children().isEmpty()
 
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().find { it.name() == "energy-grid-component" }.total() == Money.of(new BigDecimal("1.80"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.total() == Money.of(new BigDecimal("8.50"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().size() == 3
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-session-component" }.total() == Money.of(new BigDecimal("1.50"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-session-component" }.children().isEmpty()
+        def components = breakdown.children()
+        components.size() == 2
+        components.find { it.name() == "netto" }.total() == Money.of(new BigDecimal("21.60"), "PLN")
 
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-kwh-component" }.total() == Money.of(new BigDecimal("3.00"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-kwh-component" }.children().isEmpty()
+        components.find { it.name() == "netto" }.children().size() == 3
+        components.find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.total() == Money.of(new BigDecimal("9.90"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().size() == 2
+        components.find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().find { it.name() == "energy-wholesale-component" }.total() == Money.of(new BigDecimal("8.10"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().find { it.name() == "energy-wholesale-component" }.children().isEmpty()
 
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-time-component" }.total() == Money.of(new BigDecimal("4.00"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-time-component" }.children().isEmpty()
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.total() == Money.of(new BigDecimal("3.20"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().size() == 2
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-kwh-component" }.total() == Money.of(new BigDecimal("1.20"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-kwh-component" }.children().isEmpty()
+        components.find { it.name() == "netto" }.children().find { it.name() == "energy-net" }.children().find { it.name() == "energy-grid-component" }.total() == Money.of(new BigDecimal("1.80"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.total() == Money.of(new BigDecimal("8.50"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().size() == 3
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-session-component" }.total() == Money.of(new BigDecimal("1.50"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-session-component" }.children().isEmpty()
 
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-time-component" }.total() == Money.of(new BigDecimal("2.00"), "PLN")
-        breakdown.children().find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-time-component" }.children().isEmpty()
-        breakdown.children().find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("4.97"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-kwh-component" }.total() == Money.of(new BigDecimal("3.00"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-kwh-component" }.children().isEmpty()
+
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-time-component" }.total() == Money.of(new BigDecimal("4.00"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "cpo-markup" }.children().find { it.name() == "cpo-time-component" }.children().isEmpty()
+        components.find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.total() == Money.of(new BigDecimal("3.20"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().size() == 2
+        components.find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-kwh-component" }.total() == Money.of(new BigDecimal("1.20"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-kwh-component" }.children().isEmpty()
+
+        components.find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-time-component" }.total() == Money.of(new BigDecimal("2.00"), "PLN")
+        components.find { it.name() == "netto" }.children().find { it.name() == "emsp-markup" }.children().find { it.name() == "emsp-time-component" }.children().isEmpty()
+        components.find { it.name() == "vat-component" }.total() == Money.of(new BigDecimal("4.97"), "PLN")
     }
 
     def "charging session breakdown can be formatted for display"() {
         given: "a fully configured charging session"
-        facade.createSimpleComponent("energy-wholesale-component", "energy-wholesale")
-        facade.createSimpleComponent("energy-grid-component", "energy-grid")
-        facade.createCompositeComponent("energy-net", Map.of(),
-                "energy-wholesale-component", "energy-grid-component")
+        def energyWholesale = Component.simple("energy-wholesale-component", energywholesale)
+        def energyGrid = Component.simple("energy-grid-component", energygrid)
+        def energyNet = Component.composite("energy-net", Map.of(), energyWholesale, energyGrid)
 
-        facade.createSimpleComponent("cpo-session-component", "cpo-session-fee")
-        facade.createSimpleComponent("cpo-kwh-component", "cpo-per-kwh")
-        facade.createSimpleComponent("cpo-time-component", "cpo-per-minute", Map.of("time", "quantity"))
-        facade.createCompositeComponent("cpo-markup", Map.of(),
-                "cpo-session-component", "cpo-kwh-component", "cpo-time-component")
+        def cpoSession = Component.simple("cpo-session-component", cposessionfee)
+        def cpoKwh = Component.simple("cpo-kwh-component", cpoperkwh)
+        def cpoTime = Component.simple("cpo-time-component", cpoperminute, Map.of("time", "quantity"))
+        def cpoMarkup = Component.composite("cpo-markup", Map.of(), cpoSession, cpoKwh, cpoTime)
 
-        facade.createSimpleComponent("emsp-kwh-component", "emsp-per-kwh")
-        facade.createSimpleComponent("emsp-time-component", "emsp-per-minute", Map.of("time", "quantity"))
-        facade.createCompositeComponent("emsp-markup", Map.of(),
-                "emsp-kwh-component", "emsp-time-component")
+        def emspKwh = Component.simple("emsp-kwh-component", emspperkwh)
+        def emspTime = Component.simple("emsp-time-component", emspperminute, Map.of("time", "quantity"))
+        def emspMarkup = Component.composite("emsp-markup", Map.of(), emspKwh, emspTime)
 
-        facade.createCompositeComponent("netto", Map.of(),
-                "energy-net", "cpo-markup", "emsp-markup")
+        def netto = Component.composite("netto", Map.of(), energyNet, cpoMarkup, emspMarkup)
 
-        facade.createSimpleComponent("vat-component", "vat-rate")
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("netto")))
-        facade.createCompositeComponent("total-session-cost", dependencies,
-                "netto", "vat-component")
+        def vat = Component.simple("vat-component", vatrate)
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("netto")))
+        def totalSessionCost = Component.composite("total-session-cost", dependencies, netto, vat)
 
         Parameters sessionParams = Parameters.of(
                 "quantity", BigDecimal.valueOf(12),
@@ -169,7 +130,7 @@ class EMobilityComponentScenarioSpec extends Specification {
         )
 
         and:
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-session-cost", sessionParams)
+        ComponentBreakdown breakdown = totalSessionCost.calculateBreakdown(sessionParams)
 
         expect:
         breakdown.total() == Money.of(new BigDecimal("26.57"), "PLN")

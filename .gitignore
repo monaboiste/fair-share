@@ -1,3 +1,4 @@
+# Build
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -5,7 +6,7 @@ build/
 !**/src/test/**/build/
 .kotlin
 
-### IntelliJ IDEA ###
+# IDEs
 .idea/
 *.iws
 *.iml
@@ -14,7 +15,6 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### Eclipse ###
 .apt_generated
 .classpath
 .factorypath
@@ -26,15 +26,17 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
 .vscode/
 
-### Mac OS ###
+# OS
 .DS_Store
+
+# Agents
+.lavish
+.agents/plans

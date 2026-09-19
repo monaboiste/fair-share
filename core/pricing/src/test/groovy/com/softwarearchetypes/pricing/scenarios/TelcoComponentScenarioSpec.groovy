@@ -1,63 +1,45 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
-import com.softwarearchetypes.pricing.ComponentBreakdown
-import com.softwarearchetypes.pricing.ParameterValue
-import com.softwarearchetypes.pricing.Parameters
-import com.softwarearchetypes.pricing.PricingFacade
-import com.softwarearchetypes.pricing.PricingTestConfiguration
-import com.softwarearchetypes.pricing.ValueOf
+import com.softwarearchetypes.pricing.calculation.Calculator
+import com.softwarearchetypes.pricing.calculation.Calculators
+import com.softwarearchetypes.pricing.calculation.Parameters
+import com.softwarearchetypes.pricing.component.Component
+import com.softwarearchetypes.pricing.component.ComponentBreakdown
+import com.softwarearchetypes.pricing.component.ParameterExpression
 import com.softwarearchetypes.quantity.money.Money
-import java.time.Clock
 import spock.lang.Specification
 
 class TelcoComponentScenarioSpec extends Specification {
 
-    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
+
+    private Calculator percentagerate
+    private Calculator roamingoverage
+    private Calculator dataoverage
+    private Calculator commission
+    private Calculator networkmaintenance
 
     def setup() {
-        facade.addCalculator("network-maintenance", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(25), "PLN")))
-
-        facade.addCalculator("commission", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(20), "PLN")))
-
-        facade.addCalculator("data-overage", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.ZERO, "PLN"),
-                        "stepSize", BigDecimal.ONE,
-                        "stepIncrement", BigDecimal.valueOf(2)
-                ))
-
-        facade.addCalculator("roaming-overage", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.ZERO, "PLN"),
-                        "stepSize", BigDecimal.ONE,
-                        "stepIncrement", BigDecimal.valueOf(1.5)
-                ))
-
-        facade.addCalculator("percentage-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(23)))
+        networkmaintenance = Calculators.fixed("network-maintenance", Money.of(BigDecimal.valueOf(25), "PLN"))
+        commission = Calculators.fixed("commission", Money.of(BigDecimal.valueOf(20), "PLN"))
+        dataoverage = Calculators.stepFunction("data-overage", Money.of(BigDecimal.ZERO, "PLN"), BigDecimal.ONE, BigDecimal.valueOf(2))
+        roamingoverage = Calculators.stepFunction("roaming-overage", Money.of(BigDecimal.ZERO, "PLN"), BigDecimal.ONE, BigDecimal.valueOf(1.5))
+        percentagerate = Calculators.percentage("percentage-rate", BigDecimal.valueOf(23))
     }
 
     def "monthly bill with base fees only totals the sum of included fees"() {
         given: "a base fee composite with network maintenance (25 PLN) and commission (20 PLN)"
-        facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
-        facade.createSimpleComponent("commission-component", "commission")
+        def networkMaintenance = Component.simple("network-maintenance-component", networkmaintenance)
+        def commission = Component.simple("commission-component", commission)
 
-        facade.createCompositeComponent(
-                "base-fee",
-                Map.of(),
-                "network-maintenance-component", "commission-component"
-        )
+        def baseFee = Component.composite("base-fee", Map.of(), networkMaintenance, commission)
 
         and:
-        Money result = facade.calculateComponent("base-fee", Parameters.empty())
+        Money result = baseFee.calculate(Parameters.empty()).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(45), "PLN")
 
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("base-fee", Parameters.empty())
+        ComponentBreakdown breakdown = baseFee.calculateBreakdown(Parameters.empty())
         breakdown.name() == "base-fee"
         breakdown.total() == Money.of(BigDecimal.valueOf(45), "PLN")
         breakdown.children().size() == 2
@@ -65,30 +47,22 @@ class TelcoComponentScenarioSpec extends Specification {
 
     def "monthly bill with data overage includes usage charges"() {
         given: "a monthly bill with base fee and data overage at 2 PLN per MB"
-        facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
-        facade.createSimpleComponent("commission-component", "commission")
-        facade.createSimpleComponent("data-overage-component", "data-overage")
+        def networkMaintenance = Component.simple("network-maintenance-component", networkmaintenance)
+        def commission = Component.simple("commission-component", commission)
+        def dataOverage = Component.simple("data-overage-component", dataoverage)
 
-        facade.createCompositeComponent(
-                "base-fee",
-                Map.of(),
-                "network-maintenance-component", "commission-component"
-        )
+        def baseFee = Component.composite("base-fee", Map.of(), networkMaintenance, commission)
 
-        facade.createCompositeComponent(
-                "monthly-bill",
-                Map.of(),
-                "base-fee", "data-overage-component"
-        )
+        def monthlyBill = Component.composite("monthly-bill", Map.of(), baseFee, dataOverage)
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
-        Money result = facade.calculateComponent("monthly-bill", usageParams)
+        Money result = monthlyBill.calculate(usageParams).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(51), "PLN")
 
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("monthly-bill", usageParams)
+        ComponentBreakdown breakdown = monthlyBill.calculateBreakdown(usageParams)
         breakdown.name() == "monthly-bill"
         breakdown.total() == Money.of(BigDecimal.valueOf(51), "PLN")
         breakdown.children().size() == 2
@@ -102,25 +76,17 @@ class TelcoComponentScenarioSpec extends Specification {
 
     def "monthly bill with roaming overage includes roaming charges"() {
         given: "a monthly bill with base fee and roaming overage at 1.50 PLN per MB"
-        facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
-        facade.createSimpleComponent("commission-component", "commission")
-        facade.createSimpleComponent("roaming-overage-component", "roaming-overage")
+        def networkMaintenance = Component.simple("network-maintenance-component", networkmaintenance)
+        def commission = Component.simple("commission-component", commission)
+        def roamingOverage = Component.simple("roaming-overage-component", roamingoverage)
 
-        facade.createCompositeComponent(
-                "base-fee",
-                Map.of(),
-                "network-maintenance-component", "commission-component"
-        )
+        def baseFee = Component.composite("base-fee", Map.of(), networkMaintenance, commission)
 
-        facade.createCompositeComponent(
-                "monthly-bill",
-                Map.of(),
-                "base-fee", "roaming-overage-component"
-        )
+        def monthlyBill = Component.composite("monthly-bill", Map.of(), baseFee, roamingOverage)
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(20))
-        Money result = facade.calculateComponent("monthly-bill", usageParams)
+        Money result = monthlyBill.calculate(usageParams).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(75), "PLN")
@@ -128,32 +94,21 @@ class TelcoComponentScenarioSpec extends Specification {
 
     def "total bill includes VAT calculated on the net amount"() {
         given: "a total bill with VAT depending on the net amount via a ValueOf dependency"
-        facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
-        facade.createSimpleComponent("commission-component", "commission")
-        facade.createSimpleComponent("data-overage-component", "data-overage")
+        def networkMaintenance = Component.simple("network-maintenance-component", networkmaintenance)
+        def commission = Component.simple("commission-component", commission)
+        def dataOverage = Component.simple("data-overage-component", dataoverage)
 
-        facade.createCompositeComponent(
-                "base-fee",
-                Map.of(),
-                "network-maintenance-component", "commission-component"
-        )
+        def baseFee = Component.composite("base-fee", Map.of(), networkMaintenance, commission)
 
-        facade.createCompositeComponent(
-                "net-amount",
-                Map.of(),
-                "base-fee", "data-overage-component"
-        )
-        facade.createSimpleComponent("vat-component", "percentage-rate")
-        Map<String, Map<String, ParameterValue>> dependencies = Map.<String, Map<String, ParameterValue>> of(
-                "vat-component", Map.of("baseAmount", new ValueOf("net-amount")))
-        facade.createCompositeComponent(
-                "total-bill", dependencies,
-                "net-amount", "vat-component"
-        )
+        def netAmount = Component.composite("net-amount", Map.of(), baseFee, dataOverage)
+        def vat = Component.simple("vat-component", percentagerate)
+        Map<String, Map<String, ParameterExpression>> dependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "vat-component", Map.of("baseAmount", ParameterExpression.valueOf("net-amount")))
+        def totalBill = Component.composite("total-bill", dependencies, netAmount, vat)
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
-        Money result = facade.calculateComponent("total-bill", usageParams)
+        Money result = totalBill.calculate(usageParams).money()
 
         and:
         Money expectedNet = Money.of(BigDecimal.valueOf(51), "PLN")
@@ -162,7 +117,7 @@ class TelcoComponentScenarioSpec extends Specification {
 
         expect:
         result == expectedTotal
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-bill", usageParams)
+        ComponentBreakdown breakdown = totalBill.calculateBreakdown(usageParams)
         breakdown.name() == "total-bill"
         breakdown.total() == expectedTotal
         breakdown.children().size() == 2
@@ -176,41 +131,35 @@ class TelcoComponentScenarioSpec extends Specification {
 
     def "detailed breakdown shows the full component hierarchy"() {
         given: "a two-level composite with a nested base fee"
-        facade.createSimpleComponent("network-maintenance-component", "network-maintenance")
-        facade.createSimpleComponent("commission-component", "commission")
-        facade.createSimpleComponent("data-overage-component", "data-overage")
+        def networkMaintenance = Component.simple("network-maintenance-component", networkmaintenance)
+        def commission = Component.simple("commission-component", commission)
+        def dataOverage = Component.simple("data-overage-component", dataoverage)
 
-        facade.createCompositeComponent(
-                "base-fee",
-                Map.of(),
-                "network-maintenance-component", "commission-component"
-        )
+        def baseFee = Component.composite("base-fee", Map.of(), networkMaintenance, commission)
 
-        facade.createCompositeComponent(
-                "monthly-bill",
-                Map.of(),
-                "base-fee", "data-overage-component"
-        )
+        def monthlyBill = Component.composite("monthly-bill", Map.of(), baseFee, dataOverage)
 
         and:
         Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("monthly-bill", usageParams)
+        ComponentBreakdown breakdown = monthlyBill.calculateBreakdown(usageParams)
 
         expect:
         breakdown.name() == "monthly-bill"
         breakdown.total() == Money.of(BigDecimal.valueOf(51), "PLN")
-        breakdown.children().size() == 2
 
-        breakdown.children().find { it.name() == "base-fee" }.name() == "base-fee"
-        breakdown.children().find { it.name() == "base-fee" }.total() == Money.of(BigDecimal.valueOf(45), "PLN")
-        breakdown.children().find { it.name() == "base-fee" }.children().size() == 2
-        breakdown.children().find { it.name() == "base-fee" }.children().find { it.name() == "network-maintenance-component" }.total() == Money.of(BigDecimal.valueOf(25), "PLN")
-        breakdown.children().find { it.name() == "base-fee" }.children().find { it.name() == "network-maintenance-component" }.children().isEmpty()
+        def components = breakdown.children()
+        components.size() == 2
 
-        breakdown.children().find { it.name() == "base-fee" }.children().find { it.name() == "commission-component" }.total() == Money.of(BigDecimal.valueOf(20), "PLN")
-        breakdown.children().find { it.name() == "base-fee" }.children().find { it.name() == "commission-component" }.children().isEmpty()
+        components.find { it.name() == "base-fee" }.name() == "base-fee"
+        components.find { it.name() == "base-fee" }.total() == Money.of(BigDecimal.valueOf(45), "PLN")
+        components.find { it.name() == "base-fee" }.children().size() == 2
+        components.find { it.name() == "base-fee" }.children().find { it.name() == "network-maintenance-component" }.total() == Money.of(BigDecimal.valueOf(25), "PLN")
+        components.find { it.name() == "base-fee" }.children().find { it.name() == "network-maintenance-component" }.children().isEmpty()
 
-        breakdown.children().find { it.name() == "data-overage-component" }.total() == Money.of(BigDecimal.valueOf(6), "PLN")
-        breakdown.children().find { it.name() == "data-overage-component" }.children().isEmpty()
+        components.find { it.name() == "base-fee" }.children().find { it.name() == "commission-component" }.total() == Money.of(BigDecimal.valueOf(20), "PLN")
+        components.find { it.name() == "base-fee" }.children().find { it.name() == "commission-component" }.children().isEmpty()
+
+        components.find { it.name() == "data-overage-component" }.total() == Money.of(BigDecimal.valueOf(6), "PLN")
+        components.find { it.name() == "data-overage-component" }.children().isEmpty()
     }
 }

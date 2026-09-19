@@ -349,22 +349,27 @@ class MoneySpec extends Specification {
         "max"                   | { Money.max(Money.of(100, "PLN"), Money.of(50, "EUR")) }
     }
 
-    def "normalizes monetary value"() {
+    def "returns monetary value without rounding"() {
         expect:
-        Money.of(input, "PLN").value() == new BigDecimal(expected)
+        Money.of(new BigDecimal("0.00000000006"), "PLN").value() == new BigDecimal("0.00000000006")
+    }
+
+    def "normalizes monetary value using #roundingMode"() {
+        expect:
+        Money.of(input, "PLN").value(roundingMode) == new BigDecimal(expected)
 
         where:
-        input                            | expected
-        new BigDecimal("100.0000000000") | "100"
-        new BigDecimal("1.2300000000")   | "1.23"
-        new BigDecimal("0.0000000001")   | "0.0000000001"
-        new BigDecimal("0.00000000006")  | "0.0000000001"
-        new BigDecimal("10000000000")    | "10000000000"
+        roundingMode         | input                            | expected
+        RoundingMode.HALF_UP | new BigDecimal("100.0000000000") | "100"
+        RoundingMode.HALF_UP | new BigDecimal("1.2300000000")   | "1.23"
+        RoundingMode.HALF_UP | new BigDecimal("0.0000000001")   | "0.0000000001"
+        RoundingMode.HALF_UP | new BigDecimal("0.00000000006")  | "0.0000000001"
+        RoundingMode.HALF_UP | new BigDecimal("10000000000")    | "10000000000"
     }
 
     def "removes floating point artifacts"() {
         expect:
-        Money.of(0.1d + 0.2d, "PLN").value() == new BigDecimal("0.3")
+        Money.of(0.1d + 0.2d, "PLN").value(RoundingMode.HALF_UP) == new BigDecimal("0.3")
     }
 
     def "multiplies money by a number"() {
@@ -441,6 +446,6 @@ class MoneySpec extends Specification {
         expect:
         Money.of(100, "PLN")
                 .divide(new BigDecimal("3"))
-                .value() == new BigDecimal("33.3333333333")
+                .value(RoundingMode.HALF_UP) == new BigDecimal("33.3333333333")
     }
 }

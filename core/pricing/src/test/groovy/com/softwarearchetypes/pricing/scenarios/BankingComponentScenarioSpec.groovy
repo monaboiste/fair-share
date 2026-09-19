@@ -1,64 +1,46 @@
 package com.softwarearchetypes.pricing.scenarios
 
-import com.softwarearchetypes.pricing.CalculatorType
-import com.softwarearchetypes.pricing.ComponentBreakdown
-import com.softwarearchetypes.pricing.ParameterValue
-import com.softwarearchetypes.pricing.Parameters
-import com.softwarearchetypes.pricing.PricingFacade
-import com.softwarearchetypes.pricing.PricingTestConfiguration
-import com.softwarearchetypes.pricing.SumOf
-import com.softwarearchetypes.pricing.ValueOf
+import com.softwarearchetypes.pricing.calculation.Calculator
+import com.softwarearchetypes.pricing.calculation.Calculators
+import com.softwarearchetypes.pricing.calculation.Parameters
+import com.softwarearchetypes.pricing.component.Component
+import com.softwarearchetypes.pricing.component.ComponentBreakdown
+import com.softwarearchetypes.pricing.component.ParameterExpression
 import com.softwarearchetypes.quantity.money.Money
-import java.time.Clock
 import java.time.temporal.ChronoUnit
 import spock.lang.Specification
 
 class BankingComponentScenarioSpec extends Specification {
 
-    private final PricingFacade facade = PricingTestConfiguration.inMemory(Clock.systemUTC())
+
+    private Calculator performanceFee
+    private Calculator managementFee
+    private Calculator transactionFee
+    private Calculator monthlyAccountFee
+    private Calculator processingFee
+    private Calculator insuranceRate
+    private Calculator loanInterest
 
     def setup() {
-        facade.addCalculator("loan-interest", CalculatorType.SIMPLE_INTEREST,
-                Parameters.of("annualRate", BigDecimal.valueOf(5.5)))
-
-        facade.addCalculator("insurance-rate", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(2)))
-
-        facade.addCalculator("processing-fee", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(500), "PLN")))
-        facade.addCalculator("monthly-account-fee", CalculatorType.SIMPLE_FIXED,
-                Parameters.of("amount", Money.of(BigDecimal.valueOf(15), "PLN")))
-
-        facade.addCalculator("transaction-fee", CalculatorType.STEP_FUNCTION,
-                Parameters.of(
-                        "basePrice", Money.of(BigDecimal.ZERO, "PLN"),
-                        "stepSize", BigDecimal.ONE,
-                        "stepIncrement", BigDecimal.valueOf(0.50)
-                ))
-        facade.addCalculator("management-fee", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(1.5)))
-
-        facade.addCalculator("performance-fee", CalculatorType.PERCENTAGE,
-                Parameters.of("percentageRate", BigDecimal.valueOf(20)))
+        loanInterest = Calculators.simpleInterest("loan-interest", BigDecimal.valueOf(5.5))
+        insuranceRate = Calculators.percentage("insurance-rate", BigDecimal.valueOf(2))
+        processingFee = Calculators.fixed("processing-fee", Money.of(BigDecimal.valueOf(500), "PLN"))
+        monthlyAccountFee = Calculators.fixed("monthly-account-fee", Money.of(BigDecimal.valueOf(15), "PLN"))
+        transactionFee = Calculators.stepFunction("transaction-fee", Money.of(BigDecimal.ZERO, "PLN"), BigDecimal.ONE, BigDecimal.valueOf(0.50))
+        managementFee = Calculators.percentage("management-fee", BigDecimal.valueOf(1.5))
+        performanceFee = Calculators.percentage("performance-fee", BigDecimal.valueOf(20))
     }
 
     def "loan cost with insurance is calculated as a dependency on the base"() {
         given: "a loan base of 100,000 PLN at 5.5% annual interest plus a 500 PLN processing fee, with 2% insurance on the base"
-        facade.createSimpleComponent("principal-interest", "loan-interest")
-        facade.createSimpleComponent("loan-insurance", "insurance-rate")
-        facade.createSimpleComponent("processing", "processing-fee")
-        facade.createCompositeComponent(
-                "loan-base",
-                Map.of(),
-                "principal-interest", "processing"
-        )
+        def principalInterest = Component.simple("principal-interest", loanInterest)
+        def loanInsurance = Component.simple("loan-insurance", insuranceRate)
+        def processing = Component.simple("processing", processingFee)
+        def loanBase = Component.composite("loan-base", Map.of(), principalInterest, processing)
 
-        Map<String, Map<String, ParameterValue>> loanDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "loan-insurance", Map.of("baseAmount", new ValueOf("loan-base")))
-        facade.createCompositeComponent(
-                "total-loan-cost", loanDependencies,
-                "loan-base", "loan-insurance"
-        )
+        Map<String, Map<String, ParameterExpression>> loanDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "loan-insurance", Map.of("baseAmount", ParameterExpression.valueOf("loan-base")))
+        def totalLoanCost = Component.composite("total-loan-cost", loanDependencies, loanBase, loanInsurance)
 
         and:
         Parameters loanParams = Parameters.of(
@@ -66,7 +48,7 @@ class BankingComponentScenarioSpec extends Specification {
                 "unit", ChronoUnit.YEARS
         )
 
-        Money result = facade.calculateComponent("total-loan-cost", loanParams)
+        Money result = totalLoanCost.calculate(loanParams).money()
 
         and:
         Money expectedBase = Money.of(BigDecimal.valueOf(6000), "PLN")
@@ -76,32 +58,30 @@ class BankingComponentScenarioSpec extends Specification {
         expect:
         result == expectedTotal
 
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-loan-cost", loanParams)
+        ComponentBreakdown breakdown = totalLoanCost.calculateBreakdown(loanParams)
         breakdown.name() == "total-loan-cost"
         breakdown.total() == expectedTotal
-        breakdown.children().size() == 2
 
-        breakdown.children().find { it.name() == "loan-base" }.total() == expectedBase
-        breakdown.children().find { it.name() == "loan-base" }.children().size() == 2
+        def components = breakdown.children()
+        components.size() == 2
 
-        breakdown.children().find { it.name() == "loan-insurance" }.total() == expectedInsurance
-        breakdown.children().find { it.name() == "loan-insurance" }.children().isEmpty()
+        components.find { it.name() == "loan-base" }.total() == expectedBase
+        components.find { it.name() == "loan-base" }.children().size() == 2
+
+        components.find { it.name() == "loan-insurance" }.total() == expectedInsurance
+        components.find { it.name() == "loan-insurance" }.children().isEmpty()
     }
 
     def "account fees include both monthly fee and per-transaction charges"() {
         given: "monthly account fee of 15 PLN plus 0.50 PLN per transaction for 50 transactions"
-        facade.createSimpleComponent("monthly-fee", "monthly-account-fee")
-        facade.createSimpleComponent("transaction-fees", "transaction-fee")
+        def monthlyFee = Component.simple("monthly-fee", monthlyAccountFee)
+        def transactionFees = Component.simple("transaction-fees", transactionFee)
 
-        facade.createCompositeComponent(
-                "total-account-fees",
-                Map.of(),
-                "monthly-fee", "transaction-fees"
-        )
+        def totalAccountFees = Component.composite("total-account-fees", Map.of(), monthlyFee, transactionFees)
 
         and:
         Parameters accountParams = Parameters.of("quantity", BigDecimal.valueOf(50))
-        Money result = facade.calculateComponent("total-account-fees", accountParams)
+        Money result = totalAccountFees.calculate(accountParams).money()
 
         and:
         Money expected = Money.of(BigDecimal.valueOf(40), "PLN")
@@ -109,7 +89,7 @@ class BankingComponentScenarioSpec extends Specification {
         expect:
         result == expected
 
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-account-fees", accountParams)
+        ComponentBreakdown breakdown = totalAccountFees.calculateBreakdown(accountParams)
         breakdown.name() == "total-account-fees"
         breakdown.total() == expected
         breakdown.children().size() == 2
@@ -117,21 +97,18 @@ class BankingComponentScenarioSpec extends Specification {
 
     def "portfolio fees include a performance bonus calculated on the management fee"() {
         given: "1,000,000 PLN portfolio with 1.5% management fee and 20% performance bonus on the management fee"
-        facade.createSimpleComponent("base-management", "management-fee")
-        facade.createSimpleComponent("performance-bonus", "performance-fee")
-        Map<String, Map<String, ParameterValue>> managementDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "performance-bonus", Map.of("baseAmount", new ValueOf("base-management")))
-        facade.createCompositeComponent(
-                "total-management-fees", managementDependencies,
-                "base-management", "performance-bonus"
-        )
+        def baseManagement = Component.simple("base-management", managementFee)
+        def performanceBonus = Component.simple("performance-bonus", performanceFee)
+        Map<String, Map<String, ParameterExpression>> managementDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "performance-bonus", Map.of("baseAmount", ParameterExpression.valueOf("base-management")))
+        def totalManagementFees = Component.composite("total-management-fees", managementDependencies, baseManagement, performanceBonus)
 
         and:
         Parameters portfolioParams = Parameters.of(
                 "baseAmount", Money.of(BigDecimal.valueOf(1000000), "PLN")
         )
 
-        Money result = facade.calculateComponent("total-management-fees", portfolioParams)
+        Money result = totalManagementFees.calculate(portfolioParams).money()
 
         and:
         Money expectedBase = Money.of(BigDecimal.valueOf(15000), "PLN")
@@ -141,7 +118,7 @@ class BankingComponentScenarioSpec extends Specification {
         expect:
         result == expectedTotal
 
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("total-management-fees", portfolioParams)
+        ComponentBreakdown breakdown = totalManagementFees.calculateBreakdown(portfolioParams)
         breakdown.name() == "total-management-fees"
         breakdown.total() == expectedTotal
         breakdown.children().size() == 2
@@ -152,15 +129,12 @@ class BankingComponentScenarioSpec extends Specification {
 
     def "complex loan cost combines interest, processing, and insurance with multiple dependencies"() {
         given: "200,000 PLN loan with interest, processing fee, and insurance on the sum of both"
-        facade.createSimpleComponent("interest", "loan-interest")
-        facade.createSimpleComponent("processing", "processing-fee")
-        facade.createSimpleComponent("insurance", "insurance-rate")
-        Map<String, Map<String, ParameterValue>> financingDependencies = Map.<String, Map<String, ParameterValue>> of(
-                "insurance", Map.of("baseAmount", new SumOf("interest", "processing")))
-        facade.createCompositeComponent(
-                "financing-costs", financingDependencies,
-                "interest", "processing", "insurance"
-        )
+        def interest = Component.simple("interest", loanInterest)
+        def processing = Component.simple("processing", processingFee)
+        def insurance = Component.simple("insurance", insuranceRate)
+        Map<String, Map<String, ParameterExpression>> financingDependencies = Map.<String, Map<String, ParameterExpression>> of(
+                "insurance", Map.of("baseAmount", ParameterExpression.sumOf("interest", "processing")))
+        def financingCosts = Component.composite("financing-costs", financingDependencies, interest, processing, insurance)
 
         and:
         Parameters loanParams = Parameters.of(
@@ -168,7 +142,7 @@ class BankingComponentScenarioSpec extends Specification {
                 "unit", ChronoUnit.YEARS
         )
 
-        Money result = facade.calculateComponent("financing-costs", loanParams)
+        Money result = financingCosts.calculate(loanParams).money()
 
         and:
         Money expectedInterest = Money.of(BigDecimal.valueOf(11000), "PLN")
@@ -179,15 +153,14 @@ class BankingComponentScenarioSpec extends Specification {
         expect:
         result == expectedTotal
 
-        ComponentBreakdown breakdown = facade.calculateComponentBreakdown("financing-costs", loanParams)
+        ComponentBreakdown breakdown = financingCosts.calculateBreakdown(loanParams)
         breakdown.name() == "financing-costs"
         breakdown.total() == expectedTotal
-        breakdown.children().size() == 3
 
-        breakdown.children().find { it.name() == "interest" }.total() == expectedInterest
-
-        breakdown.children().find { it.name() == "processing" }.total() == expectedProcessing
-
-        breakdown.children().find { it.name() == "insurance" }.total() == expectedInsurance
+        def components = breakdown.children()
+        components.size() == 3
+        components.find { it.name() == "interest" }.total() == expectedInterest
+        components.find { it.name() == "processing" }.total() == expectedProcessing
+        components.find { it.name() == "insurance" }.total() == expectedInsurance
     }
 }
