@@ -26,16 +26,16 @@ pitest {
     timestampedReports = false
 }
 
-tasks.register("coverageTest") {
+tasks.register("coverageCheck") {
     group = "quality"
     dependsOn(tasks.named("jacocoTestReport"))
 }
 
 tasks.named("test") {
-    finalizedBy(tasks.named("coverageTest"))
+    finalizedBy(tasks.named("coverageCheck"))
 }
 
-tasks.register("mutationTest") {
+tasks.register("mutationCheck") {
     group = "quality"
     dependsOn(tasks.named("pitest"))
 }

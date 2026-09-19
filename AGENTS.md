@@ -20,10 +20,10 @@
 
 Run `./gradlew format check` during development.
 
-After meaningful production code or test changes, run `./gradlew coverageTest`.
+After meaningful production code or test changes, run `./gradlew coverageCheck`.
 
 Before completing non-trivial production code or test changes, run:
-`./gradlew coverageTest mutationTest scan`.
+`./gradlew coverageCheck mutationCheck scan`.
 
 Run these checks earlier when their results are useful for guiding implementation or tests. Do not run expensive quality
 checks after every intermediate edit.
