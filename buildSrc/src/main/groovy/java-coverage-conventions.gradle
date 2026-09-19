@@ -1,0 +1,41 @@
+plugins {
+    id("jacoco")
+    id("info.solidsoft.pitest")
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
+tasks.named("jacocoTestReport") {
+    dependsOn(tasks.named("check"))
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
+pitest {
+    junit5PluginVersion = libs.versions.pitest.junit.get()
+
+    threads = 4
+
+    outputFormats = ["HTML", "XML"]
+    timestampedReports = false
+}
+
+tasks.register("coverageTest") {
+    group = "quality"
+    dependsOn(tasks.named("jacocoTestReport"))
+}
+
+tasks.named("test") {
+    finalizedBy(tasks.named("coverageTest"))
+}
+
+tasks.register("mutationTest") {
+    group = "quality"
+    dependsOn(tasks.named("pitest"))
+}

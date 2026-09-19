@@ -6,5 +6,6 @@ dependencies {
     implementation(libs.spotless.plugin)
     implementation(libs.errorprone.plugin)
     implementation(libs.quodana.plugin)
+    implementation(libs.pitest.plugin)
     implementation(libs.dependency.analysis.plugin)
 }

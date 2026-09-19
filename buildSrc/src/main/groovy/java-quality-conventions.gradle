@@ -1,5 +1,6 @@
 plugins {
     id("formatting-conventions")
+    id("java-coverage-conventions")
     id("net.ltgt.errorprone")
 }
 
