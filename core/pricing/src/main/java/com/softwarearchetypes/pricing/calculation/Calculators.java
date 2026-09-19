@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+// TODO(MSZ): test coverage
 public final class Calculators {
 
     public static Calculator fixed(String name, Money amount) {

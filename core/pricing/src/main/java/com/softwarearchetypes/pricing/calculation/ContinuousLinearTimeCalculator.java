@@ -40,7 +40,6 @@ record ContinuousLinearTimeCalculator(
 
     @Override
     public PricingResult calculate(Parameters parameters) {
-
         Instant queryTime = parameters.get(TIME);
 
         if (queryTime.isBefore(startTime)) {

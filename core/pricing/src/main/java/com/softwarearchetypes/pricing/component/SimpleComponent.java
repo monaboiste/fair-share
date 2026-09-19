@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 
 /**
  * A simple component with a time-versioned calculator configuration.
@@ -148,7 +147,7 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
             String calculatorParam = entry.getValue();
 
             if (original.contains(componentParam)) {
-                @Nullable Object value = original.get(componentParam);
+                Object value = original.get(componentParam);
                 transformed = transformed.with(calculatorParam, value);
             }
         }

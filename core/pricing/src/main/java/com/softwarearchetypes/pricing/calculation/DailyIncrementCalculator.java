@@ -33,7 +33,6 @@ record DailyIncrementCalculator(
 
     @Override
     public PricingResult calculate(Parameters parameters) {
-
         LocalDate date = parameters.get(DATE);
 
         long daysFromStart = DAYS.between(startDate, date);

@@ -48,7 +48,8 @@ class TimeRangeSpec extends Specification {
         range.contains(LocalTime.of(0, 0))
         range.contains(LocalTime.of(3, 0))
         range.contains(LocalTime.of(5, 59))
-        !(range.contains(LocalTime.of(6, 0)))
+        // TODO(MSZ): cleanup redundant parenthesis
+        !range.contains(LocalTime.of(6, 0))
         !(range.contains(LocalTime.of(12, 0)))
         !(range.contains(LocalTime.of(18, 0)))
     }

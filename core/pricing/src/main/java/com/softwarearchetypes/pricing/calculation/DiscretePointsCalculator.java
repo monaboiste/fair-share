@@ -22,7 +22,6 @@ record DiscretePointsCalculator(
 
     @Override
     public PricingResult calculate(Parameters parameters) {
-
         BigDecimal quantity = parameters.get(QUANTITY);
 
         Money price = points.get(quantity);

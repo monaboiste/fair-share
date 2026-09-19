@@ -3,6 +3,7 @@ package com.softwarearchetypes.pricing.calculation
 import com.softwarearchetypes.quantity.money.Money
 import spock.lang.Specification
 
+// TODO(MSZ): review specs
 class BankAccountFeeScenarioSpec extends Specification {
 
     private CompositeFunctionCalculator accountFeeCalculator
