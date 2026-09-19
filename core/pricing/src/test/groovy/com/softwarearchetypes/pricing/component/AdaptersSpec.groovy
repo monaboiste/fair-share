@@ -11,6 +11,7 @@ import com.softwarearchetypes.pricing.calculation.TotalPrice
 import com.softwarearchetypes.pricing.calculation.UnitPrice
 import com.softwarearchetypes.quantity.money.Money
 import java.time.LocalDateTime
+import org.jspecify.annotations.NonNull
 import spock.lang.Specification
 
 class AdaptersSpec extends Specification {
@@ -171,6 +172,7 @@ class AdaptersSpec extends Specification {
         formula.contains("f(x) = PLN 10")
     }
 
+    @NonNull
     private static class TrackingCalculator implements Calculator {
         private final Interpretation interpretation
         final List<Parameters> received = []
@@ -182,7 +184,7 @@ class AdaptersSpec extends Specification {
         @Override
         PricingResult calculate(Parameters parameters) {
             received << parameters
-            def money = parameters.getMoney("baseAmount").multiply(parameters.getBigDecimal("quantity"))
+            def money = parameters.getMoney("baseAmount") * parameters.getBigDecimal("quantity")
             if (interpretation == Interpretation.TOTAL) {
                 return new TotalPrice(money)
             }

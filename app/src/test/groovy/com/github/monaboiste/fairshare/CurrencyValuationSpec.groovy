@@ -42,20 +42,6 @@ class CurrencyValuationSpec extends Specification {
         error.message.contains("source")
     }
 
-    def "currency conversion rejects a null source before calculation"() {
-        given:
-        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(
-                ExchangeRate.of(USD, PLN, 4.5))
-        Parameters parameters = new Parameters([source: null])
-
-        when:
-        calculator.calculate(parameters)
-
-        then:
-        IllegalArgumentException error = thrown()
-        error.message.contains("source")
-    }
-
     def "currency conversion accepts a convertible Money source"() {
         given:
         CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(

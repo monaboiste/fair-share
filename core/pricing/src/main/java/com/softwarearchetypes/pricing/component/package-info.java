@@ -1,4 +1,3 @@
-/** Versioned composition of pricing calculations. */
 @NullMarked
 package com.softwarearchetypes.pricing.component;
 
