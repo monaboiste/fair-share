@@ -92,7 +92,7 @@ final class StringToMoneyConverter implements ValueConverter<String, Money> {
 
     @Override
     public Money convert(String value) {
-        String[] parts = WHITESPACE_PATTERN.split(value.trim());
+        String[] parts = WHITESPACE_PATTERN.split(value.trim(), -1);
 
         if (parts.length != 2) {
             throw new IllegalArgumentException(
