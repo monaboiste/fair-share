@@ -2,6 +2,7 @@ package com.softwarearchetypes.pricing.calculation;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,9 +12,8 @@ import java.util.Optional;
  */
 record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
 
-    @SuppressWarnings("ConstantValue")
     public Ranges {
-        if (rangeSelector == null || rangeSelector.isBlank()) {
+        if (rangeSelector.isBlank()) {
             throw new IllegalArgumentException("Range selector cannot be null or blank");
         }
         ranges = List.copyOf(ranges);
@@ -86,12 +86,15 @@ record Ranges(String rangeSelector, List<CalculatorRange> ranges) {
             throw new IllegalArgumentException(
                     "Parameter '%s' is required but not found in parameters".formatted(rangeSelector));
         }
+
         CalculatorRange selectorRange = ranges.getFirst();
-        Object value = selectorRange instanceof NumericRange
-                ? parameters.get(new ParameterKey<>(rangeSelector, BigDecimal.class))
-                : selectorRange instanceof DateRange
-                        ? parameters.get(new ParameterKey<>(rangeSelector, LocalDate.class))
-                        : parameters.get(new ParameterKey<>(rangeSelector, java.time.LocalTime.class));
+
+        Object value =
+                switch (selectorRange) {
+                    case NumericRange _ -> parameters.get(new ParameterKey<>(rangeSelector, BigDecimal.class));
+                    case DateRange _ -> parameters.get(new ParameterKey<>(rangeSelector, LocalDate.class));
+                    default -> parameters.get(new ParameterKey<>(rangeSelector, LocalTime.class));
+                };
 
         return ranges.stream().filter(range -> range.contains(value)).findFirst();
     }

@@ -5,11 +5,14 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Selects a calculator based on a numeric, time, or date range. */
 record CompositeFunctionCalculator(
         CalculatorId id, String name, Ranges ranges, Map<CalculatorId, Calculator> calculators) implements Calculator {
+
+    private static final Pattern LINE_BREAK_PATTERN = Pattern.compile("\\R");
 
     public CompositeFunctionCalculator(String name, Ranges ranges, Collection<Calculator> calculators) {
         this(CalculatorId.generate(), name, ranges, calculatorMap(calculators));
@@ -47,17 +50,23 @@ record CompositeFunctionCalculator(
 
     @Override
     public String describe() {
-        return String.format("Composite function calculator: %s", ranges);
+        return "Composite function calculator: %s".formatted(ranges);
     }
 
     @Override
     public String formula() {
         StringBuilder sb = new StringBuilder("f(x) = piecewise function:%n".formatted());
+
         ranges.toList().forEach(range -> {
-            Calculator calc = calculators.get(range.calculatorId());
+            Calculator calculator = calculators.get(range.calculatorId());
+
             sb.append("  %s → %s: %s%n"
-                    .formatted(range.describe(), calc.name(), calc.formula().replaceAll("\\R", " ")));
+                    .formatted(
+                            range.describe(),
+                            calculator.name(),
+                            LINE_BREAK_PATTERN.matcher(calculator.formula()).replaceAll(" ")));
         });
+
         return sb.toString().trim();
     }
 
