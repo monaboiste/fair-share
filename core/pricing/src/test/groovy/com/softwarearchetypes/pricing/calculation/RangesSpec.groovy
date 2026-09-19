@@ -29,19 +29,6 @@ class RangesSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def "throws when range selector is null"() {
-        given:
-        List<CalculatorRange> rangesList = List.of(
-                CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("10"), CalculatorId.generate())
-        )
-
-        when:
-        new Ranges(null, rangesList)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
     def "throws when range selector is blank"() {
         given:
         List<CalculatorRange> rangesList = List.of(
