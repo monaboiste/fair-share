@@ -1,25 +1,29 @@
-package com.softwarearchetypes.pricing.calculation
+package com.softwarearchetypes.pricing.scenarios
 
+import com.softwarearchetypes.pricing.calculation.Calculator
+import com.softwarearchetypes.pricing.calculation.CalculatorRange
+import com.softwarearchetypes.pricing.calculation.Calculators
+import com.softwarearchetypes.pricing.calculation.Parameters
+import com.softwarearchetypes.pricing.calculation.PricingResult
 import com.softwarearchetypes.quantity.money.Money
 import spock.lang.Specification
 
-// TODO(MSZ): review specs
 class BankAccountFeeScenarioSpec extends Specification {
 
-    private CompositeFunctionCalculator accountFeeCalculator
+    private Calculator accountFeeCalculator
 
     def setup() {
         Calculator feeTier1 = Calculators.fixed("acc-fee-tier-1", Money.of(new BigDecimal("20.00"), "PLN"))
-
         Calculator feeTier2 = Calculators.fixed("acc-fee-tier-2", Money.of(new BigDecimal("10.00"), "PLN"))
-
         Calculator feeTier3 = Calculators.fixed("acc-fee-tier-3", Money.of(new BigDecimal("0.00"), "PLN"))
+
         List<CalculatorRange> ranges = List.of(
                 CalculatorRange.numeric(BigDecimal.ZERO, new BigDecimal("1000"), feeTier1.getId()),
                 CalculatorRange.numeric(new BigDecimal("1000"), new BigDecimal("4000"), feeTier2.getId()),
                 CalculatorRange.numeric(new BigDecimal("4000"), new BigDecimal(Integer.MAX_VALUE), feeTier3.getId())
         )
-        accountFeeCalculator = new CompositeFunctionCalculator("account-fee", Ranges.of("monthlyIncome", ranges as CalculatorRange[]), [feeTier1, feeTier2, feeTier3])
+
+        accountFeeCalculator = Calculators.composite("account-fee", "monthlyIncome", ranges, [feeTier1, feeTier2, feeTier3])
     }
 
     def "income of zero is charged 20 PLN"() {

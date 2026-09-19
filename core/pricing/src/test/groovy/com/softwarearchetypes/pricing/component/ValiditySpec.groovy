@@ -1,6 +1,5 @@
 package com.softwarearchetypes.pricing.component
 
-
 import java.time.LocalDateTime
 import spock.lang.Specification
 

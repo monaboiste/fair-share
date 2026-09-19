@@ -1,5 +1,11 @@
-package com.softwarearchetypes.pricing.calculation
+package com.softwarearchetypes.pricing.scenarios
 
+import com.softwarearchetypes.pricing.calculation.Calculator
+import com.softwarearchetypes.pricing.calculation.CalculatorId
+import com.softwarearchetypes.pricing.calculation.CalculatorRange
+import com.softwarearchetypes.pricing.calculation.Calculators
+import com.softwarearchetypes.pricing.calculation.Parameters
+import com.softwarearchetypes.pricing.calculation.PricingResult
 import com.softwarearchetypes.quantity.money.Money
 import java.time.LocalTime
 import spock.lang.Specification
@@ -12,7 +18,7 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         given: "day rate of 5 PLN (06:00-22:00) and night rate of 2 PLN (22:00-06:00)"
         CalculatorId dayRateId = addFixedCalculator("parking-day-rate", Money.of(5.00, "PLN"))
         CalculatorId nightRateId = addFixedCalculator("parking-night-rate", Money.of(2.00, "PLN"))
-        CompositeFunctionCalculator composite = addCompositeCalculator(
+        Calculator composite = addCompositeCalculator(
                 "parking-hourly-rate",
                 "parkingTime",
                 CalculatorRange.time(LocalTime.of(6, 0), LocalTime.of(22, 0), dayRateId),
@@ -32,7 +38,7 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         CalculatorId smallOrderId = addFixedCalculator("price-small", Money.of(10.00, "PLN"))
         CalculatorId mediumOrderId = addFixedCalculator("price-medium", Money.of(8.00, "PLN"))
         CalculatorId largeOrderId = addFixedCalculator("price-large", Money.of(6.00, "PLN"))
-        CompositeFunctionCalculator composite = addCompositeCalculator(
+        Calculator composite = addCompositeCalculator(
                 "volume-discount",
                 "quantity",
                 CalculatorRange.numeric(new BigDecimal("1"), new BigDecimal("10"), smallOrderId),
@@ -56,7 +62,7 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         CalculatorId smallPackageId = addFixedCalculator("shipping-small", Money.of(18.00, "PLN"))
         CalculatorId mediumPackageId = addFixedCalculator("shipping-medium", Money.of(28.00, "PLN"))
         CalculatorId largePackageId = addFixedCalculator("shipping-large", Money.of(45.00, "PLN"))
-        CompositeFunctionCalculator composite = addCompositeCalculator(
+        Calculator composite = addCompositeCalculator(
                 "shipping-by-weight",
                 "weight",
                 CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("1"), tinyPackageId),
@@ -79,7 +85,7 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         given: "regular price of 25 PLN, happy-hour price of 15 PLN between 17:00 and 19:00"
         CalculatorId regularPriceId = addFixedCalculator("drink-regular", Money.of(25.00, "PLN"))
         CalculatorId happyHourPriceId = addFixedCalculator("drink-happy-hour", Money.of(15.00, "PLN"))
-        CompositeFunctionCalculator composite = addCompositeCalculator(
+        Calculator composite = addCompositeCalculator(
                 "bar-pricing",
                 "orderTime",
                 CalculatorRange.time(LocalTime.of(0, 0), LocalTime.of(17, 0), regularPriceId),
@@ -102,7 +108,7 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         CalculatorId freeTransferId = addFixedCalculator("transfer-free", Money.zero("PLN"))
         CalculatorId smallFeeId = addFixedCalculator("transfer-small-fee", Money.of(2.00, "PLN"))
         CalculatorId mediumFeeId = addFixedCalculator("transfer-medium-fee", Money.of(5.00, "PLN"))
-        CompositeFunctionCalculator composite = addCompositeCalculator(
+        Calculator composite = addCompositeCalculator(
                 "transfer-fees",
                 "amount",
                 CalculatorRange.numeric(new BigDecimal("0"), new BigDecimal("100"), freeTransferId),
@@ -126,7 +132,7 @@ class CompositeFunctionCalculatorScenarioSpec extends Specification {
         calculator.getId()
     }
 
-    private CompositeFunctionCalculator addCompositeCalculator(String name, String rangeSelector, CalculatorRange... ranges) {
-        return new CompositeFunctionCalculator(name, new Ranges(rangeSelector, ranges.toList()), calculators.values())
+    private Calculator addCompositeCalculator(String name, String rangeSelector, CalculatorRange... ranges) {
+        return Calculators.composite(name, rangeSelector, ranges.toList(), calculators.values())
     }
 }

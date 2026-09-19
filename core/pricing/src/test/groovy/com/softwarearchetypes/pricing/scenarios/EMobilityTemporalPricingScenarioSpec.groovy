@@ -1,9 +1,14 @@
-package com.softwarearchetypes.pricing.component
+package com.softwarearchetypes.pricing.scenarios
 
 import com.softwarearchetypes.pricing.calculation.Calculator
 import com.softwarearchetypes.pricing.calculation.Calculators
 import com.softwarearchetypes.pricing.calculation.Interpretation
 import com.softwarearchetypes.pricing.calculation.Parameters
+import com.softwarearchetypes.pricing.component.Component
+import com.softwarearchetypes.pricing.component.ComponentBreakdown
+import com.softwarearchetypes.pricing.component.ParameterExpression
+import com.softwarearchetypes.pricing.component.SimpleComponentVersion
+import com.softwarearchetypes.pricing.component.Validity
 import com.softwarearchetypes.quantity.money.Money
 import java.time.LocalDateTime
 import spock.lang.Specification
@@ -30,13 +35,10 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     private void registerCalculators() {
         parkingzero = Calculators.fixed("parking-zero", Money.zero("PLN"))
         energy250 = Calculators.fixed("energy-2.50", Money.of(2.50, "PLN"), Interpretation.UNIT)
-
         energy200 = Calculators.fixed("energy-2.00", Money.of(2.00, "PLN"), Interpretation.UNIT)
-
         energy280 = Calculators.fixed("energy-2.80", Money.of(2.80, "PLN"), Interpretation.UNIT)
         vat23 = Calculators.percentage("vat-23", BigDecimal.valueOf(23))
         parking5 = Calculators.fixed("parking-5", Money.of(5, "PLN"))
-
         parking8 = Calculators.fixed("parking-8", Money.of(8, "PLN"))
     }
 
@@ -45,7 +47,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         vat = Component.simple("VAT", vat23, Map.of("baseAmount", "baseAmount"), Validity.from(LocalDateTime.of(2024, 1, 1, 0, 0)))
         parkingFee = Component.simple("ParkingFee", parkingzero)
         parkingFee = parkingFee.updateWith(new SimpleComponentVersion(parking5, Map.of(), Validity.from(LocalDateTime.of(2024, 5, 1, 0, 0)), LocalDateTime.now()))
-        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
+        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.<String, ParameterExpression>of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
     }
 
     def "price in January uses the base rate of 2.50 PLN per kWh"() {
@@ -56,7 +58,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         )
 
         and:
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( jan15)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(jan15)
 
         expect:
         breakdown.total() == Money.of(61.50, "PLN")
@@ -68,7 +70,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
     def "Valentine promotion in February reduces the energy rate to 2.00 PLN per kWh"() {
         given: "a temporary discount valid only in February"
         energyCharge = energyCharge.updateWith(new SimpleComponentVersion(energy200, Map.of("kwh", "quantity"), Validity.between(LocalDateTime.of(2024, 2, 1, 0, 0), LocalDateTime.of(2024, 3, 1, 0, 0)), LocalDateTime.now()))
-        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
+        totalPrice = Component.composite("TotalPrice", Map.of("VAT", Map.<String, ParameterExpression>of("baseAmount", ParameterExpression.valueOf("EnergyCharge"))), energyCharge, vat)
 
         and:
         Parameters feb14 = Parameters.of(
@@ -76,7 +78,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 "kwh", BigDecimal.valueOf(20)
         )
 
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( feb14)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(feb14)
 
         expect:
         breakdown.total() == Money.of(49.20, "PLN")
@@ -94,7 +96,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 "kwh", BigDecimal.valueOf(20)
         )
 
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( mar10)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(mar10)
 
         expect:
         breakdown.total() == Money.of(61.50, "PLN")
@@ -113,7 +115,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 "kwh", BigDecimal.valueOf(20)
         )
 
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( may20)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(may20)
 
         expect:
         breakdown.total() == Money.of(67.65, "PLN")
@@ -136,7 +138,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 "kwh", BigDecimal.valueOf(20)
         )
 
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( jul15)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(jul15)
 
         expect:
         breakdown.total() == Money.of(75.03, "PLN")
@@ -156,7 +158,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 "kwh", BigDecimal.valueOf(20)
         )
 
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( sep15)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(sep15)
 
         expect:
         breakdown.total() == Money.of(67.65, "PLN")
@@ -178,7 +180,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
                 "kwh", BigDecimal.valueOf(20)
         )
 
-        ComponentBreakdown breakdown = totalPrice.calculateBreakdown( dec05)
+        ComponentBreakdown breakdown = totalPrice.calculateBreakdown(dec05)
 
         expect:
         breakdown.total() == Money.of(71.34, "PLN")
@@ -224,7 +226,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         expect:
         dates.collect { date ->
             Parameters params = Parameters.of("timestamp", date, "kwh", BigDecimal.valueOf(20))
-            totalPrice.calculate( params).money()
+            totalPrice.calculate(params).money()
         } == expected
     }
 
