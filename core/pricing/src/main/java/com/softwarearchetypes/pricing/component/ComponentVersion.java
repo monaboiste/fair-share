@@ -2,6 +2,7 @@ package com.softwarearchetypes.pricing.component;
 
 import com.softwarearchetypes.pricing.calculation.Parameters;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /** Describes a component configuration and its validity period. */
 sealed interface ComponentVersion permits SimpleComponentVersion, CompositeComponentVersion {
@@ -18,6 +19,6 @@ sealed interface ComponentVersion permits SimpleComponentVersion, CompositeCompo
         if (parameters.contains("timestamp")) {
             return parameters.getLocalDateTime("timestamp");
         }
-        return LocalDateTime.now(); // todo(msz): clock
+        return LocalDateTime.now(ZoneId.systemDefault());
     }
 }
