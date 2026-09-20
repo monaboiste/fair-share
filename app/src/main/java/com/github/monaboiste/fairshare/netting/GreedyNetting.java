@@ -25,7 +25,7 @@ final class GreedyNetting implements Netting {
     }
 
     private static <P> List<ProposedRepayment<P>> match(Balances<P> balances, ParticipantComparator<? super P> order) {
-        Comparator<Owed<P>> byOwed = Comparator.comparing((Owed<P> owed) -> owed.owed(), Money::compareTo)
+        Comparator<Owed<P>> byOwed = Comparator.comparing(Owed<P>::owed, Money::compareTo)
                 .reversed()
                 .thenComparing(Owed::participant, order);
 
@@ -36,14 +36,15 @@ final class GreedyNetting implements Netting {
 
         List<ProposedRepayment<P>> repayments = new ArrayList<>();
         while (!debtors.isEmpty() && !creditors.isEmpty()) {
-            Owed<P> debtor = debtors.poll();
-            Owed<P> creditor = creditors.poll();
+            Owed<P> debtor = debtors.remove();
+            Owed<P> creditor = creditors.remove();
 
             Money transfer = Money.min(debtor.owed(), creditor.owed());
             repayments.add(new ProposedRepayment<>(debtor.participant(), creditor.participant(), transfer));
 
             Money remainingDebt = debtor.owed().subtract(transfer);
             Money remainingCredit = creditor.owed().subtract(transfer);
+
             if (!remainingDebt.isZero()) {
                 debtors.add(new Owed<>(debtor.participant(), remainingDebt));
             }
