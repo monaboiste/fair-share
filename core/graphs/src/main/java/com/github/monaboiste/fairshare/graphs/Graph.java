@@ -20,6 +20,11 @@ public class Graph<T, P> {
         return this;
     }
 
+    public Graph<T, P> addVertex(Node<T> node) {
+        adjacency.putIfAbsent(node, new ArrayList<>());
+        return this;
+    }
+
     public Optional<Path<T, P>> findFirstCycle() {
         Set<Node<T>> visited = new HashSet<>();
         Set<Node<T>> inStack = new HashSet<>();
@@ -82,6 +87,14 @@ public class Graph<T, P> {
             return false;
         }
         return edges.stream().anyMatch(edge -> edge.to().equals(to));
+    }
+
+    public Set<Node<T>> vertices() {
+        return Set.copyOf(adjacency.keySet());
+    }
+
+    public List<Edge<T, P>> edges() {
+        return adjacency.values().stream().flatMap(List::stream).toList();
     }
 
     public <P2> Graph<T, P> intersection(Graph<T, P2> other) {

@@ -1,4 +1,4 @@
-package com.github.monaboiste.fairshare;
+package com.github.monaboiste.fairshare.valuation;
 
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters;
 import com.github.monaboiste.fairshare.pricing.calculation.PricingResult;
@@ -15,7 +15,7 @@ import java.util.UUID;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
-public interface Pricing {
+public interface ValuationEngine {
 
     Valuation value(Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<SimpleComponentVersion> versions);
 
@@ -26,12 +26,12 @@ public interface Pricing {
             ExchangeRate override,
             ComponentVersionId versionId);
 
-    static Pricing standard() {
-        return new StandardPricing();
+    static ValuationEngine standard() {
+        return new StandardValuationEngine();
     }
 }
 
-final class StandardPricing implements Pricing {
+final class StandardValuationEngine implements ValuationEngine {
 
     @Override
     public Valuation value(

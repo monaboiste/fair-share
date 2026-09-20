@@ -87,4 +87,69 @@ class GraphSpec extends Specification {
         !intersection.hasEdge(new Node<>("A"), new Node<>("B"))
         !intersection.hasEdge(new Node<>("B"), new Node<>("C"))
     }
+
+    def "vertices contain every edge endpoint"() {
+        given:
+        Graph<String, String> graph = new Graph<>()
+        graph.addEdge(new Edge<>(new Node<>("A"), new Node<>("B"), "edge1"))
+        graph.addEdge(new Edge<>(new Node<>("B"), new Node<>("C"), "edge2"))
+
+        when:
+        Set<Node<String>> vertices = graph.vertices()
+
+        then:
+        vertices == [new Node<>("A"), new Node<>("B"), new Node<>("C")] as Set
+    }
+
+    def "edges list every added edge"() {
+        given:
+        Graph<String, String> graph = new Graph<>()
+        Edge<String, String> first = new Edge<>(new Node<>("A"), new Node<>("B"), "edge1")
+        Edge<String, String> second = new Edge<>(new Node<>("B"), new Node<>("C"), "edge2")
+        graph.addEdge(first)
+        graph.addEdge(second)
+
+        when:
+        List<Edge<String, String>> edges = graph.edges()
+
+        then:
+        edges.containsAll([first, second])
+        edges.size() == 2
+    }
+
+    def "empty graph has no vertices or edges"() {
+        given:
+        Graph<String, String> graph = new Graph<>()
+
+        expect:
+        graph.vertices().isEmpty()
+        graph.edges().isEmpty()
+    }
+
+    def "addVertex adds an isolated vertex with no edges"() {
+        given:
+        Graph<String, String> graph = new Graph<>()
+
+        when:
+        graph.addVertex(new Node<>("A"))
+
+        then:
+        graph.vertices() == [new Node<>("A")] as Set
+        graph.edges().isEmpty()
+    }
+
+    def "addVertex is idempotent and keeps existing edges"() {
+        given:
+        Graph<String, String> graph = new Graph<>()
+        Edge<String, String> edge = new Edge<>(new Node<>("A"), new Node<>("B"), "edge")
+        graph.addEdge(edge)
+
+        when:
+        graph.addVertex(new Node<>("A"))
+        graph.addVertex(new Node<>("C"))
+
+        then:
+        graph.vertices() == [new Node<>("A"), new Node<>("B"), new Node<>("C")] as Set
+        graph.edges() == [edge]
+    }
 }
