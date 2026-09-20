@@ -8,7 +8,6 @@ import spock.lang.Specification
 class ObligationGraphSpec extends Specification {
 
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
-    private static final CurrencyUnit USD = Monetary.getCurrency("USD")
 
     def "accepts settled input with no obligations"() {
         when:
@@ -22,8 +21,8 @@ class ObligationGraphSpec extends Specification {
 
     def "rejects obligations in mixed currencies"() {
         given:
-        Obligation<String> local = new Obligation<>("ada", "bob", Money.of(10, "PLN"))
-        Obligation<String> foreign = new Obligation<>("ada", "bob", Money.of(10, "USD"))
+        Obligation<String> local = Obligation.of("ada", "bob", Money.of(10, "PLN"))
+        Obligation<String> foreign = Obligation.of("ada", "bob", Money.of(10, "USD"))
 
         when:
         ObligationGraph.of(["ada", "bob"] as Set, [local, foreign], PLN)
@@ -34,7 +33,7 @@ class ObligationGraphSpec extends Specification {
 
     def "rejects obligations referencing unknown participants"() {
         given:
-        Obligation<String> stranger = new Obligation<>("ada", "mallory", Money.of(10, "PLN"))
+        Obligation<String> stranger = Obligation.of("ada", "mallory", Money.of(10, "PLN"))
 
         when:
         ObligationGraph.of(["ada", "bob"] as Set, [stranger], PLN)
@@ -44,18 +43,25 @@ class ObligationGraphSpec extends Specification {
         error.message.contains("unknown participant")
     }
 
+    def "rejects a negative obligation amount"() {
+        when:
+        Obligation.of("ada", "bob", Money.of(-10, "PLN"))
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
     def "rejects a null #missing graph input"() {
         when:
-        new ObligationGraph<>(participants, obligations, currency)
+        new ObligationGraph<>(participants, obligations, PLN)
 
         then:
         thrown(NullPointerException)
 
         where:
-        missing          | participants          | obligations                                    | currency
-        "participants"   | null                  | List.of()                                      | PLN
-        "obligations"    | ["ada"] as Set        | null                                           | PLN
-        "currency"       | ["ada"] as Set        | List.of()                                      | null
+        missing        | participants   | obligations
+        "participants" | null           | List.of()
+        "obligations"  | ["ada"] as Set | null
     }
 
     def "proposed repayment rejects a #description repayment"() {
@@ -66,7 +72,7 @@ class ObligationGraphSpec extends Specification {
         thrown(IllegalArgumentException)
 
         where:
-        description   | debtor | creditor | amount
+        description     | debtor | creditor | amount
         "self-directed" | "ada"  | "ada"    | Money.of(10, "PLN")
         "zero"          | "ada"  | "bob"    | Money.of(0, "PLN")
         "negative"      | "ada"  | "bob"    | Money.of(-10, "PLN")

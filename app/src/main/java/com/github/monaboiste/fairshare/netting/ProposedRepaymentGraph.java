@@ -6,21 +6,23 @@ import com.github.monaboiste.fairshare.graphs.Node;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import javax.money.CurrencyUnit;
 
-/** Participants and their positive debtor-to-creditor Proposed Repayments in one currency. */
+/**
+ * Participants and their positive debtor-to-creditor proposed repayments in one settlement currency.
+ *
+ * <p>The type enforces the output invariants independently of the algorithm that produced it: no parallel edges and no
+ * cycles of any length (verified with {@link Graph#findFirstCycle()}).
+ */
 public record ProposedRepaymentGraph<P>(
         Set<P> participants, List<ProposedRepayment<P>> proposedRepayments, CurrencyUnit currency) {
 
     public ProposedRepaymentGraph {
-        Objects.requireNonNull(participants, "Proposed repayment graph participants are required");
-        Objects.requireNonNull(proposedRepayments, "Proposed repayment graph repayments are required");
-        Objects.requireNonNull(currency, "Proposed repayment graph currency is required");
         participants = Set.copyOf(participants);
         proposedRepayments = List.copyOf(proposedRepayments);
         Set<List<P>> directed = new HashSet<>();
+        Graph<P, Money> cycleCheck = new Graph<>();
         for (ProposedRepayment<P> repayment : proposedRepayments) {
             if (!participants.contains(repayment.debtor()) || !participants.contains(repayment.creditor())) {
                 throw new IllegalArgumentException("Proposed repayment references an unknown participant");
@@ -31,12 +33,6 @@ public record ProposedRepaymentGraph<P>(
             if (!directed.add(List.of(repayment.debtor(), repayment.creditor()))) {
                 throw new IllegalArgumentException("Proposed repayments must not contain parallel edges");
             }
-            if (directed.contains(List.of(repayment.creditor(), repayment.debtor()))) {
-                throw new IllegalArgumentException("Proposed repayments must not contain cycles");
-            }
-        }
-        Graph<P, Money> cycleCheck = new Graph<>();
-        for (ProposedRepayment<P> repayment : proposedRepayments) {
             cycleCheck.addEdge(
                     new Edge<>(new Node<>(repayment.debtor()), new Node<>(repayment.creditor()), repayment.amount()));
         }

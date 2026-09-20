@@ -5,7 +5,7 @@ import javax.money.CurrencyUnit
 import javax.money.Monetary
 import spock.lang.Specification
 
-class NettingSpec extends Specification {
+class GreedyNettingSpec extends Specification {
 
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
@@ -18,7 +18,7 @@ class NettingSpec extends Specification {
                 [["ada", "bob", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>("ada", "bob", Money.of(10, "PLN"))]
@@ -31,7 +31,7 @@ class NettingSpec extends Specification {
                 [["ada", "cid", 10], ["bob", "cid", 10], ["cid", "dan", 20]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [
@@ -46,7 +46,7 @@ class NettingSpec extends Specification {
                 [["ada", "bob", 10], ["bob", "cid", 10], ["cid", "ada", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments().isEmpty()
@@ -59,7 +59,7 @@ class NettingSpec extends Specification {
                 [["ada", "bob", 10], ["ada", "bob", 5], ["bob", "ada", 7]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>("ada", "bob", Money.of(8, "PLN"))]
@@ -72,7 +72,7 @@ class NettingSpec extends Specification {
                 [["ada", "ada", 10], ["ada", "bob", 0], ["ada", "bob", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>("ada", "bob", Money.of(10, "PLN"))]
@@ -83,7 +83,7 @@ class NettingSpec extends Specification {
         ObligationGraph<String> graph = ObligationGraph.of(["ada", "bob"] as Set, List.of(), PLN)
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments().isEmpty()
@@ -97,7 +97,7 @@ class NettingSpec extends Specification {
                 [["ada", "cid", 10], ["bob", "dan", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [
@@ -112,7 +112,7 @@ class NettingSpec extends Specification {
                 [["ada", "bob", 30], ["bob", "cid", 10], ["cid", "dan", 5], ["dan", "ada", 5]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         balancesOf(graph) == balancesOfProposal(proposal)
@@ -125,7 +125,7 @@ class NettingSpec extends Specification {
                 [["bob", "cid", 90], ["ada", "cid", 5], ["ada", "dan", 95]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [
@@ -142,7 +142,7 @@ class NettingSpec extends Specification {
                  ["eva", "ada", 5], ["ada", "cid", 7]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         hasNoLoops(proposal)
@@ -162,8 +162,8 @@ class NettingSpec extends Specification {
                 [["bob", "dan", 10], ["ada", "cid", 10]])
 
         when:
-        ProposedRepaymentGraph<String> firstProposal = netting.net(first, Comparator.naturalOrder())
-        ProposedRepaymentGraph<String> secondProposal = netting.net(second, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> firstProposal = netting.net(first, order())
+        ProposedRepaymentGraph<String> secondProposal = netting.net(second, order())
 
         then:
         firstProposal.proposedRepayments() == secondProposal.proposedRepayments()
@@ -174,12 +174,12 @@ class NettingSpec extends Specification {
         CurrencyUnit currency = Monetary.getCurrency(currencyCode)
         ObligationGraph<String> graph = ObligationGraph.of(
                 ["ada", "bob", "cid"] as Set,
-                [new Obligation<>("ada", "bob", Money.of(new BigDecimal(owed), currencyCode)),
-                 new Obligation<>("bob", "cid", Money.of(new BigDecimal(owed), currencyCode))],
+                [Obligation.of("ada", "bob", Money.of(new BigDecimal(owed), currencyCode)),
+                 Obligation.of("bob", "cid", Money.of(new BigDecimal(owed), currencyCode))],
                 currency)
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
 
         then:
         proposal.proposedRepayments() == [
@@ -196,19 +196,43 @@ class NettingSpec extends Specification {
         given:
         ObligationGraph<Integer> graph = ObligationGraph.of(
                 [3, 1, 2] as Set,
-                [new Obligation<>(3, 1, Money.of(10, "PLN"))],
+                [Obligation.of(3, 1, Money.of(10, "PLN"))],
                 PLN)
 
         when:
-        ProposedRepaymentGraph<Integer> proposal = netting.net(graph, Comparator.naturalOrder())
+        ProposedRepaymentGraph<Integer> proposal =
+                netting.net(graph, { a, b -> a <=> b } as ParticipantComparator<Integer>)
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>(3, 1, Money.of(10, "PLN"))]
     }
 
+    def "rejects a null obligation graph"() {
+        when:
+        netting.net(null, order())
+
+        then:
+        thrown(NullPointerException)
+    }
+
+    def "rejects a null participant order"() {
+        given:
+        ObligationGraph<String> graph = obligationGraph(["ada", "bob"], [["ada", "bob", 10]])
+
+        when:
+        netting.net(graph, null)
+
+        then:
+        thrown(NullPointerException)
+    }
+
+    private static ParticipantComparator<String> order() {
+        { a, b -> a <=> b } as ParticipantComparator<String>
+    }
+
     private static ObligationGraph<String> obligationGraph(List<String> participants, List<List> entries) {
         List<Obligation<String>> obligations = entries.collect { entry ->
-            new Obligation<>(entry[0] as String, entry[1] as String, Money.of(entry[2], "PLN"))
+            Obligation.of(entry[0] as String, entry[1] as String, Money.of(entry[2], "PLN"))
         }
         return ObligationGraph.of(participants as Set, obligations, PLN)
     }
@@ -252,13 +276,12 @@ class NettingSpec extends Specification {
     private static boolean hasNoCycles(ProposedRepaymentGraph<String> proposal) {
         Map<String, Set<String>> outgoing = [:].withDefault { [] as Set }
         proposal.proposedRepayments().each { outgoing[it.debtor()] = outgoing[it.debtor()] + it.creditor() }
-        proposal.participants().every { !reaches(it, it, outgoing, [] as Set) }
+        proposal.participants().every { !reaches(it, it, outgoing) }
     }
 
-    private static boolean reaches(
-            String start, String current, Map<String, Set<String>> outgoing, Set<String> visited) {
+    private static boolean reaches(String start, String current, Map<String, Set<String>> outgoing) {
         for (String next : outgoing.getOrDefault(current, [] as Set)) {
-            if (next == start || reaches(start, next, outgoing, visited + current)) {
+            if (next == start || reaches(start, next, outgoing)) {
                 return true
             }
         }

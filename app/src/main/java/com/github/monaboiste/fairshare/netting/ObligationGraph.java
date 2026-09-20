@@ -1,17 +1,13 @@
 package com.github.monaboiste.fairshare.netting;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import javax.money.CurrencyUnit;
 
-/** Participants and their Money-weighted Obligations in one currency. */
+/** Participants and their Money-weighted obligations in one settlement currency. */
 public record ObligationGraph<P>(Set<P> participants, List<Obligation<P>> obligations, CurrencyUnit currency) {
 
     public ObligationGraph {
-        Objects.requireNonNull(participants, "Obligation graph participants are required");
-        Objects.requireNonNull(obligations, "Obligation graph obligations are required");
-        Objects.requireNonNull(currency, "Obligation graph currency is required");
         participants = Set.copyOf(participants);
         obligations = List.copyOf(obligations);
         for (Obligation<P> obligation : obligations) {

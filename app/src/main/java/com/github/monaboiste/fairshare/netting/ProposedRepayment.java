@@ -1,15 +1,18 @@
 package com.github.monaboiste.fairshare.netting;
 
 import com.github.monaboiste.fairshare.quantity.money.Money;
-import java.util.Objects;
 
-/** A derived instruction identifying which Participant repays another Participant, and how much. */
+/**
+ * A derived instruction: which participant repays another, and how much.
+ *
+ * @param debtor participant who pays
+ * @param creditor participant who receives (must differ from the debtor)
+ * @param amount positive amount to pay
+ * @param <P> participant identity type
+ */
 public record ProposedRepayment<P>(P debtor, P creditor, Money amount) {
 
     public ProposedRepayment {
-        Objects.requireNonNull(debtor, "Proposed repayment debtor is required");
-        Objects.requireNonNull(creditor, "Proposed repayment creditor is required");
-        Objects.requireNonNull(amount, "Proposed repayment amount is required");
         if (debtor.equals(creditor)) {
             throw new IllegalArgumentException("Proposed repayment cannot be self-directed");
         }
