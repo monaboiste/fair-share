@@ -19,7 +19,7 @@ class CurrencyValuationSpec extends Specification {
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
     private static final CurrencyUnit USD = Monetary.getCurrency("USD")
 
-    private final Pricing pricing = Pricing.standard()
+    private final ValuationEngine pricing = ValuationEngine.standard()
 
     def "currency conversion calculates a source amount"() {
         given:
