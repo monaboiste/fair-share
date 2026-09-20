@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 
 /**
@@ -24,17 +25,22 @@ final class GreedyNetting implements Netting {
         return ProposedRepayments.of(obligations.participants(), repayments, obligations.currency());
     }
 
+    /**
+     * Matches debtors with creditors, always taking the largest remaining amounts first.
+     *
+     * <p>Each iteration fully settles at least one participant. Participants with a remaining balance are returned to
+     * their respective queue.
+     */
     private static <P> List<ProposedRepayment<P>> match(Balances<P> balances, ParticipantComparator<? super P> order) {
-        Comparator<Owed<P>> byOwed = Comparator.comparing(Owed<P>::owed, Money::compareTo)
+        Comparator<Owed<P>> byOwed = Comparator.<Owed<P>, Money>comparing(Owed::owed, Money::compareTo)
                 .reversed()
                 .thenComparing(Owed::participant, order);
 
-        PriorityQueue<Owed<P>> debtors = new PriorityQueue<>(byOwed);
-        balances.debtors().forEach((participant, owed) -> debtors.add(new Owed<>(participant, owed)));
-        PriorityQueue<Owed<P>> creditors = new PriorityQueue<>(byOwed);
-        balances.creditors().forEach((participant, owed) -> creditors.add(new Owed<>(participant, owed)));
+        PriorityQueue<Owed<P>> debtors = queue(balances.debtors(), byOwed);
+        PriorityQueue<Owed<P>> creditors = queue(balances.creditors(), byOwed);
 
         List<ProposedRepayment<P>> repayments = new ArrayList<>();
+
         while (!debtors.isEmpty() && !creditors.isEmpty()) {
             Owed<P> debtor = debtors.remove();
             Owed<P> creditor = creditors.remove();
@@ -42,18 +48,26 @@ final class GreedyNetting implements Netting {
             Money transfer = Money.min(debtor.owed(), creditor.owed());
             repayments.add(new ProposedRepayment<>(debtor.participant(), creditor.participant(), transfer));
 
-            Money remainingDebt = debtor.owed().subtract(transfer);
-            Money remainingCredit = creditor.owed().subtract(transfer);
-
-            if (!remainingDebt.isZero()) {
-                debtors.add(new Owed<>(debtor.participant(), remainingDebt));
-            }
-            if (!remainingCredit.isZero()) {
-                creditors.add(new Owed<>(creditor.participant(), remainingCredit));
-            }
+            requeue(debtors, debtor, transfer);
+            requeue(creditors, creditor, transfer);
         }
+
         return repayments;
     }
 
+    private static <P> PriorityQueue<Owed<P>> queue(Map<P, Money> balances, Comparator<Owed<P>> comparator) {
+        PriorityQueue<Owed<P>> queue = new PriorityQueue<>(comparator);
+        balances.forEach((participant, owed) -> queue.add(new Owed<>(participant, owed)));
+        return queue;
+    }
+
+    private static <P> void requeue(PriorityQueue<Owed<P>> queue, Owed<P> owed, Money paid) {
+        Money remaining = owed.owed().subtract(paid);
+        if (!remaining.isZero()) {
+            queue.add(new Owed<>(owed.participant(), remaining));
+        }
+    }
+
+    /** A participant with the positive amount they currently owe or are owed. */
     private record Owed<P>(P participant, Money owed) {}
 }
