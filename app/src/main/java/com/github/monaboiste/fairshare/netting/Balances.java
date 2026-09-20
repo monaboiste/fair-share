@@ -35,8 +35,8 @@ final class Balances<P> {
 
     private Balances(Obligations<P> obligations, Map<P, Money> amounts, Map<P, ComponentBreakdown> breakdowns) {
         this.obligations = obligations;
-        this.amounts = amounts;
-        this.breakdowns = breakdowns;
+        this.amounts = Map.copyOf(amounts);
+        this.breakdowns = Map.copyOf(breakdowns);
     }
 
     /** Computes balances from the obligations valid at the given time. */
@@ -81,7 +81,7 @@ final class Balances<P> {
 
     /** Signed balance of every participant, positive for a creditor and negative for a debtor. */
     Map<P, Money> amounts() {
-        return Map.copyOf(amounts);
+        return amounts;
     }
 
     /** Participants who owe money, mapped to the positive amount they owe. */
@@ -92,7 +92,7 @@ final class Balances<P> {
                 debtors.put(participant, balance.abs());
             }
         });
-        return debtors;
+        return Map.copyOf(debtors);
     }
 
     /** Participants who are owed money, mapped to the positive amount owed to them. */
@@ -103,7 +103,7 @@ final class Balances<P> {
                 creditors.put(participant, balance);
             }
         });
-        return creditors;
+        return Map.copyOf(creditors);
     }
 
     /** Explains a participant's balance as the tree of contributing obligations. */
