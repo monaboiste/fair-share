@@ -3,7 +3,38 @@ package com.github.monaboiste.fairshare.netting;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-/** Derives a valid, deterministic set of proposed repayments from a set of obligations. */
+/**
+ *
+ *
+ * <pre>
+ * Obligations:
+ *
+ *             Obligation(PLN 30)
+ *       Ada ─────────────────────▶ Bob
+ *        ▲                          │
+ *        │                          │
+ * Obligation(PLN 5)         Obligation(PLN 10)
+ *        │                          │
+ *        │                          ▼
+ *       Dan ◀───────────────────── Cid
+ *             Obligation(PLN 5)
+ *
+ * Balances:
+ *
+ *   Ada PLN -25    Bob PLN 20    Cid PLN 5    Dan PLN 0
+ *
+ * Proposed repayments:
+ *
+ *          ProposedRepayment(PLN 20)
+ *       Ada ─────────────────────────▶ Bob
+ *        │
+ *        │ ProposedRepayment(PLN 5)
+ *        └───────────────────────────▶ Cid
+ * </pre>
+ *
+ * <p>The original four-obligation cycle is reduced to two acyclic proposed repayments while preserving every
+ * participant's balance.
+ */
 public interface Netting {
 
     /**
