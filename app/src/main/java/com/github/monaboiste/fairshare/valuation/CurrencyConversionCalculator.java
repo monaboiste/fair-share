@@ -1,4 +1,4 @@
-package com.github.monaboiste.fairshare;
+package com.github.monaboiste.fairshare.valuation;
 
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator;
 import com.github.monaboiste.fairshare.pricing.calculation.CalculatorId;
