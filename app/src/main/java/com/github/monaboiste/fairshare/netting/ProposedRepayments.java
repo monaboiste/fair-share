@@ -20,8 +20,42 @@ public final class ProposedRepayments<P> {
     private final Graph<P, ProposedRepayment<P>> graph;
     private final CurrencyUnit currency;
 
-    private ProposedRepayments(Graph<P, ProposedRepayment<P>> graph, CurrencyUnit currency) {
-        this.graph = graph;
+    /**
+     * Creates proposed repayments from a participant roster, the repayments between them, and the settlement currency.
+     *
+     * @throws IllegalArgumentException if a repayment references a participant outside the roster, uses another
+     *     currency, duplicates a debtor-to-creditor pair, or forms a cycle
+     */
+    private ProposedRepayments(
+            Set<P> participants, List<ProposedRepayment<P>> proposedRepayments, CurrencyUnit currency) {
+        Set<P> roster = Set.copyOf(participants);
+        Graph<P, ProposedRepayment<P>> createdGraph = new Graph<>();
+
+        roster.forEach(participant -> createdGraph.addVertex(new Node<>(participant)));
+
+        for (ProposedRepayment<P> repayment : proposedRepayments) {
+            if (!roster.contains(repayment.debtor()) || !roster.contains(repayment.creditor())) {
+                throw new IllegalArgumentException("Proposed repayment references an unknown participant");
+            }
+            if (!repayment.amount().currencyUnit().equals(currency)) {
+                throw new IllegalArgumentException("All proposedRepayments must use " + currency.getCurrencyCode());
+            }
+
+            Node<P> debtor = new Node<>(repayment.debtor());
+            Node<P> creditor = new Node<>(repayment.creditor());
+
+            if (createdGraph.hasEdge(debtor, creditor)) {
+                throw new IllegalArgumentException("Proposed proposedRepayments must not contain parallel edges");
+            }
+
+            createdGraph.addEdge(new Edge<>(debtor, creditor, repayment));
+        }
+
+        if (createdGraph.findFirstCycle().isPresent()) {
+            throw new IllegalArgumentException("Proposed proposedRepayments must not contain cycles");
+        }
+
+        this.graph = createdGraph;
         this.currency = currency;
     }
 
@@ -33,27 +67,7 @@ public final class ProposedRepayments<P> {
      */
     public static <P> ProposedRepayments<P> of(
             Set<P> participants, List<ProposedRepayment<P>> repayments, CurrencyUnit currency) {
-        Set<P> roster = Set.copyOf(participants);
-        Graph<P, ProposedRepayment<P>> graph = new Graph<>();
-        roster.forEach(participant -> graph.addVertex(new Node<>(participant)));
-        for (ProposedRepayment<P> repayment : repayments) {
-            if (!roster.contains(repayment.debtor()) || !roster.contains(repayment.creditor())) {
-                throw new IllegalArgumentException("Proposed repayment references an unknown participant");
-            }
-            if (!repayment.amount().currencyUnit().equals(currency)) {
-                throw new IllegalArgumentException("All repayments must use " + currency.getCurrencyCode());
-            }
-            Node<P> debtor = new Node<>(repayment.debtor());
-            Node<P> creditor = new Node<>(repayment.creditor());
-            if (graph.hasEdge(debtor, creditor)) {
-                throw new IllegalArgumentException("Proposed repayments must not contain parallel edges");
-            }
-            graph.addEdge(new Edge<>(debtor, creditor, repayment));
-        }
-        if (graph.findFirstCycle().isPresent()) {
-            throw new IllegalArgumentException("Proposed repayments must not contain cycles");
-        }
-        return new ProposedRepayments<>(graph, currency);
+        return new ProposedRepayments<>(participants, repayments, currency);
     }
 
     public Set<P> participants() {

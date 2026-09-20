@@ -33,24 +33,22 @@ final class Balances<P> {
     private final Map<P, Money> amounts;
     private final Map<P, ComponentBreakdown> breakdowns;
 
-    private Balances(Obligations<P> obligations, Map<P, Money> amounts, Map<P, ComponentBreakdown> breakdowns) {
-        this.obligations = obligations;
-        this.amounts = Map.copyOf(amounts);
-        this.breakdowns = Map.copyOf(breakdowns);
-    }
-
     /** Computes balances from the obligations valid at the given time. */
-    static <P> Balances<P> of(Obligations<P> obligations, LocalDateTime asOf) {
+    private Balances(Obligations<P> obligations, LocalDateTime asOf) {
+        this.obligations = obligations;
+
         String code = obligations.currency().getCurrencyCode();
         List<Obligation<P>> valid = obligations.obligations().stream()
                 .filter(obligation -> obligation.validity().isValidAt(asOf))
                 .toList();
         Parameters at = Parameters.of(TIMESTAMP, asOf);
 
-        Map<P, Money> amounts = new LinkedHashMap<>();
-        Map<P, ComponentBreakdown> breakdowns = new LinkedHashMap<>();
+        Map<P, Money> computedAmounts = new LinkedHashMap<>();
+        Map<P, ComponentBreakdown> computedBreakdowns = new LinkedHashMap<>();
+
         for (P participant : obligations.participants()) {
             List<Component> contributions = new ArrayList<>();
+
             for (Obligation<P> obligation : valid) {
                 if (obligation.to().equals(participant)) {
                     contributions.add(contribution(obligation, obligation.amount()));
@@ -60,23 +58,27 @@ final class Balances<P> {
                             contribution(obligation, obligation.amount().negate()));
                 }
             }
+
             String name = "balance:" + participant;
+
             if (contributions.isEmpty()) {
-                amounts.put(participant, Money.zero(code));
-                breakdowns.put(participant, new ComponentBreakdown(name, new TotalPrice(Money.zero(code))));
+                Money zero = Money.zero(code);
+                computedAmounts.put(participant, zero);
+                computedBreakdowns.put(participant, new ComponentBreakdown(name, new TotalPrice(zero)));
             } else {
-                ComponentBreakdown breakdown = Component.composite(name, contributions.toArray(new Component[0]))
+                ComponentBreakdown breakdown = Component.composite(name, contributions.toArray(Component[]::new))
                         .calculateBreakdown(at);
-                amounts.put(participant, breakdown.total());
-                breakdowns.put(participant, breakdown);
+                computedAmounts.put(participant, breakdown.total());
+                computedBreakdowns.put(participant, breakdown);
             }
         }
-        return new Balances<>(obligations, amounts, breakdowns);
+
+        this.amounts = Map.copyOf(computedAmounts);
+        this.breakdowns = Map.copyOf(computedBreakdowns);
     }
 
-    private static <P> Component contribution(Obligation<P> obligation, Money signedAmount) {
-        String name = obligation.from() + "->" + obligation.to();
-        return Component.simple(name, Calculators.fixed(name, signedAmount));
+    static <P> Balances<P> of(Obligations<P> obligations, LocalDateTime asOf) {
+        return new Balances<>(obligations, asOf);
     }
 
     /** Signed balance of every participant, positive for a creditor and negative for a debtor. */
@@ -118,9 +120,12 @@ final class Balances<P> {
     /** Recomputes balances at each given time, for history or what-if scenarios. */
     Map<LocalDateTime, Balances<P>> simulate(List<LocalDateTime> times) {
         Map<LocalDateTime, Balances<P>> simulated = new LinkedHashMap<>();
-        for (LocalDateTime time : times) {
-            simulated.put(time, Balances.of(obligations, time));
-        }
+        times.forEach(time -> simulated.put(time, new Balances<>(obligations, time)));
         return simulated;
+    }
+
+    private static <P> Component contribution(Obligation<P> obligation, Money signedAmount) {
+        String name = obligation.from() + "->" + obligation.to();
+        return Component.simple(name, Calculators.fixed(name, signedAmount));
     }
 }

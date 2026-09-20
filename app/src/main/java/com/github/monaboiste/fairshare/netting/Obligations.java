@@ -19,21 +19,18 @@ public final class Obligations<P> {
     private final Graph<P, Obligation<P>> graph;
     private final CurrencyUnit currency;
 
-    private Obligations(Graph<P, Obligation<P>> graph, CurrencyUnit currency) {
-        this.graph = graph;
-        this.currency = currency;
-    }
-
     /**
      * Creates obligations from a participant roster, the obligations between them, and the settlement currency.
      *
      * @throws IllegalArgumentException if an obligation references a participant outside the roster or uses another
      *     currency
      */
-    public static <P> Obligations<P> of(Set<P> participants, List<Obligation<P>> obligations, CurrencyUnit currency) {
+    private Obligations(Set<P> participants, List<Obligation<P>> obligations, CurrencyUnit currency) {
         Set<P> roster = Set.copyOf(participants);
-        Graph<P, Obligation<P>> graph = new Graph<>();
-        roster.forEach(participant -> graph.addVertex(new Node<>(participant)));
+        Graph<P, Obligation<P>> createdGraph = new Graph<>();
+
+        roster.forEach(participant -> createdGraph.addVertex(new Node<>(participant)));
+
         for (Obligation<P> obligation : obligations) {
             if (!roster.contains(obligation.from()) || !roster.contains(obligation.to())) {
                 throw new IllegalArgumentException("Obligation references an unknown participant");
@@ -41,9 +38,16 @@ public final class Obligations<P> {
             if (!obligation.amount().currencyUnit().equals(currency)) {
                 throw new IllegalArgumentException("All obligations must use " + currency.getCurrencyCode());
             }
-            graph.addEdge(new Edge<>(new Node<>(obligation.from()), new Node<>(obligation.to()), obligation));
+
+            createdGraph.addEdge(new Edge<>(new Node<>(obligation.from()), new Node<>(obligation.to()), obligation));
         }
-        return new Obligations<>(graph, currency);
+
+        this.graph = createdGraph;
+        this.currency = currency;
+    }
+
+    public static <P> Obligations<P> of(Set<P> participants, List<Obligation<P>> obligations, CurrencyUnit currency) {
+        return new Obligations<>(participants, obligations, currency);
     }
 
     public Set<P> participants() {
