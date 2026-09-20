@@ -84,6 +84,14 @@ public class Graph<T, P> {
         return edges.stream().anyMatch(edge -> edge.to().equals(to));
     }
 
+    public Set<Node<T>> vertices() {
+        return Set.copyOf(adjacency.keySet());
+    }
+
+    public List<Edge<T, P>> edges() {
+        return adjacency.values().stream().flatMap(List::stream).toList();
+    }
+
     public <P2> Graph<T, P> intersection(Graph<T, P2> other) {
         Graph<T, P> result = new Graph<>();
 
