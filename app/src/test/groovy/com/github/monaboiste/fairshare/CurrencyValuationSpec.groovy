@@ -1,11 +1,11 @@
 package com.github.monaboiste.fairshare
 
-import com.softwarearchetypes.pricing.calculation.CalculatorId
-import com.softwarearchetypes.pricing.calculation.Parameters
-import com.softwarearchetypes.pricing.component.ComponentVersionId
-import com.softwarearchetypes.pricing.component.SimpleComponentVersion
-import com.softwarearchetypes.pricing.component.Validity
-import com.softwarearchetypes.quantity.money.Money
+import com.github.monaboiste.fairshare.pricing.calculation.CalculatorId
+import com.github.monaboiste.fairshare.pricing.calculation.Parameters
+import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId
+import com.github.monaboiste.fairshare.pricing.component.SimpleComponentVersion
+import com.github.monaboiste.fairshare.pricing.component.Validity
+import com.github.monaboiste.fairshare.quantity.money.Money
 import java.time.LocalDateTime
 import javax.money.CurrencyUnit
 import javax.money.Monetary

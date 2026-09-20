@@ -20,8 +20,6 @@ tasks.named("jacocoTestReport") {
 pitest {
     junit5PluginVersion = libs.versions.pitest.junit.get()
 
-    targetClasses = ["com.github.monaboiste.fairshare.*", "com.softwarearchetypes.*"]
-    targetTests = ["com.github.monaboiste.fairshare.*", "com.softwarearchetypes.*"]
     threads = 4
 
     outputFormats = ["HTML", "XML"]
