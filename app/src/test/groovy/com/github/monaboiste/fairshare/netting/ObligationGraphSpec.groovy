@@ -108,4 +108,18 @@ class ObligationGraphSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
+
+    def "proposed repayment graph rejects longer cycles"() {
+        given:
+        ProposedRepayment<String> aToB = new ProposedRepayment<>("ada", "bob", Money.of(10, "PLN"))
+        ProposedRepayment<String> bToC = new ProposedRepayment<>("bob", "cid", Money.of(10, "PLN"))
+        ProposedRepayment<String> cToA = new ProposedRepayment<>("cid", "ada", Money.of(10, "PLN"))
+
+        when:
+        ProposedRepaymentGraph.of(["ada", "bob", "cid"] as Set, [aToB, bToC, cToA], PLN)
+
+        then:
+        IllegalArgumentException error = thrown()
+        error.message.contains("cycles")
+    }
 }

@@ -1,5 +1,9 @@
 package com.github.monaboiste.fairshare.netting;
 
+import com.github.monaboiste.fairshare.graphs.Edge;
+import com.github.monaboiste.fairshare.graphs.Graph;
+import com.github.monaboiste.fairshare.graphs.Node;
+import com.github.monaboiste.fairshare.quantity.money.Money;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +34,14 @@ public record ProposedRepaymentGraph<P>(
             if (directed.contains(List.of(repayment.creditor(), repayment.debtor()))) {
                 throw new IllegalArgumentException("Proposed repayments must not contain cycles");
             }
+        }
+        Graph<P, Money> cycleCheck = new Graph<>();
+        for (ProposedRepayment<P> repayment : proposedRepayments) {
+            cycleCheck.addEdge(
+                    new Edge<>(new Node<>(repayment.debtor()), new Node<>(repayment.creditor()), repayment.amount()));
+        }
+        if (cycleCheck.findFirstCycle().isPresent()) {
+            throw new IllegalArgumentException("Proposed repayments must not contain cycles");
         }
     }
 
