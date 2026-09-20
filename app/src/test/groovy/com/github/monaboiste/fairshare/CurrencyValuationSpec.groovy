@@ -1,5 +1,6 @@
 package com.github.monaboiste.fairshare
 
+import com.softwarearchetypes.pricing.calculation.CalculatorId
 import com.softwarearchetypes.pricing.calculation.Parameters
 import com.softwarearchetypes.pricing.component.ComponentVersionId
 import com.softwarearchetypes.pricing.component.SimpleComponentVersion
@@ -40,6 +41,19 @@ class CurrencyValuationSpec extends Specification {
         then:
         IllegalArgumentException error = thrown()
         error.message.contains("source")
+    }
+
+    def "currency conversion exposes calculator metadata"() {
+        given:
+        CalculatorId id = new CalculatorId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        ExchangeRate exchangeRate = ExchangeRate.of(USD, PLN, 4.5)
+        CurrencyConversionCalculator calculator = new CurrencyConversionCalculator(id, exchangeRate)
+
+        expect:
+        calculator.getId() == id
+        calculator.name() == "currency-conversion"
+        calculator.formula() == "source × 4.5"
+        calculator.describe() == "Currency conversion using Exchange Rate ${exchangeRate}"
     }
 
     def "currency conversion accepts a convertible Money source"() {

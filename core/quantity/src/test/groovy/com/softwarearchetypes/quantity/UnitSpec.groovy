@@ -29,22 +29,25 @@ class UnitSpec extends Specification {
     }
 
     def "creates predefined #name unit"() {
-        expect:
+        when:
+        def unit = factory()
+
+        then:
         unit.symbol() == symbol
         unit.name() == name
 
         where:
-        unit                | symbol | name
-        Unit.pieces()       | "pcs"  | "pieces"
-        Unit.kilograms()    | "kg"   | "kilograms"
-        Unit.liters()       | "l"    | "liters"
-        Unit.meters()       | "m"    | "meters"
-        Unit.squareMeters() | "m²"   | "square meters"
-        Unit.cubicMeters()  | "m³"   | "cubic meters"
-        Unit.hours()        | "h"    | "hours"
-        Unit.minutes()      | "min"  | "minutes"
-        Unit.packages()     | "pkg"  | "packages"
-        Unit.accounts()     | "acc"  | "accounts"
+        symbol | name            | factory
+        "pcs"  | "pieces"        | Unit.&pieces
+        "kg"   | "kilograms"     | Unit.&kilograms
+        "l"    | "liters"        | Unit.&liters
+        "m"    | "meters"        | Unit.&meters
+        "m²"   | "square meters" | Unit.&squareMeters
+        "m³"   | "cubic meters"  | Unit.&cubicMeters
+        "h"    | "hours"         | Unit.&hours
+        "min"  | "minutes"       | Unit.&minutes
+        "pkg"  | "packages"      | Unit.&packages
+        "acc"  | "accounts"      | Unit.&accounts
     }
 
     def "units use value equality"() {

@@ -13,6 +13,14 @@ class PairSpec extends Specification {
         pair.second() == "second"
     }
 
+    def "creates a pair through its factory"() {
+        when:
+        def pair = Pair.of("first", "second")
+
+        then:
+        pair == new Pair<>("first", "second")
+    }
+
     def "creates a pair with null values"() {
         when:
         def pair = new Pair<>(null, null)

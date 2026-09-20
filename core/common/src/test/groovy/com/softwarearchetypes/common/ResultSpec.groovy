@@ -47,14 +47,17 @@ class ResultSpec extends Specification {
     }
 
     def "biMap maps the active side"() {
-        expect:
+        when:
+        def mapped = result.biMap({ "${it * 2}" }, { "failure-${it}" })
+
+        then:
         mapped.success() == success
         success ? mapped.getSuccess() == expected : mapped.getFailure() == expected
 
         where:
-        mapped                                           | success | expected
-        Result.success(1).biMap({ "${it * 2}" }, { "" }) | true    | "2"
-        Result.failure(1).biMap({ "${it * 2}" }, { "" }) | false   | ""
+        result                  | success | expected
+        Result.success(1)       | true    | "2"
+        Result.failure("error") | false   | "failure-error"
     }
 
     def "peek invokes only the active consumer and returns the result"() {
@@ -182,13 +185,16 @@ class ResultSpec extends Specification {
     }
 
     def "fold maps the active side"() {
-        expect:
+        when:
+        def folded = result.fold({ it.length() }, { it * 3 })
+
+        then:
         folded == expected
 
         where:
-        folded                                               | expected
-        Result.success(10).fold({ -1 }, { it * 3 })          | 30
-        Result.failure("Error").fold({ it.length() }, { 0 }) | 5
+        result                  | expected
+        Result.success(10)      | 30
+        Result.failure("Error") | 5
     }
 
     def "creates an empty list composite"() {

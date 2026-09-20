@@ -1,3 +1,4 @@
+// FIXME(MSZ): move com.github.monaboiste.fairshare
 package com.softwarearchetypes.common.events;
 
 import java.time.Instant;

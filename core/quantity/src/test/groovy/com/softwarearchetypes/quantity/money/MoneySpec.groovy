@@ -21,6 +21,14 @@ class MoneySpec extends Specification {
         "Number"     | (Number) 50.5d          | new BigDecimal("50.5")
     }
 
+    def "creates money through the Number overload during feature execution"() {
+        given:
+        Number amount = 50.5d
+
+        expect:
+        Money.of(amount, "PLN").value() == new BigDecimal("50.5")
+    }
+
     def "#operation two money amounts"() {
         expect:
         result == expected
@@ -97,6 +105,7 @@ class MoneySpec extends Specification {
         expect:
         greater.isGreaterThan(lesser)
         !lesser.isGreaterThan(greater)
+        !lesser.isGreaterThanOrEqualTo(greater)
         greater.isGreaterThanOrEqualTo(greater)
         Money.of(150, "PLN").isGreaterThanOrEqualTo(greater)
     }
@@ -144,11 +153,13 @@ class MoneySpec extends Specification {
         def money = Money.of(100, "PLN")
 
         expect:
-        money == Money.of(100, "PLN")
+        money.equals(money)
+        money.equals(Money.of(100, "PLN"))
         money.hashCode() == Money.of(100, "PLN").hashCode()
-        money != Money.of(50, "PLN")
-        money != null
-        money.is(money)
+        !money.equals(Money.of(50, "PLN"))
+        !money.equals(Money.of(100, "EUR"))
+        !money.equals("PLN 100")
+        !money.equals(null)
     }
 
     def "renders money"() {
@@ -184,6 +195,14 @@ class MoneySpec extends Specification {
         !positive.isNegative()
         positive.isGreaterThan(negative)
         !negative.isGreaterThan(positive)
+    }
+
+    def "multiplies money by a BigDecimal"() {
+        given:
+        BigDecimal multiplier = new BigDecimal("1.5")
+
+        expect:
+        Money.of(100, "PLN").multiply(multiplier) == Money.of(150, "PLN")
     }
 
     def "multiplies money by #percentage percent"() {
