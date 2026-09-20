@@ -18,7 +18,7 @@ class BalancesSpec extends Specification {
 
     def "nets parallel, opposite and loop contributions into signed balances"() {
         given:
-        ObligationGraph<String> graph = ObligationGraph.of(
+        Obligations<String> graph = Obligations.of(
                 ["ada", "bob", "cid"] as Set,
                 [always("ada", "bob", 10), always("ada", "bob", 5), always("bob", "ada", 7), always("bob", "bob", 3)],
                 PLN)
@@ -34,7 +34,7 @@ class BalancesSpec extends Specification {
 
     def "an obligation contributes only while it is valid - non-PLN currency"() {
         given:
-        ObligationGraph<String> graph = ObligationGraph.of(
+        Obligations<String> graph = Obligations.of(
                 ["ada", "bob"] as Set,
                 [new Obligation<>("ada", "bob", Money.of(10, "USD"), Validity.between(START, END))],
                 USD)
@@ -48,7 +48,7 @@ class BalancesSpec extends Specification {
 
     def "breakdown explains a balance as its contributing obligations"() {
         given:
-        ObligationGraph<String> graph = ObligationGraph.of(
+        Obligations<String> graph = Obligations.of(
                 ["ada", "bob"] as Set,
                 [always("ada", "bob", 10), always("ada", "bob", 5), always("bob", "ada", 7)],
                 PLN)
@@ -63,7 +63,7 @@ class BalancesSpec extends Specification {
 
     def "simulate recomputes balances at each time"() {
         given:
-        ObligationGraph<String> graph = ObligationGraph.of(
+        Obligations<String> graph = Obligations.of(
                 ["ada", "bob"] as Set,
                 [new Obligation<>("ada", "bob", Money.of(10, "USD"), Validity.between(START, END))],
                 USD)

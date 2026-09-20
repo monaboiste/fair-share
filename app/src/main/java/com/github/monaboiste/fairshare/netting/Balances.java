@@ -29,27 +29,27 @@ final class Balances<P> {
 
     private static final ParameterKey<LocalDateTime> TIMESTAMP = new ParameterKey<>("timestamp", LocalDateTime.class);
 
-    private final ObligationGraph<P> graph;
+    private final Obligations<P> obligations;
     private final Map<P, Money> amounts;
     private final Map<P, ComponentBreakdown> breakdowns;
 
-    private Balances(ObligationGraph<P> graph, Map<P, Money> amounts, Map<P, ComponentBreakdown> breakdowns) {
-        this.graph = graph;
+    private Balances(Obligations<P> obligations, Map<P, Money> amounts, Map<P, ComponentBreakdown> breakdowns) {
+        this.obligations = obligations;
         this.amounts = amounts;
         this.breakdowns = breakdowns;
     }
 
     /** Computes balances from the obligations valid at the given time. */
-    static <P> Balances<P> of(ObligationGraph<P> graph, LocalDateTime asOf) {
-        String code = graph.currency().getCurrencyCode();
-        List<Obligation<P>> valid = graph.obligations().stream()
+    static <P> Balances<P> of(Obligations<P> obligations, LocalDateTime asOf) {
+        String code = obligations.currency().getCurrencyCode();
+        List<Obligation<P>> valid = obligations.obligations().stream()
                 .filter(obligation -> obligation.validity().isValidAt(asOf))
                 .toList();
         Parameters at = Parameters.of(TIMESTAMP, asOf);
 
         Map<P, Money> amounts = new LinkedHashMap<>();
         Map<P, ComponentBreakdown> breakdowns = new LinkedHashMap<>();
-        for (P participant : graph.participants()) {
+        for (P participant : obligations.participants()) {
             List<Component> contributions = new ArrayList<>();
             for (Obligation<P> obligation : valid) {
                 if (obligation.to().equals(participant)) {
@@ -71,7 +71,7 @@ final class Balances<P> {
                 breakdowns.put(participant, breakdown);
             }
         }
-        return new Balances<>(graph, amounts, breakdowns);
+        return new Balances<>(obligations, amounts, breakdowns);
     }
 
     private static <P> Component contribution(Obligation<P> obligation, Money signedAmount) {
@@ -119,7 +119,7 @@ final class Balances<P> {
     Map<LocalDateTime, Balances<P>> simulate(List<LocalDateTime> times) {
         Map<LocalDateTime, Balances<P>> simulated = new LinkedHashMap<>();
         for (LocalDateTime time : times) {
-            simulated.put(time, Balances.of(graph, time));
+            simulated.put(time, Balances.of(obligations, time));
         }
         return simulated;
     }

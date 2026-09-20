@@ -20,6 +20,11 @@ public class Graph<T, P> {
         return this;
     }
 
+    public Graph<T, P> addVertex(Node<T> node) {
+        adjacency.putIfAbsent(node, new ArrayList<>());
+        return this;
+    }
+
     public Optional<Path<T, P>> findFirstCycle() {
         Set<Node<T>> visited = new HashSet<>();
         Set<Node<T>> inStack = new HashSet<>();

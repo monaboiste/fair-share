@@ -13,12 +13,12 @@ class GreedyNettingSpec extends Specification {
 
     def "matches a simple debtor with a creditor"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob"],
                 [["ada", "bob", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>("ada", "bob", Money.of(10, "PLN"))]
@@ -26,27 +26,27 @@ class GreedyNettingSpec extends Specification {
 
     def "settles two debtors with one creditor in two transfers"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob", "cid", "dan"],
                 [["ada", "cid", 10], ["bob", "cid", 10], ["cid", "dan", 20]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
-        proposal.proposedRepayments() == [
+        proposal.proposedRepayments() as Set == [
             new ProposedRepayment<>("ada", "dan", Money.of(10, "PLN")),
-            new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))]
+            new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))] as Set
     }
 
     def "eliminates an original obligation cycle into no repayments"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob", "cid"],
                 [["ada", "bob", 10], ["bob", "cid", 10], ["cid", "ada", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         proposal.proposedRepayments().isEmpty()
@@ -54,12 +54,12 @@ class GreedyNettingSpec extends Specification {
 
     def "aggregates parallel obligations and compensates opposite ones"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob"],
                 [["ada", "bob", 10], ["ada", "bob", 5], ["bob", "ada", 7]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>("ada", "bob", Money.of(8, "PLN"))]
@@ -67,12 +67,12 @@ class GreedyNettingSpec extends Specification {
 
     def "removes loops and zero obligations before netting"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob"],
                 [["ada", "ada", 10], ["ada", "bob", 0], ["ada", "bob", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>("ada", "bob", Money.of(10, "PLN"))]
@@ -80,106 +80,106 @@ class GreedyNettingSpec extends Specification {
 
     def "returns no repayments for settled input"() {
         given:
-        ObligationGraph<String> graph = ObligationGraph.of(["ada", "bob"] as Set, List.of(), PLN)
+        Obligations<String> obligations = Obligations.of(["ada", "bob"] as Set, List.of(), PLN)
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         proposal.proposedRepayments().isEmpty()
         proposal.participants() == ["ada", "bob"] as Set
     }
 
-    def "orders equal balances deterministically by participant order"() {
+    def "pairs equal balances deterministically by participant order"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob", "cid", "dan"],
                 [["ada", "cid", 10], ["bob", "dan", 10]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
-        proposal.proposedRepayments() == [
+        proposal.proposedRepayments() as Set == [
             new ProposedRepayment<>("ada", "cid", Money.of(10, "PLN")),
-            new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))]
+            new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))] as Set
     }
 
     def "preserves every participant balance"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob", "cid", "dan"],
                 [["ada", "bob", 30], ["bob", "cid", 10], ["cid", "dan", 5], ["dan", "ada", 5]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
-        balancesOf(graph) == balancesOfProposal(proposal)
+        balancesOf(obligations) == balancesOfProposal(proposal)
     }
 
     def "always matches the largest remaining debtor with the largest remaining creditor"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob", "cid", "dan"],
                 [["bob", "cid", 90], ["ada", "cid", 5], ["ada", "dan", 95]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
-        proposal.proposedRepayments() == [
+        proposal.proposedRepayments() as Set == [
             new ProposedRepayment<>("ada", "cid", Money.of(95, "PLN")),
             new ProposedRepayment<>("bob", "dan", Money.of(90, "PLN")),
-            new ProposedRepayment<>("ada", "dan", Money.of(5, "PLN"))]
+            new ProposedRepayment<>("ada", "dan", Money.of(5, "PLN"))] as Set
     }
 
     def "produces a valid graph within the edge bound"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(
+        Obligations<String> obligations = obligationsOf(
                 ["ada", "bob", "cid", "dan", "eva"],
                 [["ada", "bob", 30], ["bob", "cid", 10], ["cid", "dan", 5], ["dan", "eva", 5],
                  ["eva", "ada", 5], ["ada", "cid", 7]])
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         hasNoLoops(proposal)
         hasNoZeroEdges(proposal)
         hasNoParallelEdges(proposal)
         hasNoCycles(proposal)
-        proposal.proposedRepayments().size() <= unbalancedParticipants(graph) - 1
+        proposal.proposedRepayments().size() <= unbalancedParticipants(obligations) - 1
     }
 
-    def "equal inputs produce equal output ordering"() {
+    def "equal inputs produce an equal repayment set"() {
         given:
-        ObligationGraph<String> first = obligationGraph(
+        Obligations<String> first = obligationsOf(
                 ["ada", "bob", "cid", "dan"],
                 [["ada", "cid", 10], ["bob", "dan", 10]])
-        ObligationGraph<String> second = obligationGraph(
+        Obligations<String> second = obligationsOf(
                 ["ada", "bob", "cid", "dan"],
                 [["bob", "dan", 10], ["ada", "cid", 10]])
 
         when:
-        ProposedRepaymentGraph<String> firstProposal = netting.net(first, order())
-        ProposedRepaymentGraph<String> secondProposal = netting.net(second, order())
+        ProposedRepayments<String> firstProposal = netting.net(first, order())
+        ProposedRepayments<String> secondProposal = netting.net(second, order())
 
         then:
-        firstProposal.proposedRepayments() == secondProposal.proposedRepayments()
+        firstProposal.proposedRepayments() as Set == secondProposal.proposedRepayments() as Set
     }
 
     def "respects the smallest unit of #currencyCode"() {
         given:
         CurrencyUnit currency = Monetary.getCurrency(currencyCode)
-        ObligationGraph<String> graph = ObligationGraph.of(
+        Obligations<String> obligations = Obligations.of(
                 ["ada", "bob", "cid"] as Set,
                 [Obligation.of("ada", "bob", Money.of(new BigDecimal(owed), currencyCode)),
                  Obligation.of("bob", "cid", Money.of(new BigDecimal(owed), currencyCode))],
                 currency)
 
         when:
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, order())
+        ProposedRepayments<String> proposal = netting.net(obligations, order())
 
         then:
         proposal.proposedRepayments() == [
@@ -194,20 +194,20 @@ class GreedyNettingSpec extends Specification {
 
     def "supports generic participants without leaking graph types"() {
         given:
-        ObligationGraph<Integer> graph = ObligationGraph.of(
+        Obligations<Integer> obligations = Obligations.of(
                 [3, 1, 2] as Set,
                 [Obligation.of(3, 1, Money.of(10, "PLN"))],
                 PLN)
 
         when:
-        ProposedRepaymentGraph<Integer> proposal =
-                netting.net(graph, { a, b -> a <=> b } as ParticipantComparator<Integer>)
+        ProposedRepayments<Integer> proposal =
+                netting.net(obligations, { a, b -> a <=> b } as ParticipantComparator<Integer>)
 
         then:
         proposal.proposedRepayments() == [new ProposedRepayment<>(3, 1, Money.of(10, "PLN"))]
     }
 
-    def "rejects a null obligation graph"() {
+    def "rejects a null obligations"() {
         when:
         netting.net(null, order())
 
@@ -217,10 +217,10 @@ class GreedyNettingSpec extends Specification {
 
     def "rejects a null participant order"() {
         given:
-        ObligationGraph<String> graph = obligationGraph(["ada", "bob"], [["ada", "bob", 10]])
+        Obligations<String> obligations = obligationsOf(["ada", "bob"], [["ada", "bob", 10]])
 
         when:
-        netting.net(graph, null)
+        netting.net(obligations, null)
 
         then:
         thrown(NullPointerException)
@@ -230,17 +230,17 @@ class GreedyNettingSpec extends Specification {
         { a, b -> a <=> b } as ParticipantComparator<String>
     }
 
-    private static ObligationGraph<String> obligationGraph(List<String> participants, List<List> entries) {
+    private static Obligations<String> obligationsOf(List<String> participants, List<List> entries) {
         List<Obligation<String>> obligations = entries.collect { entry ->
             Obligation.of(entry[0] as String, entry[1] as String, Money.of(entry[2], "PLN"))
         }
-        return ObligationGraph.of(participants as Set, obligations, PLN)
+        return Obligations.of(participants as Set, obligations, PLN)
     }
 
-    private static Map<String, Money> balancesOf(ObligationGraph<String> graph) {
+    private static Map<String, Money> balancesOf(Obligations<String> obligations) {
         Map<String, Money> balances = [:].withDefault { Money.zero("PLN") }
-        graph.participants().each { balances[it] = Money.zero("PLN") }
-        graph.obligations().each { obligation ->
+        obligations.participants().each { balances[it] = Money.zero("PLN") }
+        obligations.obligations().each { obligation ->
             if (obligation.from() == obligation.to() || obligation.amount().isZero()) {
                 return
             }
@@ -250,7 +250,7 @@ class GreedyNettingSpec extends Specification {
         return balances
     }
 
-    private static Map<String, Money> balancesOfProposal(ProposedRepaymentGraph<String> proposal) {
+    private static Map<String, Money> balancesOfProposal(ProposedRepayments<String> proposal) {
         Map<String, Money> balances = [:].withDefault { Money.zero("PLN") }
         proposal.participants().each { balances[it] = Money.zero("PLN") }
         proposal.proposedRepayments().each { repayment ->
@@ -260,20 +260,20 @@ class GreedyNettingSpec extends Specification {
         return balances
     }
 
-    private static boolean hasNoLoops(ProposedRepaymentGraph<String> proposal) {
+    private static boolean hasNoLoops(ProposedRepayments<String> proposal) {
         !proposal.proposedRepayments().any { it.debtor() == it.creditor() }
     }
 
-    private static boolean hasNoZeroEdges(ProposedRepaymentGraph<String> proposal) {
+    private static boolean hasNoZeroEdges(ProposedRepayments<String> proposal) {
         !proposal.proposedRepayments().any { it.amount().isZero() || it.amount().isNegative() }
     }
 
-    private static boolean hasNoParallelEdges(ProposedRepaymentGraph<String> proposal) {
+    private static boolean hasNoParallelEdges(ProposedRepayments<String> proposal) {
         List<Set<String>> pairs = proposal.proposedRepayments().collect { [it.debtor(), it.creditor()] as Set }
         pairs.size() == pairs.toSet().size()
     }
 
-    private static boolean hasNoCycles(ProposedRepaymentGraph<String> proposal) {
+    private static boolean hasNoCycles(ProposedRepayments<String> proposal) {
         Map<String, Set<String>> outgoing = [:].withDefault { [] as Set }
         proposal.proposedRepayments().each { outgoing[it.debtor()] = outgoing[it.debtor()] + it.creditor() }
         proposal.participants().every { !reaches(it, it, outgoing) }
@@ -288,7 +288,7 @@ class GreedyNettingSpec extends Specification {
         return false
     }
 
-    private static int unbalancedParticipants(ObligationGraph<String> graph) {
-        balancesOf(graph).values().count { !it.isZero() }
+    private static int unbalancedParticipants(Obligations<String> obligations) {
+        balancesOf(obligations).values().count { !it.isZero() }
     }
 }

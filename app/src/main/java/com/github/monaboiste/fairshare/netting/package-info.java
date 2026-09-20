@@ -4,7 +4,7 @@
  * <p>Participants are vertices; obligations are directed, {@code Money}-weighted edges.
  * {@link com.github.monaboiste.fairshare.netting.Netting} folds the obligations valid at an as-of time into
  * per-participant balances, then greedily settles the largest debtor against the largest creditor to produce a
- * {@link com.github.monaboiste.fairshare.netting.ProposedRepaymentGraph} with no loops, zero edges, parallel edges, or
+ * {@link com.github.monaboiste.fairshare.netting.ProposedRepayments} with no loops, zero edges, parallel edges, or
  * cycles, and at most {@code max(0, unbalanced - 1)} edges.
  *
  * <p>Worked example - four participants in one settlement currency:

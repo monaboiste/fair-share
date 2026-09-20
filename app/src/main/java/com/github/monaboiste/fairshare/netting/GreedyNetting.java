@@ -17,17 +17,17 @@ import java.util.PriorityQueue;
 final class GreedyNetting implements Netting {
 
     @Override
-    public <P> ProposedRepaymentGraph<P> net(
-            ObligationGraph<P> graph, ParticipantComparator<? super P> order, LocalDateTime asOf) {
-        Balances<P> balances = Balances.of(graph, asOf);
+    public <P> ProposedRepayments<P> net(
+            Obligations<P> obligations, ParticipantComparator<? super P> order, LocalDateTime asOf) {
+        Balances<P> balances = Balances.of(obligations, asOf);
         List<ProposedRepayment<P>> repayments = match(balances, order);
-        return ProposedRepaymentGraph.of(graph.participants(), repayments, graph.currency());
+        return ProposedRepayments.of(obligations.participants(), repayments, obligations.currency());
     }
 
     private static <P> List<ProposedRepayment<P>> match(Balances<P> balances, ParticipantComparator<? super P> order) {
         Comparator<Owed<P>> byOwed = Comparator.comparing((Owed<P> owed) -> owed.owed(), Money::compareTo)
                 .reversed()
-                .thenComparing(owed -> owed.participant(), order);
+                .thenComparing(Owed::participant, order);
 
         PriorityQueue<Owed<P>> debtors = new PriorityQueue<>(byOwed);
         balances.debtors().forEach((participant, owed) -> debtors.add(new Owed<>(participant, owed)));

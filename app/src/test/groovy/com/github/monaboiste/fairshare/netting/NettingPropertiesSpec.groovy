@@ -44,9 +44,9 @@ class NettingPropertiesSpec extends Specification {
             Money amount = Money.of(1 + random.nextInt(100), "PLN")
             obligations << new Obligation<>(from, to, amount, randomValidity(random, asOf))
         }
-        ObligationGraph<String> graph = ObligationGraph.of(participants as Set, obligations, PLN)
+        Obligations<String> graph = Obligations.of(participants as Set, obligations, PLN)
 
-        ProposedRepaymentGraph<String> proposal = netting.net(graph, ORDER, asOf)
+        ProposedRepayments<String> proposal = netting.net(graph, ORDER, asOf)
 
         Map<String, Money> expected = balances(participants) { balance ->
             obligations.findAll { it.validity().isValidAt(asOf) }.each { obligation ->
@@ -87,7 +87,7 @@ class NettingPropertiesSpec extends Specification {
         return balance
     }
 
-    private static boolean acyclic(ProposedRepaymentGraph<String> proposal) {
+    private static boolean acyclic(ProposedRepayments<String> proposal) {
         Map<String, Set<String>> outgoing = [:].withDefault { [] as Set }
         proposal.proposedRepayments().each { outgoing[it.debtor()] = outgoing[it.debtor()] + it.creditor() }
         proposal.participants().every { !reaches(it, it, outgoing) }
