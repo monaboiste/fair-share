@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":core:common"))
-    implementation(project(":core:quantity"))
+    api(project(":core:common"))
+    api(project(":core:quantity"))
 }

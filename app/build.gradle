@@ -3,8 +3,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":core:common"))
-    implementation(project(":core:quantity"))
-    implementation(project(":core:pricing"))
+    api(project(":core:quantity"))
+    api(project(":core:pricing"))
+    api(libs.money.api)
     implementation(project(":core:graphs"))
 }
