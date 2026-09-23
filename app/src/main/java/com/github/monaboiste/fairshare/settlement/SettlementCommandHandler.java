@@ -12,14 +12,12 @@ import java.util.function.Supplier;
 
 public final class SettlementCommandHandler {
     private final EventStore<SettlementId, SettlementEvent> store;
-    private final SettlementQueryHandler queries;
     private final Clock clock;
     private final Supplier<UUID> eventIds;
 
     public SettlementCommandHandler(
             EventStore<SettlementId, SettlementEvent> store, Clock clock, Supplier<UUID> eventIds) {
         this.store = store;
-        this.queries = new SettlementQueryHandler(store);
         this.clock = clock;
         this.eventIds = eventIds;
     }
@@ -29,7 +27,7 @@ public final class SettlementCommandHandler {
         SettlementOpened opening = new SettlementOpened(command.name(), command.currency());
         List<EventEnvelope<SettlementId, SettlementEvent>> existing;
         try {
-            existing = queries.handle(new GetSettlementHistory(command.id()));
+            existing = store.load(command.id());
         } catch (MissingStreamException missing) {
             EventEnvelope<SettlementId, SettlementEvent> event = envelope(command.id(), 1, opening);
             return Result.success(store.append(command.id(), 0, List.of(event)));
@@ -42,13 +40,21 @@ public final class SettlementCommandHandler {
 
     public Result<SettlementCommandFailure, AppendResult<SettlementId, SettlementEvent>> handle(
             RenameSettlement command) {
-        SettlementView current = queries.handle(new GetSettlement(command.id()));
-        if (current.name().equals(command.name())) {
-            return Result.success(new AppendResult<>(List.of(), current.version()));
+        List<EventEnvelope<SettlementId, SettlementEvent>> events = store.load(command.id());
+        long version = events.size();
+        if (currentName(events).equals(command.name())) {
+            return Result.success(new AppendResult<>(List.of(), version));
         }
         SettlementRenamed renaming = new SettlementRenamed(command.name());
-        return Result.success(store.append(
-                command.id(), current.version(), List.of(envelope(command.id(), current.version() + 1, renaming))));
+        return Result.success(
+                store.append(command.id(), version, List.of(envelope(command.id(), version + 1, renaming))));
+    }
+
+    private static String currentName(List<EventEnvelope<SettlementId, SettlementEvent>> events) {
+        return switch (events.getLast().payload()) {
+            case SettlementOpened opened -> opened.name();
+            case SettlementRenamed renamed -> renamed.name();
+        };
     }
 
     private EventEnvelope<SettlementId, SettlementEvent> envelope(

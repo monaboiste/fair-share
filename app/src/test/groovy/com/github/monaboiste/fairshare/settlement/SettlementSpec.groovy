@@ -106,6 +106,24 @@ class SettlementSpec extends Specification {
         queries.handle(new GetSettlementHistory(ID)).size() == 1
     }
 
+    def "renaming to the latest name after previous renames is a no-op"() {
+        given:
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler commands = commands(store)
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
+        commands.handle(new OpenSettlement(ID, "First", Monetary.getCurrency("EUR")))
+        commands.handle(new RenameSettlement(ID, "Second"))
+        commands.handle(new RenameSettlement(ID, "Third"))
+
+        when:
+        def unchanged = commands.handle(new RenameSettlement(ID, "Third"))
+
+        then:
+        unchanged.success()
+        unchanged.getSuccess() == new AppendResult([], 3)
+        queries.handle(new GetSettlementHistory(ID)).size() == 3
+    }
+
     def "blank names are rejected without changing the stream"() {
         given:
         EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
