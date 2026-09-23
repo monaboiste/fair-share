@@ -114,11 +114,15 @@ class SettlementSpec extends Specification {
         SettlementCommands writer = new SettlementCommands(store, Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
         writer.open(ID, "First", Monetary.getCurrency("EUR"))
         writer.rename(ID, "Second")
-        SettlementCommands reader = new SettlementCommands(store, Clock.systemUTC(), UUID::randomUUID)
 
-        expect:
-        reader.view(ID) == new SettlementView(ID, "Second", Monetary.getCurrency("EUR"), 2)
-        reader.history(ID)*.payload() == [
+        when:
+        SettlementCommands reader = new SettlementCommands(store, Clock.systemUTC(), UUID::randomUUID)
+        SettlementView view = reader.view(ID)
+        List<EventEnvelope> history = reader.history(ID)
+
+        then:
+        view == new SettlementView(ID, "Second", Monetary.getCurrency("EUR"), 2)
+        history*.payload() == [
             new SettlementOpened("First", Monetary.getCurrency("EUR")), new SettlementRenamed("Second")]
     }
 
