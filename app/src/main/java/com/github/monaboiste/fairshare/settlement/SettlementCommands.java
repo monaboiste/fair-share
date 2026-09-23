@@ -60,7 +60,11 @@ public final class SettlementCommands {
     }
 
     private EventEnvelope envelope(SettlementId id, long sequence, SettlementEvent event) {
-        String type = event instanceof SettlementOpened ? "SettlementOpened" : "SettlementRenamed";
+        String type =
+                switch (event) {
+                    case SettlementOpened ignored -> "SettlementOpened";
+                    case SettlementRenamed ignored -> "SettlementRenamed";
+                };
         return new EventEnvelope(eventIds.get(), id, sequence, clock.instant(), type, 1, event);
     }
 }

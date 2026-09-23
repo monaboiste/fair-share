@@ -52,6 +52,7 @@ class SettlementSpec extends Specification {
         then:
         renamed.version() == 2
         renamed.events()*.sequence() == [2L]
+        renamed.events().first().type() == "SettlementRenamed"
         renamed.events().first().payload() == new SettlementRenamed("  Current  ")
         commands.view(ID) == new SettlementView(ID, "  Current  ", currency, 2)
         commands.history(ID) == opened.events() + renamed.events()
