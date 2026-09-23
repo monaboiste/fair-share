@@ -18,6 +18,11 @@ public final class InMemoryEventStore<S, E extends Event> implements EventStore<
     }
 
     @Override
+    public synchronized Map<S, List<EventEnvelope<S, E>>> streams() {
+        return Map.copyOf(streams);
+    }
+
+    @Override
     public synchronized AppendResult<S, E> append(S id, long expectedVersion, List<EventEnvelope<S, E>> events) {
         List<EventEnvelope<S, E>> previous = streams.get(id);
         long actual = previous == null ? 0 : previous.size();

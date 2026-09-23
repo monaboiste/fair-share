@@ -1,3 +1,3 @@
 package com.github.monaboiste.fairshare.common;
 
-public interface Command {}
+public interface Command<R> {}

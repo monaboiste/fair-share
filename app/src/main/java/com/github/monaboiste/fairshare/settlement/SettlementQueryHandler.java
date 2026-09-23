@@ -6,21 +6,15 @@ import java.util.List;
 
 public final class SettlementQueryHandler {
     private final EventStore<SettlementId, SettlementEvent> store;
+    private final SettlementProjector projector;
 
-    public SettlementQueryHandler(EventStore<SettlementId, SettlementEvent> store) {
+    public SettlementQueryHandler(EventStore<SettlementId, SettlementEvent> store, SettlementProjector projector) {
         this.store = store;
+        this.projector = projector;
     }
 
     public SettlementView handle(GetSettlement query) {
-        List<EventEnvelope<SettlementId, SettlementEvent>> events = handle(new GetSettlementHistory(query.id()));
-        SettlementOpened opening = (SettlementOpened) events.getFirst().payload();
-        String name = opening.name();
-        for (EventEnvelope<SettlementId, SettlementEvent> event : events) {
-            if (event.payload() instanceof SettlementRenamed renamed) {
-                name = renamed.name();
-            }
-        }
-        return new SettlementView(query.id(), name, opening.currency(), events.size());
+        return projector.get(query.id());
     }
 
     public List<EventEnvelope<SettlementId, SettlementEvent>> handle(GetSettlementHistory query) {

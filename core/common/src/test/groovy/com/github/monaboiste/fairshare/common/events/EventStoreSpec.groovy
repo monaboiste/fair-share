@@ -31,6 +31,27 @@ class EventStoreSpec extends Specification {
         store.load(STREAM) == [opened, renamed]
     }
 
+    def "stream enumeration provides an immutable snapshot for rebuilding projections"() {
+        given:
+        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
+        def opened = envelope(1, STREAM, new NamedEvent("first"))
+        store.append(STREAM, 0, [opened])
+
+        when:
+        def snapshot = store.streams()
+        store.append(STREAM, 1, [envelope(2, STREAM, new NamedEvent("second"))])
+
+        then:
+        snapshot == [(STREAM): [opened]]
+        store.streams().get(STREAM).size() == 2
+
+        when:
+        snapshot.clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+    }
+
     def "an invalid batch writes no events"() {
         given:
         EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
