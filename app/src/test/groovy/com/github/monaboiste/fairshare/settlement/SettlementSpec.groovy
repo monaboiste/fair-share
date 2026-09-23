@@ -1,5 +1,10 @@
 package com.github.monaboiste.fairshare.settlement
 
+import com.github.monaboiste.fairshare.common.events.AppendResult
+import com.github.monaboiste.fairshare.common.events.EventEnvelope
+import com.github.monaboiste.fairshare.common.events.EventStore
+import com.github.monaboiste.fairshare.common.events.InMemoryEventStore
+import com.github.monaboiste.fairshare.common.events.MissingStreamException
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -14,12 +19,13 @@ class SettlementSpec extends Specification {
 
     def "opening a Settlement persists its currency and metadata"() {
         given:
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler commands = commands(store)
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
         def currency = Monetary.getCurrency("EUR")
 
         when:
-        def opened = commands.open(ID, "  Holiday  ", currency)
+        def opened = commands.handle(new OpenSettlement(ID, "  Holiday  ", currency))
 
         then:
         opened.success()
@@ -27,99 +33,105 @@ class SettlementSpec extends Specification {
         opened.getSuccess().events().size() == 1
         with(opened.getSuccess().events().first()) {
             eventId() == EVENT_ID
-            settlementId() == ID
+            streamId() == ID
             sequence() == 1
             occurredAt() == NOW
             type() == "SettlementOpened"
             schemaVersion() == 1
             payload() == new SettlementOpened("  Holiday  ", currency)
         }
-        commands.view(ID) == new SettlementView(ID, "  Holiday  ", currency, 1)
-        commands.history(ID) == opened.getSuccess().events()
+        queries.handle(new GetSettlement(ID)) == new SettlementView(ID, "  Holiday  ", currency, 1)
+        queries.handle(new GetSettlementHistory(ID)) == opened.getSuccess().events()
     }
 
     def "renaming changes only the display name and reopening returns the original success"() {
         given:
         def currency = Monetary.getCurrency("USD")
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
-        def opened = commands.open(ID, "Original", currency).getSuccess()
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler commands = commands(store)
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
+        def opened = commands.handle(new OpenSettlement(ID, "Original", currency)).getSuccess()
 
         when:
-        def renamed = commands.rename(ID, "  Current  ")
-        def retried = commands.open(ID, "Original", currency)
+        def renamed = commands.handle(new RenameSettlement(ID, "  Current  "))
+        def retried = commands.handle(new OpenSettlement(ID, "Original", currency))
 
         then:
-        renamed.version() == 2
-        renamed.events()*.sequence() == [2L]
-        renamed.events().first().type() == "SettlementRenamed"
-        renamed.events().first().payload() == new SettlementRenamed("  Current  ")
-        commands.view(ID) == new SettlementView(ID, "  Current  ", currency, 2)
-        commands.history(ID) == opened.events() + renamed.events()
+        renamed.success()
+        renamed.getSuccess().version() == 2
+        renamed.getSuccess().events()*.sequence() == [2L]
+        renamed.getSuccess().events().first().type() == "SettlementRenamed"
+        renamed.getSuccess().events().first().payload() == new SettlementRenamed("  Current  ")
+        queries.handle(new GetSettlement(ID)) == new SettlementView(ID, "  Current  ", currency, 2)
+        queries.handle(new GetSettlementHistory(ID)) == opened.events() + renamed.getSuccess().events()
         retried.success()
         retried.getSuccess() == opened
-        commands.history(ID).size() == 2
+        queries.handle(new GetSettlementHistory(ID)).size() == 2
     }
 
     def "conflicting identifier use is a typed failure even after rename"() {
         given:
         def currency = Monetary.getCurrency("EUR")
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
-        commands.open(ID, "Original", currency)
-        commands.rename(ID, "Current")
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler commands = commands(store)
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
+        commands.handle(new OpenSettlement(ID, "Original", currency))
+        commands.handle(new RenameSettlement(ID, "Current"))
 
         when:
-        def differentName = commands.open(ID, "Current", currency)
-        def differentCurrency = commands.open(ID, "Original", Monetary.getCurrency("USD"))
+        def differentName = commands.handle(new OpenSettlement(ID, "Current", currency))
+        def differentCurrency = commands.handle(new OpenSettlement(ID, "Original", Monetary.getCurrency("USD")))
 
         then:
         differentName.failure()
         differentName.getFailure() == new IdentifierConflict(ID)
         differentCurrency.failure()
         differentCurrency.getFailure() == new IdentifierConflict(ID)
-        commands.history(ID).size() == 2
+        queries.handle(new GetSettlementHistory(ID)).size() == 2
     }
 
     def "renaming to the current name does not add an event"() {
         given:
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
-        commands.open(ID, "Name", Monetary.getCurrency("EUR"))
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler commands = commands(store)
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
+        commands.handle(new OpenSettlement(ID, "Name", Monetary.getCurrency("EUR")))
 
         when:
-        def unchanged = commands.rename(ID, "Name")
+        def unchanged = commands.handle(new RenameSettlement(ID, "Name"))
 
         then:
-        unchanged == new AppendResult([], 1)
-        commands.history(ID).size() == 1
+        unchanged.success()
+        unchanged.getSuccess() == new AppendResult([], 1)
+        queries.handle(new GetSettlementHistory(ID)).size() == 1
     }
 
     def "blank names are rejected without changing the stream"() {
         given:
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
-        commands.open(ID, "Name", Monetary.getCurrency("EUR"))
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler commands = commands(store)
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
+        commands.handle(new OpenSettlement(ID, "Name", Monetary.getCurrency("EUR")))
 
         when:
-        commands.rename(ID, "  \t")
+        new RenameSettlement(ID, "  \t")
 
         then:
         thrown(IllegalArgumentException)
-        commands.history(ID).size() == 1
+        queries.handle(new GetSettlementHistory(ID)).size() == 1
     }
 
-    def "replaying a Settlement with a new command entry point preserves its view and history"() {
+    def "replaying a Settlement with a new query handler preserves its view and history"() {
         given:
-        EventStore store = new InMemoryEventStore()
-        SettlementCommands writer = new SettlementCommands(store, Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
-        writer.open(ID, "First", Monetary.getCurrency("EUR"))
-        writer.rename(ID, "Second")
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementCommandHandler writer = commands(store)
+        writer.handle(new OpenSettlement(ID, "First", Monetary.getCurrency("EUR")))
+        writer.handle(new RenameSettlement(ID, "Second"))
 
         when:
-        SettlementCommands reader = new SettlementCommands(store, Clock.systemUTC(), UUID::randomUUID)
-        SettlementView view = reader.view(ID)
-        List<EventEnvelope> history = reader.history(ID)
+        SettlementQueryHandler reader = new SettlementQueryHandler(store)
+        SettlementView view = reader.handle(new GetSettlement(ID))
+        List<EventEnvelope<SettlementId, SettlementEvent>> history = reader.handle(new GetSettlementHistory(ID))
 
         then:
         view == new SettlementView(ID, "Second", Monetary.getCurrency("EUR"), 2)
@@ -129,17 +141,17 @@ class SettlementSpec extends Specification {
 
     def "invalid opening names are rejected before creating a stream"() {
         given:
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
+        EventStore<SettlementId, SettlementEvent> store = new InMemoryEventStore<>()
+        SettlementQueryHandler queries = new SettlementQueryHandler(store)
 
         when:
-        commands.open(ID, " \t", Monetary.getCurrency("EUR"))
+        new OpenSettlement(ID, " \t", Monetary.getCurrency("EUR"))
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        commands.history(ID)
+        queries.handle(new GetSettlementHistory(ID))
 
         then:
         thrown(MissingStreamException)
@@ -148,14 +160,15 @@ class SettlementSpec extends Specification {
     def "store faults are propagated as technical exceptions"() {
         given:
         def fault = new IllegalStateException("store unavailable")
-        EventStore store = new EventStore() {
-            List<EventEnvelope> load(SettlementId id) { throw fault }
-            AppendResult append(SettlementId id, long version, List<EventEnvelope> events) { throw fault }
+        EventStore<SettlementId, SettlementEvent> store = new EventStore<SettlementId, SettlementEvent>() {
+            List<EventEnvelope<SettlementId, SettlementEvent>> load(SettlementId id) { throw fault }
+            AppendResult<SettlementId, SettlementEvent> append(SettlementId id, long version,
+                    List<EventEnvelope<SettlementId, SettlementEvent>> events) { throw fault }
         }
-        SettlementCommands commands = new SettlementCommands(store, Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
+        SettlementCommandHandler commands = commands(store)
 
         when:
-        commands.open(ID, "First", Monetary.getCurrency("EUR"))
+        commands.handle(new OpenSettlement(ID, "First", Monetary.getCurrency("EUR")))
 
         then:
         IllegalStateException error = thrown()
@@ -164,13 +177,16 @@ class SettlementSpec extends Specification {
 
     def "missing Settlement streams fail as technical exceptions"() {
         given:
-        SettlementCommands commands = new SettlementCommands(new InMemoryEventStore(),
-                Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
+        SettlementQueryHandler queries = new SettlementQueryHandler(new InMemoryEventStore<>())
 
         when:
-        commands.view(ID)
+        queries.handle(new GetSettlement(ID))
 
         then:
         thrown(MissingStreamException)
+    }
+
+    private static SettlementCommandHandler commands(EventStore<SettlementId, SettlementEvent> store) {
+        new SettlementCommandHandler(store, Clock.fixed(NOW, ZoneOffset.UTC), () -> EVENT_ID)
     }
 }

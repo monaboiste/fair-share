@@ -1,3 +1,5 @@
 package com.github.monaboiste.fairshare.settlement;
 
-public sealed interface SettlementEvent permits SettlementOpened, SettlementRenamed {}
+import com.github.monaboiste.fairshare.common.events.Event;
+
+public sealed interface SettlementEvent extends Event permits SettlementOpened, SettlementRenamed {}
