@@ -10,11 +10,7 @@ public final class InMemoryEventStore<S, E extends Event> implements EventStore<
 
     @Override
     public synchronized List<EventEnvelope<S, E>> load(S id) {
-        List<EventEnvelope<S, E>> events = streams.get(id);
-        if (events == null) {
-            throw new MissingStreamException(id);
-        }
-        return events;
+        return streams.getOrDefault(id, List.of());
     }
 
     @Override

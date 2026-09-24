@@ -1,14 +1,16 @@
 package com.github.monaboiste.fairshare.common.events;
 
 import java.time.Instant;
-import java.util.UUID;
 
-public record EventEnvelope<S, E extends Event>(
-        UUID eventId, S streamId, long sequence, Instant occurredAt, E payload) {
+public record EventEnvelope<S, E extends Event>(EventId eventId, S streamId, long sequence, E payload) {
     public EventEnvelope {
         if (sequence < 1 || payload.schemaVersion() < 1) {
             throw new IllegalArgumentException("Sequence and schema version must be positive");
         }
+    }
+
+    public Instant occurredAt() {
+        return payload.occurredAt();
     }
 
     public String type() {

@@ -22,6 +22,7 @@ class EventStoreSpec extends Specification {
         store.load(STREAM) == [opened, renamed]
         store.load(STREAM)*.type() == ["NamedEvent", "NamedEvent"]
         store.load(STREAM)*.schemaVersion() == [1, 1]
+        store.load(STREAM)*.occurredAt() == [TIME, TIME]
 
         when:
         store.load(STREAM).clear()
@@ -62,12 +63,7 @@ class EventStoreSpec extends Specification {
 
         then:
         thrown(IllegalArgumentException)
-
-        when:
-        store.load(STREAM)
-
-        then:
-        thrown(MissingStreamException)
+        store.load(STREAM).empty
     }
 
     def "an invalid batch does not partially append to an existing stream"() {
@@ -94,12 +90,7 @@ class EventStoreSpec extends Specification {
 
         then:
         thrown(IllegalArgumentException)
-
-        when:
-        store.load(STREAM)
-
-        then:
-        thrown(MissingStreamException)
+        store.load(STREAM).empty
     }
 
     def "expected version conflicts do not change the stream"() {
@@ -116,15 +107,24 @@ class EventStoreSpec extends Specification {
         store.load(STREAM) == [opened]
     }
 
+    def "an unknown stream loads as empty history"() {
+        given:
+        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
+
+        expect:
+        store.load(STREAM).empty
+    }
+
     private static EventEnvelope<String, NamedEvent> envelope(long sequence, String stream, NamedEvent payload) {
-        new EventEnvelope(UUID.fromString("00000000-0000-0000-0000-00000000000${sequence}"),
-                stream, sequence, TIME, payload)
+        new EventEnvelope(new EventId(UUID.fromString("00000000-0000-0000-0000-00000000000${sequence}")),
+                stream, sequence, payload)
     }
 
     private static class NamedEvent implements Event {
         final String name
 
         NamedEvent(String name) { this.name = name }
+        Instant occurredAt() { TIME }
         String type() { "NamedEvent" }
         int schemaVersion() { 1 }
     }
