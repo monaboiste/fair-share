@@ -1,10 +1,13 @@
 [global]
 flavor = "gfm"
-disable = ["MD060"]
+
+exclude = [".agents/**/*.md"]
 
 [MD013]
+enabled = true
 line-length = 120
 reflow = true
 
 [MD060]
+enabled = true
 style = "aligned"
