@@ -1,5 +1,6 @@
 package com.github.monaboiste.fairshare.settlement.domain.aggregate;
 
+import com.github.monaboiste.fairshare.common.events.EventId;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
@@ -24,15 +25,16 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return Settlement::new;
     }
 
-    public static Settlement open(SettlementId id, SettlementName name, CurrencyUnit currency, Instant now) {
+    public static Settlement open(
+            SettlementId id, SettlementName name, CurrencyUnit currency, EventId eventId, Instant now) {
         Settlement settlement = new Settlement(id);
-        settlement.register(new SettlementOpened(name.value(), currency, now));
+        settlement.register(new SettlementOpened(eventId, name.value(), currency, now));
         return settlement;
     }
 
-    public void rename(SettlementName name, Instant now) {
+    public void rename(SettlementName name, EventId eventId, Instant now) {
         if (!name.value().equals(this.name)) {
-            register(new SettlementRenamed(name.value(), now));
+            register(new SettlementRenamed(eventId, name.value(), now));
         }
     }
 

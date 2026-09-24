@@ -19,13 +19,13 @@ class EventSourcedSettlementRepositorySpec extends Specification {
     def "a stale Settlement retains pending events after a rejected save"() {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
-        def repository = new EventSourcedSettlementRepository(store, EventId::random)
-        repository.save(Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW))
+        def repository = new EventSourcedSettlementRepository(store)
+        repository.save(Settlement.open(ID, new SettlementName("Holiday"), EUR, EventId.random(), NOW))
         def stale = repository.findById(ID).orElseThrow()
         def winner = repository.findById(ID).orElseThrow()
-        winner.rename(new SettlementName("Winner"), NOW)
+        winner.rename(new SettlementName("Winner"), EventId.random(), NOW)
         repository.save(winner)
-        stale.rename(new SettlementName("Loser"), NOW)
+        stale.rename(new SettlementName("Loser"), EventId.random(), NOW)
 
         when:
         repository.save(stale)

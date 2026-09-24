@@ -3,6 +3,7 @@ package com.github.monaboiste.fairshare.settlement.application.command.handler;
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.commands.CommandHandler;
 import com.github.monaboiste.fairshare.common.events.CommitResult;
+import com.github.monaboiste.fairshare.common.events.EventId;
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement;
 import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
@@ -11,6 +12,7 @@ import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement;
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import java.time.Clock;
+import java.util.function.Supplier;
 
 /**
  * Opens a new Settlement under the caller-supplied identifier.
@@ -24,10 +26,12 @@ import java.time.Clock;
 public final class OpenSettlementHandler
         implements CommandHandler<OpenSettlement, SettlementRejection, CommitResult<SettlementId, SettlementEvent>> {
     private final SettlementRepository repository;
+    private final Supplier<EventId> eventIds;
     private final Clock clock;
 
-    public OpenSettlementHandler(SettlementRepository repository, Clock clock) {
+    public OpenSettlementHandler(SettlementRepository repository, Supplier<EventId> eventIds, Clock clock) {
         this.repository = repository;
+        this.eventIds = eventIds;
         this.clock = clock;
     }
 
@@ -36,7 +40,7 @@ public final class OpenSettlementHandler
         if (repository.findById(command.id()).isPresent()) {
             return Result.failure(new IdentifierConflict(command.id()));
         }
-        return Result.success(
-                repository.save(Settlement.open(command.id(), command.name(), command.currency(), clock.instant())));
+        return Result.success(repository.save(
+                Settlement.open(command.id(), command.name(), command.currency(), eventIds.get(), clock.instant())));
     }
 }
