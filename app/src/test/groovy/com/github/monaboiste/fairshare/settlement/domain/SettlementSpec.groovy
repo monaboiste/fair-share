@@ -1,6 +1,7 @@
 package com.github.monaboiste.fairshare.settlement.domain
 
 import com.github.monaboiste.fairshare.common.events.EventId
+import com.github.monaboiste.fairshare.common.events.NewEvent
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
@@ -9,6 +10,7 @@ import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSet
 import java.time.Instant
 import javax.money.Monetary
 import spock.lang.Specification
+import spock.lang.Unroll
 
 class SettlementSpec extends Specification {
     private static final SettlementId ID = new SettlementId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
@@ -31,7 +33,8 @@ class SettlementSpec extends Specification {
         settlement.committedVersion() == 0
     }
 
-    def "opening retry accepts only the original name and immutable currency after renaming"() {
+    @Unroll
+    def "opening retry with #openingDetails is #outcome after renaming"() {
         given:
         def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
         settlement.rename(new SettlementName("Mountains"), NOW)
@@ -44,10 +47,12 @@ class SettlementSpec extends Specification {
         retry.success() ? retry.getSuccess().is(settlement) : retry.getFailure() == new IdentifierConflict(ID)
 
         where:
-        name        | currency || accepted
-        "Holiday"   | EUR      || true
-        "Mountains" | EUR      || false
-        "Holiday"   | USD      || false
+        openingDetails      | name        | currency || accepted
+        "the original name" | "Holiday"   | EUR      || true
+        "the current name"  | "Mountains" | EUR      || false
+        "another currency"  | "Holiday"   | USD      || false
+
+        outcome = accepted ? "accepted" : "rejected"
     }
 
     def "repository recreates Settlement with committed history"() {
@@ -74,28 +79,53 @@ class SettlementSpec extends Specification {
         replayed.pendingEvents().empty
     }
 
-    def "a non-opening first event and a second opening are rejected"() {
+    def "a non-opening first event is rejected on replay"() {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, EventId::random)
-        store.append(ID, 0, [new com.github.monaboiste.fairshare.common.events.NewEvent<SettlementEvent>(
-            EventId.random(), new SettlementRenamed("Wrong", NOW))])
+        store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(), new SettlementRenamed("Wrong", NOW))])
 
         when:
         repository.findById(ID)
 
         then:
         thrown(IllegalStateException)
+    }
+
+    def "a second opening event is rejected on replay"() {
+        given:
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, EventId::random)
+        store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(),
+            new SettlementOpened("Holiday", "EUR", NOW)),
+            new NewEvent<SettlementEvent>(EventId.random(), new SettlementOpened("Again", "USD", NOW))])
 
         when:
-        def otherId = new SettlementId(UUID.randomUUID())
-        store.append(otherId, 0, [new com.github.monaboiste.fairshare.common.events.NewEvent<SettlementEvent>(
-            EventId.random(), new SettlementOpened("Holiday", "EUR", NOW)),
-            new com.github.monaboiste.fairshare.common.events.NewEvent<SettlementEvent>(
-                EventId.random(), new SettlementOpened("Again", "USD", NOW))])
-        repository.findById(otherId)
+        repository.findById(ID)
 
         then:
         thrown(IllegalStateException)
+    }
+
+    def "historical names are replayed without applying current input validation"() {
+        given:
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, EventId::random)
+        store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(), new SettlementOpened("", "EUR", NOW))])
+
+        when:
+        def settlement = repository.findById(ID).orElseThrow()
+
+        then:
+        settlement.version() == 1
+        settlement.acceptOpeningRetry(new SettlementName("Holiday"), EUR).getFailure() == new IdentifierConflict(ID)
+
+        when:
+        settlement.rename(new SettlementName("Current"), NOW)
+        def committed = repository.save(settlement)
+
+        then:
+        committed.version() == 2
+        repository.findById(ID).orElseThrow().pendingEvents().empty
     }
 }

@@ -13,8 +13,8 @@ import org.jspecify.annotations.Nullable;
 
 public final class Settlement extends AggregateRoot<SettlementId, SettlementEvent> {
     private final SettlementId id;
-    private @Nullable SettlementName openingName;
-    private @Nullable SettlementName name;
+    private @Nullable String openingName;
+    private @Nullable String name;
     private @Nullable CurrencyUnit currency;
 
     private Settlement(SettlementId id) {
@@ -32,13 +32,13 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<IdentifierConflict, Settlement> acceptOpeningRetry(SettlementName name, CurrencyUnit currency) {
-        return name.equals(openingName) && currency.equals(this.currency)
+        return name.value().equals(openingName) && currency.equals(this.currency)
                 ? Result.success(this)
                 : Result.failure(new IdentifierConflict(id));
     }
 
     public void rename(SettlementName name, Instant now) {
-        if (!name.equals(this.name)) {
+        if (!name.value().equals(this.name)) {
             register(new SettlementRenamed(name.value(), now));
         }
     }
@@ -55,7 +55,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 if (openingName != null) {
                     throw new IllegalStateException("Settlement already opened");
                 }
-                openingName = new SettlementName(opened.name());
+                openingName = opened.name();
                 name = openingName;
                 currency = Monetary.getCurrency(opened.currencyCode());
             }
@@ -63,7 +63,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 if (openingName == null) {
                     throw new IllegalStateException("Settlement opening missing");
                 }
-                name = new SettlementName(renamed.name());
+                name = renamed.name();
             }
         }
     }

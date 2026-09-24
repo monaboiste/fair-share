@@ -13,16 +13,20 @@ generic repository owns replay and append, not publication. The stream identifie
 aggregate type metadata is deferred until different aggregate types share a physical store. The store assigns stream
 sequence and global position atomically to each batch. `EventStreamReader`, `EventStore`, and `AllEventsReader` separate
 stream reads, appends, and ordered global reads. The in-memory store is in `common.events.inmemory`.
-`PublishingEventStore` decorates an append with synchronous listener delivery. Append remains the commit point: failed
-publication logs and raises `PostCommitPublicationException` carrying the committed version without rolling back the
-stream. Projection rebuilds from global order, ignores duplicate deliveries, and rejects gaps atomically per batch.
+`PublishingEventStore` decorates an append with synchronous listener delivery. Publication is serialized with append to
+preserve commit order across concurrent writers. Append remains the commit point: failed publication logs and raises
+`PostCommitPublicationException` carrying the committed version without rolling back the stream. Projection rebuilds
+from global order, ignores duplicate deliveries, and rejects gaps atomically per batch.
 
 Domain events are plain facts with occurrence time; `@EventType` supplies validated type and schema version when the
 store builds envelopes. A `SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds
-opening name, current name, and immutable Settlement Currency explicitly. Business rejections such as
-`IdentifierConflict` use `Result`; malformed input throws. `Command<F extends CommandFailure, S>` keeps each command's
-failure type while a registered dispatcher provides exact-class routing, complete sealed-family registration, and
-ordered interceptors. Queries have a separate registered dispatcher. Shared handler registration stays internal.
+opening name, current name, and immutable Settlement Currency explicitly. Historical names are not re-validated during
+replay, so later input-rule changes do not invalidate stored streams. `Settlement.factory()` is public only because the
+infrastructure resides in another package; the apply guards keep a blank aggregate unusable, an accepted trade-off.
+Business rejections such as `IdentifierConflict` use `Result`; malformed input throws.
+`Command<F extends CommandFailure, S>` keeps each command's failure type while a registered dispatcher provides
+exact-class routing, complete sealed-family registration, and ordered interceptors. Queries have a separate registered
+dispatcher. Shared handler registration stays internal.
 
 The common module exports events, in-memory events, event sourcing, commands, and queries, but not the handler registry.
 The app exports Settlement commands, queries, domain and domain events, alongside netting and valuation, but does not

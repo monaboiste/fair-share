@@ -49,7 +49,7 @@ public final class OpenSettlementHandler
         return existing.acceptOpeningRetry(command.name(), command.currency()).map(_ -> {
             EventEnvelope<SettlementId, SettlementEvent> opened =
                     streams.load(command.id()).getFirst();
-            return new CommitResult<>(List.of(opened), 1);
+            return new CommitResult<>(List.of(opened), opened.sequence());
         });
     }
 }

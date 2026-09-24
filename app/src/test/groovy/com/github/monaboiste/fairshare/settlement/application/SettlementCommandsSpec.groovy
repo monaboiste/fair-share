@@ -49,7 +49,7 @@ class SettlementCommandsSpec extends Specification {
 
     def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
     def projector = new SettlementProjector()
-    EventStore<SettlementId, SettlementEvent> publishing = new PublishingEventStore<>(store, store, projector)
+    EventStore<SettlementId, SettlementEvent> publishing = PublishingEventStore.of(store, projector)
     SettlementRepository repository = new EventSourcedSettlementRepository(publishing, { EVENT_ID })
     def commands = RegisteredCommandDispatcher.builder()
         .register(OpenSettlement, new OpenSettlementHandler(repository, store, CLOCK))
@@ -153,14 +153,7 @@ class SettlementCommandsSpec extends Specification {
     def "an identical concurrent open reloads and returns the original envelope"() {
         given:
         def opened = commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
-        SettlementRepository racing = new SettlementRepository() {
-            boolean first = true
-            Optional<Settlement> findById(SettlementId id) {
-                if (first) { first = false; return Optional.empty() }
-                repository.findById(id)
-            }
-            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { repository.save(settlement) }
-        }
+        SettlementRepository racing = repositoryMissingFirstLookup()
 
         when:
         def retry = new OpenSettlementHandler(racing, store, CLOCK)
@@ -174,14 +167,7 @@ class SettlementCommandsSpec extends Specification {
     def "a conflicting concurrent open reloads and returns identifier conflict"() {
         given:
         commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
-        SettlementRepository racing = new SettlementRepository() {
-            boolean first = true
-            Optional<Settlement> findById(SettlementId id) {
-                if (first) { first = false; return Optional.empty() }
-                repository.findById(id)
-            }
-            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { repository.save(settlement) }
-        }
+        SettlementRepository racing = repositoryMissingFirstLookup()
 
         when:
         def retry = new OpenSettlementHandler(racing, store, CLOCK)
@@ -194,7 +180,7 @@ class SettlementCommandsSpec extends Specification {
 
     def "publication failure leaves the command committed with a fatal versioned exception"() {
         given:
-        def failingStore = new PublishingEventStore<SettlementId, SettlementEvent>(store, store,
+        def failingStore = PublishingEventStore.of(store,
             { throw new IllegalStateException("projection failed") })
         def failingRepository = new EventSourcedSettlementRepository(failingStore, { EVENT_ID })
         def handler = new OpenSettlementHandler(failingRepository, store, CLOCK)
@@ -241,5 +227,16 @@ class SettlementCommandsSpec extends Specification {
 
         then:
         rebuilt.findById(ID) == queries.dispatch(new GetSettlement(ID))
+    }
+
+    private SettlementRepository repositoryMissingFirstLookup() {
+        new SettlementRepository() {
+            boolean first = true
+            Optional<Settlement> findById(SettlementId id) {
+                if (first) { first = false; return Optional.empty() }
+                repository.findById(id)
+            }
+            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { repository.save(settlement) }
+        }
     }
 }
