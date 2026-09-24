@@ -6,7 +6,6 @@ import com.github.monaboiste.fairshare.common.events.EventEnvelope
 import com.github.monaboiste.fairshare.common.events.EventStore
 import com.github.monaboiste.fairshare.common.events.PendingEvent
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException
-import com.github.monaboiste.fairshare.common.events.StreamNotFoundException
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
@@ -82,8 +81,8 @@ class SettlementCommandsSpec extends Specification {
         renamed.getSuccess().events()*.occurredAt() == [NOW]
         noChange.getSuccess().events().empty
         noChange.getSuccess().version() == 2
-        queries.dispatch(new GetSettlement(ID)) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2))
-        queries.dispatch(new GetSettlementHistory(ID))*.sequence() == [1L, 2L]
+        queries.dispatch(new GetSettlement(ID)).getSuccess() == new SettlementView(ID, "Mountains", EUR, 2)
+        queries.dispatch(new GetSettlementHistory(ID)).getSuccess()*.sequence() == [1L, 2L]
     }
 
     def "opening an existing identifier with #openingDetails is an identifier conflict"() {
@@ -96,7 +95,7 @@ class SettlementCommandsSpec extends Specification {
 
         then:
         result.getFailure() == new IdentifierConflict(ID)
-        queries.dispatch(new GetSettlementHistory(ID)).size() == 2
+        queries.dispatch(new GetSettlementHistory(ID)).getSuccess().size() == 2
 
         where:
         openingDetails         | name        | currency
@@ -105,21 +104,28 @@ class SettlementCommandsSpec extends Specification {
         "another currency"     | "Holiday"   | USD
     }
 
-    def "unknown rename returns a rejection while unknown history throws"() {
+    def "unknown Settlement is rejected by commands and both queries"() {
         when:
         def result = commands.dispatch(new RenameSettlement(ID, new SettlementName("Mountains")))
 
         then:
         result.getFailure() == new SettlementNotFound(ID)
-        queries.dispatch(new GetSettlement(ID)).empty
+        queries.dispatch(new GetSettlement(ID)).getFailure() == new SettlementNotFound(ID)
+        queries.dispatch(new GetSettlementHistory(ID)).getFailure() == new SettlementNotFound(ID)
         !store.exists(ID)
+    }
+
+    def "a committed Settlement absent from a lagging view is not found there"() {
+        given:
+        commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
+        def lagging = new GetSettlementHandler(new SettlementProjector())
 
         when:
-        queries.dispatch(new GetSettlementHistory(ID))
+        def outcome = lagging.handle(new GetSettlement(ID))
 
         then:
-        def failure = thrown(StreamNotFoundException)
-        failure.streamId() == ID
+        outcome.getFailure() == new SettlementNotFound(ID)
+        queries.dispatch(new GetSettlementHistory(ID)).getSuccess().size() == 1
     }
 
     def "stale aggregate fails optimistic concurrency"() {
@@ -137,7 +143,7 @@ class SettlementCommandsSpec extends Specification {
 
         then:
         thrown(VersionConflictException)
-        queries.dispatch(new GetSettlement(ID)).orElseThrow().name() == "Winner"
+        queries.dispatch(new GetSettlement(ID)).getSuccess().name() == "Winner"
     }
 
     def "a concurrent open that commits first fails the later open with a version conflict"() {
@@ -203,7 +209,7 @@ class SettlementCommandsSpec extends Specification {
         rebuilt.rebuild(store)
 
         then:
-        rebuilt.findById(ID) == queries.dispatch(new GetSettlement(ID))
+        rebuilt.findById(ID).orElseThrow() == queries.dispatch(new GetSettlement(ID)).getSuccess()
     }
 
     private SettlementRepository repositoryMissingFirstLookup() {
