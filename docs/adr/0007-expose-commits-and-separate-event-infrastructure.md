@@ -12,12 +12,12 @@ Event sourcing lives in `common.eventsourcing`: aggregate replay and commit tran
 generic repository owns replay and append, not publication. The stream identifier is already the aggregate identifier;
 aggregate type metadata is deferred until different aggregate types share a physical store. The store assigns stream
 sequence and global position atomically to each batch. `EventStreamReader`, `EventStore`, and `AllEventsReader` separate
-stream reads, appends, and ordered global reads. The in-memory store is in `common.events.inmemory`.
-The in-memory store owns synchronous delivery to subscribers inside its append lock, so every append publishes and
-delivery follows commit order. Listeners run in subscription order and stop at the first failure. Append remains the
-commit point: failed publication logs and raises `PostCommitPublicationException` carrying the committed version
-without rolling back the stream. Projection rebuilds from global order, ignores duplicate deliveries, and rejects gaps
-atomically per batch.
+stream reads, appends, and ordered global reads. The in-memory store is in `common.events.inmemory`. The in-memory store
+owns synchronous delivery to subscribers inside its append lock, so every append publishes and delivery follows commit
+order. Listeners run in subscription order, stop at the first failure, and must not append during delivery. Append
+remains the commit point: failed publication logs and raises `PostCommitPublicationException` carrying the committed
+version without rolling back the stream. Projection rebuilds from global order, ignores duplicate deliveries, and
+rejects gaps atomically per batch.
 
 Domain events are plain facts with occurrence time; `@EventType` supplies validated type and schema version when the
 store builds envelopes. A `SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds

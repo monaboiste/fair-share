@@ -23,6 +23,7 @@ public final class InMemoryEventStore<S, E extends Event>
     private final Map<S, List<EventEnvelope<S, E>>> streams = new HashMap<>();
     private final List<EventEnvelope<S, E>> allEvents = new ArrayList<>();
     private final List<CommittedEventsListener<S, E>> listeners = new ArrayList<>();
+    private boolean delivering;
 
     @Override
     public synchronized void subscribe(CommittedEventsListener<S, E> listener) {
@@ -52,6 +53,9 @@ public final class InMemoryEventStore<S, E extends Event>
 
     @Override
     public synchronized CommitResult<S, E> append(S id, long expectedVersion, List<NewEvent<E>> events) {
+        if (delivering) {
+            throw new IllegalStateException("Subscribers must not append during delivery");
+        }
         List<EventEnvelope<S, E>> previous = streams.getOrDefault(id, List.of());
         long actual = previous.size();
         if (actual != expectedVersion) {
@@ -78,6 +82,16 @@ public final class InMemoryEventStore<S, E extends Event>
         streams.put(id, List.copyOf(updated));
         allEvents.addAll(committed);
         CommitResult<S, E> result = new CommitResult<>(committed, updated.size());
+        delivering = true;
+        try {
+            deliver(id, result);
+        } finally {
+            delivering = false;
+        }
+        return result;
+    }
+
+    private void deliver(S id, CommitResult<S, E> result) {
         for (CommittedEventsListener<S, E> listener : listeners) {
             try {
                 listener.accept(result.events());
@@ -90,6 +104,5 @@ public final class InMemoryEventStore<S, E extends Event>
                 throw new PostCommitPublicationException(id, result.version(), failure);
             }
         }
-        return result;
     }
 }

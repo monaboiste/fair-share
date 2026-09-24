@@ -149,6 +149,26 @@ class EventStoreSpec extends Specification {
         store.readAll(0) == delivered
     }
 
+    def "a subscriber appending during delivery is rejected without committing"() {
+        given:
+        def store = new InMemoryEventStore<String, Event>()
+        store.subscribe { events ->
+            if (events.first().streamId() == "one") {
+                store.append("two", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+            }
+        }
+
+        when:
+        store.append("one", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+
+        then:
+        def failure = thrown(PostCommitPublicationException)
+        failure.cause instanceof IllegalStateException
+        store.exists("one")
+        !store.exists("two")
+        store.readAll(0)*.streamId() == ["one"]
+    }
+
     def "concurrent writers deliver events in commit order"() {
         given:
         def store = new InMemoryEventStore<String, Event>()
