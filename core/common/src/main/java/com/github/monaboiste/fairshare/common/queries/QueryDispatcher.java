@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.common.queries;
 
+import com.github.monaboiste.fairshare.common.Result;
+
 public interface QueryDispatcher {
-    <R> R dispatch(Query<R> query);
+    <F, S> Result<F, S> dispatch(Query<F, S> query);
 }

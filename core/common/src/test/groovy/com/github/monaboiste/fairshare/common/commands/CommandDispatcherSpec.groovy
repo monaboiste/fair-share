@@ -4,10 +4,9 @@ import com.github.monaboiste.fairshare.common.Result
 import spock.lang.Specification
 
 class CommandDispatcherSpec extends Specification {
-    static record Rejected() implements CommandFailure {}
     static sealed interface Tasks permits First, Second {}
-    static record First() implements Tasks, Command<Rejected, String> {}
-    static record Second() implements Tasks, Command<Rejected, String> {}
+    static record First() implements Tasks, Command<String, String> {}
+    static record Second() implements Tasks, Command<String, String> {}
 
     def "registered command returns typed result"() {
         given:
@@ -16,6 +15,18 @@ class CommandDispatcherSpec extends Specification {
 
         expect:
         dispatcher.dispatch(new First()).getSuccess() == "done"
+    }
+
+    def "a handler can return a failure without a marker interface"() {
+        given:
+        def dispatcher = RegisteredCommandDispatcher.builder()
+            .register(First, { Result.failure("rejected") }).build()
+
+        when:
+        def outcome = dispatcher.dispatch(new First())
+
+        then:
+        outcome.getFailure() == "rejected"
     }
 
     def "registration rejects duplicates and incomplete sealed families"() {
@@ -46,7 +57,7 @@ class CommandDispatcherSpec extends Specification {
         given:
         List<String> visited = []
         def first = new CommandInterceptor() {
-            def <F extends CommandFailure, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
+            def <F, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
                 visited.add("first before")
                 def result = next.handle(command)
                 visited.add("first after")
@@ -54,7 +65,7 @@ class CommandDispatcherSpec extends Specification {
             }
         }
         def second = new CommandInterceptor() {
-            def <F extends CommandFailure, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
+            def <F, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
                 visited.add("second before")
                 def result = next.handle(command)
                 visited.add("second after")

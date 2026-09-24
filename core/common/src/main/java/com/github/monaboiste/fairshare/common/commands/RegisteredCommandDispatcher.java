@@ -19,7 +19,7 @@ public final class RegisteredCommandDispatcher implements CommandDispatcher {
             CommandInterceptor.Proceed downstream = next;
             next = new CommandInterceptor.Proceed() {
                 @Override
-                public <F extends CommandFailure, S> Result<F, S> handle(Command<F, S> command) {
+                public <F, S> Result<F, S> handle(Command<F, S> command) {
                     return interceptor.intercept(command, downstream);
                 }
             };
@@ -32,11 +32,11 @@ public final class RegisteredCommandDispatcher implements CommandDispatcher {
     }
 
     @Override
-    public <F extends CommandFailure, S> Result<F, S> dispatch(Command<F, S> command) {
+    public <F, S> Result<F, S> dispatch(Command<F, S> command) {
         return chain.handle(command);
     }
 
-    private <F extends CommandFailure, S> Result<F, S> handle(Command<F, S> command) {
+    private <F, S> Result<F, S> handle(Command<F, S> command) {
         @SuppressWarnings("unchecked")
         CommandHandler<Command<F, S>, F, S> handler =
                 (CommandHandler<Command<F, S>, F, S>) handlers.get(command.getClass());
@@ -50,8 +50,7 @@ public final class RegisteredCommandDispatcher implements CommandDispatcher {
         private final HandlerRegistry<CommandHandler<?, ?, ?>> handlers = new HandlerRegistry<>();
         private final List<CommandInterceptor> interceptors = new ArrayList<>();
 
-        public <C extends Command<F, S>, F extends CommandFailure, S> Builder register(
-                Class<C> type, CommandHandler<C, F, S> handler) {
+        public <C extends Command<F, S>, F, S> Builder register(Class<C> type, CommandHandler<C, F, S> handler) {
             handlers.register(type, handler);
             return this;
         }
