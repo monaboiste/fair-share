@@ -25,14 +25,14 @@ Domain event payloads are plain facts: they declare `type()` and `schemaVersion(
 occurrence time. The aggregate holds an injected `Clock` and stamps each registered fact with system time and a
 generated `EventId`. `occurredAt` is the moment of registration, not a business date; business dates remain payload
 fields. Tests are deterministic except for generated event identifiers, superseding issue #15's supplied-identifier
-criterion. This supersedes ADR-0006's decision that the domain never sees a `Clock` and round 5's event-constructor
-identifier rule. Replay passes payloads alone; switch to envelopes if the aggregate ever needs past occurrence times. A
-`SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds the current name and the
-immutable Settlement Currency explicitly. Historical names are not re-validated during replay, so later input-rule
-changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency as `CurrencyUnit`;
-converting it to a currency code is a future serializer concern. `Settlement` and `SettlementRepository` live in the
-non-exported `settlement.domain.aggregate` package, so `Settlement.factory()` and pending events are public only inside
-the module; the apply guards keep a blank aggregate unusable. Business rejections use `Result` with the sealed
+criterion. This supersedes ADR-0006's decision that the domain never sees a `Clock` or event identifiers. Replay passes
+payloads alone; switch to envelopes if the aggregate ever needs past occurrence times. A `SettlementName` rejects blank
+input but preserves all non-blank spacing. The aggregate holds the current name and the immutable Settlement Currency
+explicitly. Historical names are not re-validated during replay, so later input-rule changes do not invalidate stored
+streams. `SettlementOpened` carries the Settlement Currency as `CurrencyUnit`; converting it to a currency code is a
+future serializer concern. `Settlement` and `SettlementRepository` live in the non-exported
+`settlement.domain.aggregate` package, so `Settlement.factory(Clock)` and pending events are public only inside the
+module; the apply guards keep a blank aggregate unusable. Business rejections use `Result` with the sealed
 `SettlementRejection` (`IdentifierConflict`, `SettlementNotFound`) shared by every Settlement command, so adding a
 rejection keeps command signatures stable and exhaustive switches flag unhandled cases; malformed input throws.
 `Command<F extends CommandFailure, S>` lets each aggregate fix one failure family while a registered dispatcher provides
