@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class InMemoryEventStore<S, E extends Event>
         implements EventStore<S, E>, AllEventsReader<S, E>, EventSubscriptions<S, E> {
@@ -59,37 +59,55 @@ public final class InMemoryEventStore<S, E extends Event>
         if (delivering) {
             throw new IllegalStateException("Subscribers must not append during delivery");
         }
+
         List<EventEnvelope<S, E>> previous = streams.getOrDefault(id, List.of());
-        long actual = previous.size();
-        if (actual != expectedVersion) {
-            throw new VersionConflictException(id, expectedVersion, actual);
+        long actualVersion = previous.size();
+
+        if (actualVersion != expectedVersion) {
+            throw new VersionConflictException(id, expectedVersion, actualVersion);
         }
+
         List<PendingEvent<E>> additions = List.copyOf(events);
         if (additions.isEmpty()) {
             throw new IllegalArgumentException("Append requires events");
         }
-        List<EventEnvelope<S, E>> committed = new ArrayList<>();
-        for (PendingEvent<E> next : additions) {
-            committed.add(new EventEnvelope<>(
-                    id,
-                    actual + committed.size() + 1,
-                    allEvents.size() + committed.size() + 1,
-                    next.eventId(),
-                    next.occurredAt(),
-                    next.payload()));
-        }
-        List<EventEnvelope<S, E>> updated = new ArrayList<>(previous);
+
+        List<EventEnvelope<S, E>> committed = commit(id, actualVersion, additions);
+
+        List<EventEnvelope<S, E>> updated = new ArrayList<>(previous.size() + committed.size());
+        updated.addAll(previous);
         updated.addAll(committed);
+
         streams.put(id, List.copyOf(updated));
         allEvents.addAll(committed);
+
         CommitResult<S, E> result = new CommitResult<>(id, committed, updated.size());
+        deliver(result);
+
+        return result;
+    }
+
+    private List<EventEnvelope<S, E>> commit(S id, long currentVersion, List<PendingEvent<E>> events) {
+        List<EventEnvelope<S, E>> committed = new ArrayList<>(events.size());
+
+        long sequence = currentVersion + 1L;
+        long position = allEvents.size() + 1L;
+
+        for (PendingEvent<E> event : events) {
+            committed.add(new EventEnvelope<>(
+                    id, sequence++, position++, event.eventId(), event.occurredAt(), event.payload()));
+        }
+
+        return List.copyOf(committed);
+    }
+
+    private void deliver(CommitResult<S, E> result) {
         delivering = true;
         try {
-            deliver(id, result);
+            deliver(result.streamId(), result);
         } finally {
             delivering = false;
         }
-        return result;
     }
 
     private void deliver(S id, CommitResult<S, E> result) {
