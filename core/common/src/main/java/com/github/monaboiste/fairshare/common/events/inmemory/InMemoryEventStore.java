@@ -15,9 +15,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public final class InMemoryEventStore<S, E extends Event>
         implements EventStore<S, E>, AllEventsReader<S, E>, EventSubscriptions<S, E> {
+
+    private static final Logger log = LoggerFactory.getLogger(InMemoryEventStore.class);
+
     private final Map<S, List<EventEnvelope<S, E>>> streams = new HashMap<>();
     private final List<EventEnvelope<S, E>> allEvents = new ArrayList<>();
     private final List<CommittedEventsListener<S, E>> listeners = new ArrayList<>();
@@ -92,11 +97,7 @@ public final class InMemoryEventStore<S, E extends Event>
             try {
                 listener.accept(result.events());
             } catch (RuntimeException failure) {
-                System.getLogger(getClass().getName())
-                        .log(
-                                System.Logger.Level.ERROR,
-                                "Fatal post-commit publication failure at version " + result.version(),
-                                failure);
+                log.error("Fatal post-commit publication failure at version {}", result.version(), failure);
                 throw new PostCommitPublicationException(id, result.version(), failure);
             }
         }

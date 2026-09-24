@@ -1,6 +1,7 @@
 plugins {
     id("java-library-conventions")
     id("groovy-testing-conventions")
+    id("logging-conventions")
     id("java-quality-conventions")
     id("groovy-quality-conventions")
     id("dependency-analysis-conventions")
