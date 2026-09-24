@@ -37,6 +37,6 @@ public final class OpenSettlementHandler
             return Result.failure(new IdentifierConflict(command.id()));
         }
         return Result.success(
-                repository.save(Settlement.open(command.id(), command.name(), command.currency(), clock.instant())));
+                repository.save(Settlement.open(command.id(), command.name(), command.currency(), clock)));
     }
 }

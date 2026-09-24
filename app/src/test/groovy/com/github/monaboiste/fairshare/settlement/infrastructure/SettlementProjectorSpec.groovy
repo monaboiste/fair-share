@@ -2,6 +2,7 @@ package com.github.monaboiste.fairshare.settlement.infrastructure
 
 import com.github.monaboiste.fairshare.common.events.EventEnvelope
 import com.github.monaboiste.fairshare.common.events.EventId
+import com.github.monaboiste.fairshare.common.events.PendingEvent
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
@@ -53,9 +54,9 @@ class SettlementProjectorSpec extends Specification {
     def "rebuild replaces existing views with globally ordered history"() {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
-        store.append(ID, 0, [new SettlementOpened(EventId.random(), "Holiday", EUR, NOW)])
-        store.append(OTHER, 0, [new SettlementOpened(EventId.random(), "Other", EUR, NOW)])
-        store.append(ID, 1, [new SettlementRenamed(EventId.random(), "Mountains", NOW)])
+        store.append(ID, 0, [pending(new SettlementOpened("Holiday", EUR))])
+        store.append(OTHER, 0, [pending(new SettlementOpened("Other", EUR))])
+        store.append(ID, 1, [pending(new SettlementRenamed("Mountains"))])
         def stale = new SettlementId(UUID.randomUUID())
         projector.accept([opened(stale)])
 
@@ -68,13 +69,17 @@ class SettlementProjectorSpec extends Specification {
         projector.findById(stale).empty
     }
 
+    private static PendingEvent<SettlementEvent> pending(SettlementEvent payload) {
+        new PendingEvent<SettlementEvent>(EventId.random(), payload, NOW)
+    }
+
     private static EventEnvelope<SettlementId, SettlementEvent> opened(SettlementId id) {
-        new EventEnvelope<SettlementId, SettlementEvent>(id, 1, 1,
-            new SettlementOpened(EventId.random(), "Holiday", EUR, NOW))
+        new EventEnvelope<SettlementId, SettlementEvent>(id, 1, 1, EventId.random(), NOW,
+            new SettlementOpened("Holiday", EUR))
     }
 
     private static EventEnvelope<SettlementId, SettlementEvent> renamed(SettlementId id, long sequence, String name) {
-        new EventEnvelope<SettlementId, SettlementEvent>(id, sequence, sequence,
-            new SettlementRenamed(EventId.random(), name, NOW))
+        new EventEnvelope<SettlementId, SettlementEvent>(id, sequence, sequence, EventId.random(), NOW,
+            new SettlementRenamed(name))
     }
 }

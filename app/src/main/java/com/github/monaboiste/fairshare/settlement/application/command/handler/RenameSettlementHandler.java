@@ -10,7 +10,6 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
-import java.time.Clock;
 
 /**
  * Changes the display name of an existing Settlement; the Settlement Currency never changes.
@@ -24,11 +23,9 @@ import java.time.Clock;
 public final class RenameSettlementHandler
         implements CommandHandler<RenameSettlement, SettlementRejection, CommitResult<SettlementId, SettlementEvent>> {
     private final SettlementRepository repository;
-    private final Clock clock;
 
-    public RenameSettlementHandler(SettlementRepository repository, Clock clock) {
+    public RenameSettlementHandler(SettlementRepository repository) {
         this.repository = repository;
-        this.clock = clock;
     }
 
     @Override
@@ -36,7 +33,7 @@ public final class RenameSettlementHandler
         return repository
                 .findById(command.id())
                 .map(settlement -> {
-                    settlement.rename(command.name(), clock.instant());
+                    settlement.rename(command.name());
                     return Result.<SettlementRejection, CommitResult<SettlementId, SettlementEvent>>success(
                             repository.save(settlement));
                 })

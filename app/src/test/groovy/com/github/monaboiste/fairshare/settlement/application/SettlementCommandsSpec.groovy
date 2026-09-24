@@ -4,6 +4,7 @@ import com.github.monaboiste.fairshare.common.commands.RegisteredCommandDispatch
 import com.github.monaboiste.fairshare.common.events.CommitResult
 import com.github.monaboiste.fairshare.common.events.EventEnvelope
 import com.github.monaboiste.fairshare.common.events.EventStore
+import com.github.monaboiste.fairshare.common.events.PendingEvent
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException
 import com.github.monaboiste.fairshare.common.events.StreamNotFoundException
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
@@ -28,6 +29,7 @@ import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
+import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import java.time.Clock
@@ -45,10 +47,10 @@ class SettlementCommandsSpec extends Specification {
 
     def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
     def projector = new SettlementProjector()
-    SettlementRepository repository = new EventSourcedSettlementRepository(store)
+    SettlementRepository repository = new EventSourcedSettlementRepository(store, CLOCK)
     def commands = RegisteredCommandDispatcher.builder()
         .register(OpenSettlement, new OpenSettlementHandler(repository, CLOCK))
-        .register(RenameSettlement, new RenameSettlementHandler(repository, CLOCK))
+        .register(RenameSettlement, new RenameSettlementHandler(repository))
         .requireHandlersFor(SettlementCommand).build()
     def queries = RegisteredQueryDispatcher.builder()
         .register(GetSettlement, new GetSettlementHandler(projector))
@@ -67,16 +69,16 @@ class SettlementCommandsSpec extends Specification {
 
         then:
         opened.getSuccess().version() == 1
-        opened.getSuccess().events()*.payload() == [new SettlementOpened(
-            opened.getSuccess().events().first().eventId(), "  Holiday  ", EUR, NOW)]
+        opened.getSuccess().events()*.payload() == [new SettlementOpened("  Holiday  ", EUR)]
         opened.getSuccess().events().first().eventId() != null
-        opened.getSuccess().events().first().eventId() == opened.getSuccess().events().first().payload().eventId()
+        opened.getSuccess().events().first().occurredAt() == NOW
         opened.getSuccess().events()*.position() == [1L]
         renamed.getSuccess().version() == 2
         renamed.getSuccess().events()*.sequence() == [2L]
         renamed.getSuccess().events().first().eventId() != null
-        renamed.getSuccess().events().first().eventId() == renamed.getSuccess().events().first().payload().eventId()
+        renamed.getSuccess().events().first().occurredAt() == NOW
         renamed.getSuccess().events().first().eventId() != opened.getSuccess().events().first().eventId()
+        renamed.getSuccess().events().first().payload() == new SettlementRenamed("Mountains")
         renamed.getSuccess().events()*.occurredAt() == [NOW]
         noChange.getSuccess().events().empty
         noChange.getSuccess().version() == 2
@@ -131,7 +133,7 @@ class SettlementCommandsSpec extends Specification {
         }
 
         when:
-        new RenameSettlementHandler(outdated, CLOCK).handle(new RenameSettlement(ID, new SettlementName("Loser")))
+        new RenameSettlementHandler(outdated).handle(new RenameSettlement(ID, new SettlementName("Loser")))
 
         then:
         thrown(VersionConflictException)
@@ -157,7 +159,7 @@ class SettlementCommandsSpec extends Specification {
         given:
         def failingStore = new InMemoryEventStore<SettlementId, SettlementEvent>()
         failingStore.subscribe { throw new IllegalStateException("projection failed") }
-        def failingRepository = new EventSourcedSettlementRepository(failingStore)
+        def failingRepository = new EventSourcedSettlementRepository(failingStore, CLOCK)
         def handler = new OpenSettlementHandler(failingRepository, CLOCK)
 
         when:
@@ -178,9 +180,9 @@ class SettlementCommandsSpec extends Specification {
             boolean exists(SettlementId id) { false }
             List<EventEnvelope<SettlementId, SettlementEvent>> load(SettlementId id) { throw new AssertionError("load") }
             CommitResult<SettlementId, SettlementEvent> append(SettlementId id, long version,
-                    List<SettlementEvent> events) { throw outage }
+                    List<PendingEvent<SettlementEvent>> events) { throw outage }
         }
-        def handler = new OpenSettlementHandler(new EventSourcedSettlementRepository(broken), CLOCK)
+        def handler = new OpenSettlementHandler(new EventSourcedSettlementRepository(broken, CLOCK), CLOCK)
 
         when:
         handler.handle(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))

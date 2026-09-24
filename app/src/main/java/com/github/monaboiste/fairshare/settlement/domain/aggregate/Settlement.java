@@ -7,7 +7,7 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
-import java.time.Instant;
+import java.time.Clock;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
@@ -16,23 +16,24 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private @Nullable String name;
     private @Nullable CurrencyUnit currency;
 
-    private Settlement(SettlementId id) {
+    private Settlement(SettlementId id, Clock clock) {
+        super(clock);
         this.id = id;
     }
 
-    public static AggregateFactory<SettlementId, Settlement> factory() {
-        return Settlement::new;
+    public static AggregateFactory<SettlementId, Settlement> factory(Clock clock) {
+        return id -> new Settlement(id, clock);
     }
 
-    public static Settlement open(SettlementId id, SettlementName name, CurrencyUnit currency, Instant now) {
-        Settlement settlement = new Settlement(id);
-        settlement.register(new SettlementOpened(name.value(), currency, now));
+    public static Settlement open(SettlementId id, SettlementName name, CurrencyUnit currency, Clock clock) {
+        Settlement settlement = new Settlement(id, clock);
+        settlement.register(new SettlementOpened(name.value(), currency));
         return settlement;
     }
 
-    public void rename(SettlementName name, Instant now) {
+    public void rename(SettlementName name) {
         if (!name.value().equals(this.name)) {
-            register(new SettlementRenamed(name.value(), now));
+            register(new SettlementRenamed(name.value()));
         }
     }
 
