@@ -12,19 +12,21 @@ stream version; request ETags belong to a future REST layer.
 Event sourcing lives in `common.eventsourcing`: aggregate replay and commit transitions are package-private and the
 generic repository owns replay and append, not publication. The stream identifier is already the aggregate identifier;
 aggregate type metadata is deferred until different aggregate types share a physical store. The store assigns stream
-sequence and global position atomically to each batch. Events carry their own `EventId`; envelopes expose that identity
-from the event. `EventStreamReader`, `EventStore`, and `AllEventsReader` separate stream reads, appends, and ordered
-global reads. The in-memory store is in `common.events.inmemory`. The in-memory store owns synchronous delivery to
-subscribers inside its append lock, so every append publishes and delivery follows commit order. Listeners run in
-subscription order, stop at the first failure, and must not append during delivery. Append remains the commit point:
-failed publication logs and raises `PostCommitPublicationException` carrying the committed version without rolling back
-the stream. Projection rebuilds from global order, ignores duplicate deliveries, and rejects gaps atomically per batch.
+sequence and global position atomically to each batch. A pending event carries the fact, generated `EventId`, and
+registration time; an envelope adds stream sequence and global position at commit. `EventStreamReader`, `EventStore`,
+and `AllEventsReader` separate stream reads, appends, and ordered global reads. The in-memory store is in
+`common.events.inmemory`. The in-memory store owns synchronous delivery to subscribers inside its append lock, so every
+append publishes and delivery follows commit order. Listeners run in subscription order, stop at the first failure, and
+must not append during delivery. Append remains the commit point: failed publication logs and raises
+`PostCommitPublicationException` carrying the committed version without rolling back the stream. Projection rebuilds
+from global order, ignores duplicate deliveries, and rejects gaps atomically per batch.
 
-Domain events are plain facts with occurrence time and an `EventId` generated when each event is constructed. Canonical
-constructors accept an explicit identifier for replay and deserialization; convenience constructors generate one. Tests
-are deterministic except for generated event identifiers, superseding issue #15's requirement that identifiers be
-supplied to the application for deterministic tests. This also supersedes ADR-0006's decision that the domain never sees
-event identifiers. Each event declares `type()` and `schemaVersion()` directly, without an annotation. A
+Domain event payloads are plain facts: they declare `type()` and `schemaVersion()` but contain neither identifiers nor
+occurrence time. The aggregate holds an injected `Clock` and stamps each registered fact with system time and a
+generated `EventId`. `occurredAt` is the moment of registration, not a business date; business dates remain payload
+fields. Tests are deterministic except for generated event identifiers, superseding issue #15's supplied-identifier
+criterion. This supersedes ADR-0006's decision that the domain never sees a `Clock` and round 5's event-constructor
+identifier rule. Replay passes payloads alone; switch to envelopes if the aggregate ever needs past occurrence times. A
 `SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds the current name and the
 immutable Settlement Currency explicitly. Historical names are not re-validated during replay, so later input-rule
 changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency as `CurrencyUnit`;
@@ -45,5 +47,5 @@ delivery (outbox, catch-up subscriptions by global position, async projections w
 metadata, and bootstrap wiring are deferred.
 
 This supersedes ADR-0005's identifier-only command results, stream enumeration, and repository-owned publication, and
-ADR-0006's aggregate replay/flush visibility, repository-generated event identifiers and envelopes, and repository
-publication. Optimistic concurrency and the domain/application clock separation of those decisions remain in force.
+ADR-0006's aggregate replay/flush visibility, repository-generated event identifiers and envelopes, repository
+publication, and domain clock exclusion. Optimistic concurrency remains in force.
