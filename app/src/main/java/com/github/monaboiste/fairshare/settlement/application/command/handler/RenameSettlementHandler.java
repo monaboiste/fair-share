@@ -8,6 +8,7 @@ import com.github.monaboiste.fairshare.settlement.application.command.RenameSett
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
+import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement;
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 
@@ -30,13 +31,12 @@ public final class RenameSettlementHandler
 
     @Override
     public Result<SettlementRejection, CommitResult<SettlementId, SettlementEvent>> handle(RenameSettlement command) {
-        return repository
-                .findById(command.id())
-                .map(settlement -> {
-                    settlement.rename(command.name());
-                    return Result.<SettlementRejection, CommitResult<SettlementId, SettlementEvent>>success(
-                            repository.save(settlement));
-                })
-                .orElseGet(() -> Result.failure(new SettlementNotFound(command.id())));
+        Settlement settlement = repository.findById(command.id()).orElse(null);
+        if (settlement == null) {
+            return Result.failure(new SettlementNotFound(command.id()));
+        }
+        settlement.rename(command.name());
+        CommitResult<SettlementId, SettlementEvent> result = repository.save(settlement);
+        return Result.success(result);
     }
 }

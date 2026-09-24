@@ -17,7 +17,7 @@ import java.time.Clock;
  *
  * <p>Succeeds with the committed {@code SettlementOpened} envelope and stream version 1. Rejects with
  * {@link IdentifierConflict} when a Settlement with the identifier already exists, whatever its details; opening is not
- * idempotent and is never retried. A concurrent open of the same identifier that commits first makes this one fail with
+ * idempotent and is never retried. Concurrent open of the same identifier that commits first makes this one fail with
  * {@link com.github.monaboiste.fairshare.common.events.VersionConflictException}. Store and post-commit publication
  * failures propagate as exceptions.
  */
@@ -36,7 +36,8 @@ public final class OpenSettlementHandler
         if (repository.findById(command.id()).isPresent()) {
             return Result.failure(new IdentifierConflict(command.id()));
         }
-        return Result.success(
-                repository.save(Settlement.open(command.id(), command.name(), command.currency(), clock)));
+        Settlement settlement = Settlement.open(command.id(), command.name(), command.currency(), clock);
+        CommitResult<SettlementId, SettlementEvent> result = repository.save(settlement);
+        return Result.success(result);
     }
 }
