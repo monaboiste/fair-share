@@ -69,12 +69,12 @@ class SettlementProjectorSpec extends Specification {
     }
 
     private static EventEnvelope<SettlementId, SettlementEvent> opened(SettlementId id) {
-        new EventEnvelope<SettlementId, SettlementEvent>(id, 1, 1, "SettlementOpened", 1,
+        new EventEnvelope<SettlementId, SettlementEvent>(id, 1, 1,
             new SettlementOpened(EventId.random(), "Holiday", EUR, NOW))
     }
 
     private static EventEnvelope<SettlementId, SettlementEvent> renamed(SettlementId id, long sequence, String name) {
         new EventEnvelope<SettlementId, SettlementEvent>(id, sequence, sequence,
-            "SettlementRenamed", 1, new SettlementRenamed(EventId.random(), name, NOW))
+            new SettlementRenamed(EventId.random(), name, NOW))
     }
 }

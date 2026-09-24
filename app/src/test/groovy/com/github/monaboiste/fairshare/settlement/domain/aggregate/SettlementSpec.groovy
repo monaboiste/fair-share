@@ -23,15 +23,18 @@ class SettlementSpec extends Specification {
 
     def "opening and renaming register only changed facts"() {
         given:
-        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, OPENED_ID, NOW)
+        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
 
         when:
-        settlement.rename(new SettlementName("Mountains"), RENAMED_ID, NOW)
-        settlement.rename(new SettlementName("Mountains"), RENAMED_ID, NOW)
+        settlement.rename(new SettlementName("Mountains"), NOW)
+        settlement.rename(new SettlementName("Mountains"), NOW)
 
         then:
-        settlement.pendingEvents() == [new SettlementOpened(OPENED_ID, "Holiday", EUR, NOW),
-            new SettlementRenamed(RENAMED_ID, "Mountains", NOW)]
+        settlement.pendingEvents()*.name() == ["Holiday", "Mountains"]
+        settlement.pendingEvents().first().currency() == EUR
+        settlement.pendingEvents()*.occurredAt() == [NOW, NOW]
+        settlement.pendingEvents().every { it.eventId() != null }
+        settlement.pendingEvents().first().eventId() != settlement.pendingEvents().last().eventId()
         settlement.version() == 2
         settlement.committedVersion() == 0
     }
@@ -41,8 +44,8 @@ class SettlementSpec extends Specification {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store)
-        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, OPENED_ID, NOW)
-        settlement.rename(new SettlementName("Mountains"), RENAMED_ID, NOW)
+        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
+        settlement.rename(new SettlementName("Mountains"), NOW)
         repository.save(settlement)
 
         when:
@@ -54,7 +57,7 @@ class SettlementSpec extends Specification {
         replayed.committedVersion() == 2
 
         when:
-        replayed.rename(new SettlementName("Mountains"), RENAMED_ID, NOW)
+        replayed.rename(new SettlementName("Mountains"), NOW)
 
         then:
         replayed.pendingEvents().empty
@@ -100,7 +103,7 @@ class SettlementSpec extends Specification {
         settlement.version() == 1
 
         when:
-        settlement.rename(new SettlementName("Current"), RENAMED_ID, NOW)
+        settlement.rename(new SettlementName("Current"), NOW)
         def committed = repository.save(settlement)
 
         then:

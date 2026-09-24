@@ -1,6 +1,5 @@
 package com.github.monaboiste.fairshare.settlement.infrastructure
 
-import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
@@ -20,12 +19,12 @@ class EventSourcedSettlementRepositorySpec extends Specification {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store)
-        repository.save(Settlement.open(ID, new SettlementName("Holiday"), EUR, EventId.random(), NOW))
+        repository.save(Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW))
         def stale = repository.findById(ID).orElseThrow()
         def winner = repository.findById(ID).orElseThrow()
-        winner.rename(new SettlementName("Winner"), EventId.random(), NOW)
+        winner.rename(new SettlementName("Winner"), NOW)
         repository.save(winner)
-        stale.rename(new SettlementName("Loser"), EventId.random(), NOW)
+        stale.rename(new SettlementName("Loser"), NOW)
 
         when:
         repository.save(stale)

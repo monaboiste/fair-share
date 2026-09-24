@@ -3,7 +3,6 @@ package com.github.monaboiste.fairshare.settlement.application.command.handler;
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.commands.CommandHandler;
 import com.github.monaboiste.fairshare.common.events.CommitResult;
-import com.github.monaboiste.fairshare.common.events.EventId;
 import com.github.monaboiste.fairshare.common.events.VersionConflictException;
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
@@ -12,7 +11,6 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import java.time.Clock;
-import java.util.function.Supplier;
 
 /**
  * Changes the display name of an existing Settlement; the Settlement Currency never changes.
@@ -26,12 +24,10 @@ import java.util.function.Supplier;
 public final class RenameSettlementHandler
         implements CommandHandler<RenameSettlement, SettlementRejection, CommitResult<SettlementId, SettlementEvent>> {
     private final SettlementRepository repository;
-    private final Supplier<EventId> eventIds;
     private final Clock clock;
 
-    public RenameSettlementHandler(SettlementRepository repository, Supplier<EventId> eventIds, Clock clock) {
+    public RenameSettlementHandler(SettlementRepository repository, Clock clock) {
         this.repository = repository;
-        this.eventIds = eventIds;
         this.clock = clock;
     }
 
@@ -40,7 +36,7 @@ public final class RenameSettlementHandler
         return repository
                 .findById(command.id())
                 .map(settlement -> {
-                    settlement.rename(command.name(), eventIds.get(), clock.instant());
+                    settlement.rename(command.name(), clock.instant());
                     return Result.<SettlementRejection, CommitResult<SettlementId, SettlementEvent>>success(
                             repository.save(settlement));
                 })
