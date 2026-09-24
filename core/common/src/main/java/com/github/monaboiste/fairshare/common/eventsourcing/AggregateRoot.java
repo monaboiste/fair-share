@@ -1,4 +1,4 @@
-package com.github.monaboiste.fairshare.common.domain;
+package com.github.monaboiste.fairshare.common.eventsourcing;
 
 import com.github.monaboiste.fairshare.common.events.Event;
 import java.util.ArrayList;
@@ -19,27 +19,30 @@ public abstract class AggregateRoot<ID, E extends Event> {
         version++;
     }
 
-    protected void replay(List<E> history) {
+    void replay(List<E> history) {
+        if (version != 0 || !pendingEvents.isEmpty()) {
+            throw new IllegalStateException("Replay requires a fresh aggregate");
+        }
         history.forEach(this::apply);
         version += history.size();
+    }
+
+    void markCommitted(long committedVersion) {
+        if (committedVersion != committedVersion() + pendingEvents.size()) {
+            throw new IllegalArgumentException("Committed version does not match pending events");
+        }
+        pendingEvents.clear();
     }
 
     public long version() {
         return version;
     }
 
-    /** @return version of the stored stream, excluding pending events; the expected version for the next append */
     public long committedVersion() {
         return version - pendingEvents.size();
     }
 
     public List<E> pendingEvents() {
         return List.copyOf(pendingEvents);
-    }
-
-    public List<E> flushPendingEvents() {
-        List<E> flushed = List.copyOf(pendingEvents);
-        pendingEvents.clear();
-        return flushed;
     }
 }

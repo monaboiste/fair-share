@@ -1,7 +1,8 @@
 package com.github.monaboiste.fairshare.common.commands;
 
-public interface CommandHandler<C extends Command<R>, R> {
-    Class<C> commandType();
+import com.github.monaboiste.fairshare.common.Result;
 
-    R handle(C command);
+@FunctionalInterface
+public interface CommandHandler<C extends Command<F, S>, F extends CommandFailure, S> {
+    Result<F, S> handle(C command);
 }

@@ -4,8 +4,4 @@ import java.time.Instant;
 
 public interface Event {
     Instant occurredAt();
-
-    String type();
-
-    int schemaVersion();
 }

@@ -1,40 +1,74 @@
 package com.github.monaboiste.fairshare.common.commands
 
+import com.github.monaboiste.fairshare.common.Result
 import spock.lang.Specification
 
 class CommandDispatcherSpec extends Specification {
-    private static record Greeting(String name) implements Command<String> {}
-    private static record CountLetters(String value) implements Command<Integer> {}
+    static record Rejected() implements CommandFailure {}
+    static sealed interface Tasks permits First, Second {}
+    static record First() implements Tasks, Command<Rejected, String> {}
+    static record Second() implements Tasks, Command<Rejected, String> {}
 
-    def "registered handlers return results matching each command"() {
+    def "registered command returns typed result"() {
         given:
-        CommandDispatcher bus = new RegisteredCommandDispatcher([
-            new CommandHandler<Greeting, String>() {
-                Class<Greeting> commandType() { Greeting }
-                String handle(Greeting command) { "Hello ${command.name()}" }
-            },
-            new CommandHandler<CountLetters, Integer>() {
-                Class<CountLetters> commandType() { CountLetters }
-                Integer handle(CountLetters command) { command.value().length() }
-            }
-        ])
+        def dispatcher = RegisteredCommandDispatcher.builder()
+            .register(First, { Result.success("done") }).build()
 
         expect:
-        bus.dispatch(new Greeting("Ada")) == "Hello Ada"
-        bus.dispatch(new CountLetters("Ada")) == 3
+        dispatcher.dispatch(new First()).getSuccess() == "done"
     }
 
-    def "duplicate command registrations fail instead of silently replacing a handler"() {
-        given:
-        def handler = new CommandHandler<Greeting, String>() {
-            Class<Greeting> commandType() { Greeting }
-            String handle(Greeting command) { command.name() }
-        }
-
+    def "registration rejects duplicates and incomplete sealed families"() {
         when:
-        new RegisteredCommandDispatcher([handler, handler])
+        RegisteredCommandDispatcher.builder().register(First, { Result.success("one") })
+            .register(First, { Result.success("two") })
 
         then:
         thrown(IllegalArgumentException)
+
+        when:
+        RegisteredCommandDispatcher.builder().register(First, { Result.success("one") })
+            .requireHandlersFor(Tasks).build()
+
+        then:
+        thrown(IllegalStateException)
+    }
+
+    def "unknown commands fail at dispatch"() {
+        when:
+        RegisteredCommandDispatcher.builder().build().dispatch(new First())
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "interceptors wrap the handler in registration order"() {
+        given:
+        List<String> visited = []
+        def first = new CommandInterceptor() {
+            def <F extends CommandFailure, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
+                visited.add("first before")
+                def result = next.handle(command)
+                visited.add("first after")
+                result
+            }
+        }
+        def second = new CommandInterceptor() {
+            def <F extends CommandFailure, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
+                visited.add("second before")
+                def result = next.handle(command)
+                visited.add("second after")
+                result
+            }
+        }
+        def dispatcher = RegisteredCommandDispatcher.builder()
+            .register(First, { visited.add("handler"); Result.success("done") })
+            .intercept(first).intercept(second).build()
+
+        when:
+        dispatcher.dispatch(new First())
+
+        then:
+        visited == ["first before", "second before", "handler", "second after", "first after"]
     }
 }

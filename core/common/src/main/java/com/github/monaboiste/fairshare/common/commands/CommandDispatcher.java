@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.common.commands;
 
+import com.github.monaboiste.fairshare.common.Result;
+
 public interface CommandDispatcher {
-    <R> R dispatch(Command<R> command);
+    <F extends CommandFailure, S> Result<F, S> dispatch(Command<F, S> command);
 }

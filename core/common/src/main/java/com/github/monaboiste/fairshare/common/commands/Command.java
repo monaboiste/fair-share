@@ -1,3 +1,3 @@
 package com.github.monaboiste.fairshare.common.commands;
 
-public interface Command<R> {}
+public interface Command<F extends CommandFailure, S> {}

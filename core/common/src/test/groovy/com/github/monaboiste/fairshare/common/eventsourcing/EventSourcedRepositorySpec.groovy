@@ -1,0 +1,66 @@
+package com.github.monaboiste.fairshare.common.eventsourcing
+
+import com.github.monaboiste.fairshare.common.events.Event
+import com.github.monaboiste.fairshare.common.events.EventId
+import com.github.monaboiste.fairshare.common.events.EventType
+import com.github.monaboiste.fairshare.common.events.VersionConflictException
+import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
+import java.time.Instant
+import spock.lang.Specification
+
+class EventSourcedRepositorySpec extends Specification {
+    @EventType(name = "Incremented", version = 1)
+    static class Incremented implements Event {
+        Instant occurredAt() { Instant.EPOCH }
+    }
+
+    static class Counter extends AggregateRoot<String, Incremented> {
+        private final String key
+        int count
+        Counter(String key) { this.key = key }
+        String id() { key }
+        void increment() { register(new Incremented()) }
+        protected void apply(Incremented change) { count++ }
+    }
+
+    def "repository persists and replays events without pending changes"() {
+        given:
+        def store = new InMemoryEventStore<String, Incremented>()
+        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, EventId::random, Counter::new)
+        def counter = new Counter("one")
+        counter.increment()
+        counter.increment()
+
+        when:
+        def commit = repository.save(counter)
+        def loaded = repository.findById("one").orElseThrow()
+        def unchanged = repository.save(loaded)
+
+        then:
+        commit.version() == 2
+        commit.events()*.sequence() == [1L, 2L]
+        loaded.count == 2
+        loaded.pendingEvents().empty
+        loaded.committedVersion() == 2
+        unchanged.events().empty
+        unchanged.version() == 2
+        repository.findById("unknown").empty
+    }
+
+    def "failed save retains pending events"() {
+        given:
+        def store = new InMemoryEventStore<String, Incremented>()
+        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, EventId::random, Counter::new)
+        def stale = new Counter("one")
+        stale.increment()
+        repository.save(new Counter("one").tap { increment() })
+
+        when:
+        repository.save(stale)
+
+        then:
+        thrown(VersionConflictException)
+        stale.pendingEvents().size() == 1
+        stale.committedVersion() == 0
+    }
+}

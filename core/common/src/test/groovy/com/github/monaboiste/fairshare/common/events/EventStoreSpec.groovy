@@ -1,131 +1,130 @@
 package com.github.monaboiste.fairshare.common.events
 
+import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import java.time.Instant
 import spock.lang.Specification
 
 class EventStoreSpec extends Specification {
+    private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z")
 
-    private static final String STREAM = "holiday"
-    private static final Instant TIME = Instant.parse("2026-01-01T00:00:00Z")
-
-    def "appending multiple events persists their order and metadata atomically"() {
-        given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
-        def opened = envelope(1, STREAM, new NamedEvent("first"))
-        def renamed = envelope(2, STREAM, new NamedEvent("second"))
-
-        when:
-        def result = store.append(STREAM, 0, [opened, renamed])
-
-        then:
-        result == new AppendResult([opened, renamed], 2)
-        store.load(STREAM) == [opened, renamed]
-        store.load(STREAM)*.type() == ["NamedEvent", "NamedEvent"]
-        store.load(STREAM)*.schemaVersion() == [1, 1]
-        store.load(STREAM)*.occurredAt() == [TIME, TIME]
-
-        when:
-        store.load(STREAM).clear()
-
-        then:
-        thrown(UnsupportedOperationException)
-        store.load(STREAM) == [opened, renamed]
+    @EventType(name = "Changed", version = 2)
+    static class Changed implements Event {
+        Instant time
+        Changed(Instant time) { this.time = time }
+        Instant occurredAt() { time }
     }
 
-    def "stream enumeration provides an immutable snapshot for rebuilding projections"() {
-        given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
-        def opened = envelope(1, STREAM, new NamedEvent("first"))
-        store.append(STREAM, 0, [opened])
-
-        when:
-        def snapshot = store.streams()
-        store.append(STREAM, 1, [envelope(2, STREAM, new NamedEvent("second"))])
-
-        then:
-        snapshot == [(STREAM): [opened]]
-        store.streams().get(STREAM).size() == 2
-
-        when:
-        snapshot.clear()
-
-        then:
-        thrown(UnsupportedOperationException)
+    @EventType(name = " ", version = 0)
+    static class InvalidType implements Event {
+        Instant occurredAt() { NOW }
     }
 
-    def "an invalid batch writes no events"() {
+    static class Unannotated implements Event {
+        Instant time
+        Unannotated(Instant time) { this.time = time }
+        Instant occurredAt() { time }
+    }
+
+    def "append assigns ordered stream sequences and global positions without losing metadata"() {
         given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
-        def opened = envelope(1, STREAM, new NamedEvent("first"))
+        def store = new InMemoryEventStore<String, Event>()
+        def first = new NewEvent<Event>(EventId.random(), new Changed(NOW))
+        def second = new NewEvent<Event>(EventId.random(), new Changed(NOW))
 
         when:
-        store.append(STREAM, 0, [opened, envelope(3, STREAM, new NamedEvent("wrong sequence"))])
+        def committed = store.append("one", 0, [first, second])
+        def other = store.append("two", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+
+        then:
+        committed.version() == 2
+        committed.events()*.sequence() == [1L, 2L]
+        committed.events()*.position() == [1L, 2L]
+        committed.events()*.eventId() == [first.eventId(), second.eventId()]
+        committed.events()*.type() == ["Changed", "Changed"]
+        committed.events()*.schemaVersion() == [2, 2]
+        committed.events()*.occurredAt() == [NOW, NOW]
+        store.load("one") == committed.events()
+        store.readAll(1)*.position() == [2L, 3L]
+        other.events().first().position() == 3
+        store.exists("one")
+        !store.exists("missing")
+    }
+
+    def "unknown streams and invalid batches do not create streams"() {
+        given:
+        def store = new InMemoryEventStore<String, Event>()
+
+        when:
+        store.load("missing")
+
+        then:
+        def missing = thrown(StreamNotFoundException)
+        missing.streamId() == "missing"
+
+        when:
+        store.append("missing", 0, [])
 
         then:
         thrown(IllegalArgumentException)
-        store.load(STREAM).empty
-    }
-
-    def "an invalid batch does not partially append to an existing stream"() {
-        given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
-        def opened = envelope(1, STREAM, new NamedEvent("first"))
-        store.append(STREAM, 0, [opened])
+        !store.exists("missing")
 
         when:
-        store.append(STREAM, 1, [envelope(2, STREAM, new NamedEvent("second")),
-            envelope(4, STREAM, new NamedEvent("wrong sequence"))])
+        store.append("missing", 0, [new NewEvent<Event>(EventId.random(), new Unannotated(NOW))])
 
         then:
         thrown(IllegalArgumentException)
-        store.load(STREAM) == [opened]
-    }
-
-    def "an incorrect stream identifier writes no events"() {
-        given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
+        !store.exists("missing")
 
         when:
-        store.append(STREAM, 0, [envelope(1, "different", new NamedEvent("first"))])
+        store.append("missing", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW)),
+            new NewEvent<Event>(EventId.random(), new InvalidType())])
 
         then:
         thrown(IllegalArgumentException)
-        store.load(STREAM).empty
+        !store.exists("missing")
+        store.readAll(0).empty
     }
 
-    def "expected version conflicts do not change the stream"() {
-        given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
-        def opened = envelope(1, STREAM, new NamedEvent("first"))
-        store.append(STREAM, 0, [opened])
-
+    def "invalid envelope metadata is rejected"() {
         when:
-        store.append(STREAM, 0, [envelope(1, STREAM, new NamedEvent("stale"))])
+        new EventEnvelope<EventId, Event>(EventId.random(), EventId.random(), 0, 1, "Changed", 1, new Changed(NOW))
 
         then:
-        thrown(VersionConflictException)
-        store.load(STREAM) == [opened]
+        thrown(IllegalArgumentException)
+
+        when:
+        new EventEnvelope<EventId, Event>(EventId.random(), EventId.random(), 1, 0, "Changed", 1, new Changed(NOW))
+
+        then:
+        thrown(IllegalArgumentException)
+
+        when:
+        new EventEnvelope<EventId, Event>(EventId.random(), EventId.random(), 1, 1, " ", 1, new Changed(NOW))
+
+        then:
+        thrown(IllegalArgumentException)
+
+        when:
+        new EventEnvelope<EventId, Event>(EventId.random(), EventId.random(), 1, 1, "Changed", 0, new Changed(NOW))
+
+        then:
+        thrown(IllegalArgumentException)
     }
 
-    def "an unknown stream loads as empty history"() {
+    def "conflicting batch leaves existing stream unchanged"() {
         given:
-        EventStore<String, NamedEvent> store = new InMemoryEventStore<>()
+        def store = new InMemoryEventStore<String, Event>()
+        store.append("one", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
 
-        expect:
-        store.load(STREAM).empty
-    }
+        when:
+        store.append("one", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
 
-    private static EventEnvelope<String, NamedEvent> envelope(long sequence, String stream, NamedEvent payload) {
-        new EventEnvelope(new EventId(UUID.fromString("00000000-0000-0000-0000-00000000000${sequence}")),
-                stream, sequence, payload)
-    }
-
-    private static class NamedEvent implements Event {
-        final String name
-
-        NamedEvent(String name) { this.name = name }
-        Instant occurredAt() { TIME }
-        String type() { "NamedEvent" }
-        int schemaVersion() { 1 }
+        then:
+        def conflict = thrown(VersionConflictException)
+        conflict.streamId() == "one"
+        conflict.expectedVersion() == 0
+        conflict.actualVersion() == 1
+        store.load("one").size() == 1
+        store.readAll(0).size() == 1
     }
 }
