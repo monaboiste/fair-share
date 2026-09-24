@@ -6,6 +6,7 @@ import com.github.monaboiste.fairshare.common.events.EventEnvelope;
 import com.github.monaboiste.fairshare.common.events.EventId;
 import com.github.monaboiste.fairshare.common.events.EventStore;
 import com.github.monaboiste.fairshare.common.events.NewEvent;
+import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -40,8 +41,13 @@ public class EventSourcedRepository<ID, E extends Event, A extends AggregateRoot
         List<NewEvent<E>> events = pending.stream()
                 .map(event -> new NewEvent<>(eventIds.get(), event))
                 .toList();
-        CommitResult<ID, E> result = store.append(aggregate.id(), aggregate.committedVersion(), events);
-        aggregate.markCommitted(result.version());
-        return result;
+        try {
+            CommitResult<ID, E> result = store.append(aggregate.id(), aggregate.committedVersion(), events);
+            aggregate.markCommitted(result.version());
+            return result;
+        } catch (PostCommitPublicationException failure) {
+            aggregate.markCommitted(failure.committedVersion());
+            throw failure;
+        }
     }
 }

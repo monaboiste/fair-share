@@ -3,6 +3,8 @@ package com.github.monaboiste.fairshare.common.eventsourcing
 import com.github.monaboiste.fairshare.common.events.Event
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.EventType
+import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException
+import com.github.monaboiste.fairshare.common.events.PublishingEventStore
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import java.time.Instant
@@ -45,6 +47,25 @@ class EventSourcedRepositorySpec extends Specification {
         unchanged.events().empty
         unchanged.version() == 2
         repository.findById("unknown").empty
+    }
+
+    def "publication failure retains the committed state and clears pending events"() {
+        given:
+        def store = new InMemoryEventStore<String, Incremented>()
+        def publishing = PublishingEventStore.of(store, { throw new IllegalStateException("subscriber failed") })
+        def repository = new EventSourcedRepository<String, Incremented, Counter>(publishing, EventId::random, Counter::new)
+        def counter = new Counter("one")
+        counter.increment()
+
+        when:
+        repository.save(counter)
+
+        then:
+        def failure = thrown(PostCommitPublicationException)
+        failure.committedVersion() == 1
+        counter.pendingEvents().empty
+        counter.committedVersion() == 1
+        store.load("one").size() == 1
     }
 
     def "failed save retains pending events"() {

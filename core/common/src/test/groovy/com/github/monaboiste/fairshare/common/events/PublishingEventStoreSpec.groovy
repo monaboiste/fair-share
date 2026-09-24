@@ -14,7 +14,7 @@ class PublishingEventStoreSpec extends Specification {
         given:
         def store = new InMemoryEventStore<String, Event>()
         List<EventEnvelope<String, Event>> received = []
-        def publishing = new PublishingEventStore<String, Event>(store, store, { received.addAll(it) })
+        def publishing = PublishingEventStore.of(store, { received.addAll(it) })
 
         when:
         def commit = publishing.append("one", 0, [new NewEvent<Event>(EventId.random(), new Change())])
@@ -27,7 +27,7 @@ class PublishingEventStoreSpec extends Specification {
     def "listener failure is fatal but does not undo commit"() {
         given:
         def store = new InMemoryEventStore<String, Event>()
-        def publishing = new PublishingEventStore<String, Event>(store, store, { throw new IllegalStateException("offline") })
+        def publishing = PublishingEventStore.of(store, { throw new IllegalStateException("offline") })
 
         when:
         publishing.append("one", 0, [new NewEvent<Event>(EventId.random(), new Change())])
@@ -44,7 +44,7 @@ class PublishingEventStoreSpec extends Specification {
         given:
         def store = new InMemoryEventStore<String, Event>()
         List<EventEnvelope<String, Event>> received = []
-        def publishing = new PublishingEventStore<String, Event>(store, store, { received.addAll(it) })
+        def publishing = PublishingEventStore.of(store, { received.addAll(it) })
 
         when:
         publishing.append("one", 1, [new NewEvent<Event>(EventId.random(), new Change())])

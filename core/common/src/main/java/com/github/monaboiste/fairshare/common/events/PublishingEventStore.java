@@ -14,6 +14,11 @@ public final class PublishingEventStore<S, E extends Event> implements EventStor
         this.listener = listener;
     }
 
+    public static <S, E extends Event, T extends EventStore<S, E> & AllEventsReader<S, E>>
+            PublishingEventStore<S, E> of(T store, CommittedEventsListener<S, E> listener) {
+        return new PublishingEventStore<>(store, store, listener);
+    }
+
     @Override
     public List<EventEnvelope<S, E>> load(S id) {
         return store.load(id);
@@ -30,7 +35,7 @@ public final class PublishingEventStore<S, E extends Event> implements EventStor
     }
 
     @Override
-    public CommitResult<S, E> append(S id, long expectedVersion, List<NewEvent<E>> events) {
+    public synchronized CommitResult<S, E> append(S id, long expectedVersion, List<NewEvent<E>> events) {
         CommitResult<S, E> committed = store.append(id, expectedVersion, events);
         try {
             listener.accept(committed.events());
