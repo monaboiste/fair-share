@@ -1,11 +1,13 @@
-package com.github.monaboiste.fairshare.settlement.application.command;
+package com.github.monaboiste.fairshare.settlement.application.command.handler;
 
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.commands.CommandHandler;
 import com.github.monaboiste.fairshare.common.events.CommitResult;
 import com.github.monaboiste.fairshare.common.events.VersionConflictException;
+import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement;
+import com.github.monaboiste.fairshare.settlement.application.command.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
-import com.github.monaboiste.fairshare.settlement.domain.SettlementRepository;
+import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import java.time.Clock;
 

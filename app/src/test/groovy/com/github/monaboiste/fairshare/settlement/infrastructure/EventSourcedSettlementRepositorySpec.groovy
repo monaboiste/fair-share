@@ -3,9 +3,9 @@ package com.github.monaboiste.fairshare.settlement.infrastructure
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
-import com.github.monaboiste.fairshare.settlement.domain.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
+import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import java.time.Instant
 import javax.money.Monetary

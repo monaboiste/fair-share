@@ -1,8 +1,9 @@
-package com.github.monaboiste.fairshare.settlement.application.query;
+package com.github.monaboiste.fairshare.settlement.application.query.handler;
 
 import com.github.monaboiste.fairshare.common.events.EventEnvelope;
 import com.github.monaboiste.fairshare.common.events.EventStreamReader;
 import com.github.monaboiste.fairshare.common.queries.QueryHandler;
+import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import java.util.List;

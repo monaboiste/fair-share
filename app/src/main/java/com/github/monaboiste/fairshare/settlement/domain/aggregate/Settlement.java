@@ -1,14 +1,16 @@
-package com.github.monaboiste.fairshare.settlement.domain;
+package com.github.monaboiste.fairshare.settlement.domain.aggregate;
 
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
+import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict;
+import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
+import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import java.time.Instant;
 import javax.money.CurrencyUnit;
-import javax.money.Monetary;
 import org.jspecify.annotations.Nullable;
 
 public final class Settlement extends AggregateRoot<SettlementId, SettlementEvent> {
@@ -27,7 +29,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
 
     public static Settlement open(SettlementId id, SettlementName name, CurrencyUnit currency, Instant now) {
         Settlement settlement = new Settlement(id);
-        settlement.register(new SettlementOpened(name.value(), currency.getCurrencyCode(), now));
+        settlement.register(new SettlementOpened(name.value(), currency, now));
         return settlement;
     }
 
@@ -57,7 +59,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 }
                 openingName = opened.name();
                 name = openingName;
-                currency = Monetary.getCurrency(opened.currencyCode());
+                currency = opened.currency();
             }
             case SettlementRenamed renamed -> {
                 if (openingName == null) {

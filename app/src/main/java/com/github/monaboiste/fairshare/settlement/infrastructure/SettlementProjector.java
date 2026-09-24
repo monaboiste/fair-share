@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.money.Monetary;
 
 public final class SettlementProjector
         implements SettlementViews, CommittedEventsListener<SettlementId, SettlementEvent> {
@@ -48,10 +47,7 @@ public final class SettlementProjector
                                 throw new IllegalStateException("Settlement already projected");
                             }
                             yield new SettlementView(
-                                    event.streamId(),
-                                    opened.name(),
-                                    Monetary.getCurrency(opened.currencyCode()),
-                                    event.sequence());
+                                    event.streamId(), opened.name(), opened.currency(), event.sequence());
                         }
                         case SettlementRenamed renamed -> {
                             if (previous == null) {

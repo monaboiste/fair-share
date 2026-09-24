@@ -55,9 +55,9 @@ class SettlementProjectorSpec extends Specification {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(),
-            new SettlementOpened("Holiday", "EUR", NOW))])
+            new SettlementOpened("Holiday", EUR, NOW))])
         store.append(OTHER, 0, [new NewEvent<SettlementEvent>(EventId.random(),
-            new SettlementOpened("Other", "EUR", NOW))])
+            new SettlementOpened("Other", EUR, NOW))])
         store.append(ID, 1, [new NewEvent<SettlementEvent>(EventId.random(),
             new SettlementRenamed("Mountains", NOW))])
         def stale = new SettlementId(UUID.randomUUID())
@@ -74,7 +74,7 @@ class SettlementProjectorSpec extends Specification {
 
     private static EventEnvelope<SettlementId, SettlementEvent> opened(SettlementId id) {
         new EventEnvelope<SettlementId, SettlementEvent>(EventId.random(), id, 1, 1, "SettlementOpened", 1,
-            new SettlementOpened("Holiday", "EUR", NOW))
+            new SettlementOpened("Holiday", EUR, NOW))
     }
 
     private static EventEnvelope<SettlementId, SettlementEvent> renamed(SettlementId id, long sequence, String name) {

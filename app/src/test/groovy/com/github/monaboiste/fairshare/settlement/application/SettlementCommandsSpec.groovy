@@ -12,22 +12,22 @@ import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
-import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
-import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementCommand
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementNotFound
+import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
-import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
-import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistoryHandler
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementQuery
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView
+import com.github.monaboiste.fairshare.settlement.application.query.handler.GetSettlementHandler
+import com.github.monaboiste.fairshare.settlement.application.query.handler.GetSettlementHistoryHandler
 import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict
-import com.github.monaboiste.fairshare.settlement.domain.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
-import com.github.monaboiste.fairshare.settlement.domain.SettlementRepository
+import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement
+import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
@@ -70,7 +70,7 @@ class SettlementCommandsSpec extends Specification {
 
         then:
         opened.getSuccess().version() == 1
-        opened.getSuccess().events()*.payload() == [new SettlementOpened("  Holiday  ", "EUR", NOW)]
+        opened.getSuccess().events()*.payload() == [new SettlementOpened("  Holiday  ", EUR, NOW)]
         opened.getSuccess().events()*.eventId() == [EVENT_ID]
         opened.getSuccess().events()*.position() == [1L]
         renamed.getSuccess().version() == 2

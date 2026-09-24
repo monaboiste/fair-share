@@ -1,8 +1,11 @@
-package com.github.monaboiste.fairshare.settlement.domain
+package com.github.monaboiste.fairshare.settlement.domain.aggregate
 
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.NewEvent
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
+import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict
+import com.github.monaboiste.fairshare.settlement.domain.SettlementId
+import com.github.monaboiste.fairshare.settlement.domain.SettlementName
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
@@ -27,7 +30,7 @@ class SettlementSpec extends Specification {
         settlement.rename(new SettlementName("Mountains"), NOW)
 
         then:
-        settlement.pendingEvents() == [new SettlementOpened("Holiday", "EUR", NOW),
+        settlement.pendingEvents() == [new SettlementOpened("Holiday", EUR, NOW),
             new SettlementRenamed("Mountains", NOW)]
         settlement.version() == 2
         settlement.committedVersion() == 0
@@ -97,8 +100,8 @@ class SettlementSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, EventId::random)
         store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(),
-            new SettlementOpened("Holiday", "EUR", NOW)),
-            new NewEvent<SettlementEvent>(EventId.random(), new SettlementOpened("Again", "USD", NOW))])
+            new SettlementOpened("Holiday", EUR, NOW)),
+            new NewEvent<SettlementEvent>(EventId.random(), new SettlementOpened("Again", USD, NOW))])
 
         when:
         repository.findById(ID)
@@ -111,7 +114,7 @@ class SettlementSpec extends Specification {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, EventId::random)
-        store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(), new SettlementOpened("", "EUR", NOW))])
+        store.append(ID, 0, [new NewEvent<SettlementEvent>(EventId.random(), new SettlementOpened("", EUR, NOW))])
 
         when:
         def settlement = repository.findById(ID).orElseThrow()

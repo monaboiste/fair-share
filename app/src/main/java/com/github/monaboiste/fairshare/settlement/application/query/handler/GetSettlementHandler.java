@@ -1,6 +1,9 @@
-package com.github.monaboiste.fairshare.settlement.application.query;
+package com.github.monaboiste.fairshare.settlement.application.query.handler;
 
 import com.github.monaboiste.fairshare.common.queries.QueryHandler;
+import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement;
+import com.github.monaboiste.fairshare.settlement.application.query.SettlementView;
+import com.github.monaboiste.fairshare.settlement.application.query.SettlementViews;
 import java.util.Optional;
 
 public final class GetSettlementHandler implements QueryHandler<GetSettlement, Optional<SettlementView>> {

@@ -22,17 +22,21 @@ rejects gaps atomically per batch.
 Domain events are plain facts with occurrence time; `@EventType` supplies validated type and schema version when the
 store builds envelopes. A `SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds
 opening name, current name, and immutable Settlement Currency explicitly. Historical names are not re-validated during
-replay, so later input-rule changes do not invalidate stored streams. `Settlement.factory()` is public only because the
-infrastructure resides in another package; the apply guards keep a blank aggregate unusable, an accepted trade-off.
+replay, so later input-rule changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency
+as `CurrencyUnit`; converting it to a currency code is a future serializer concern. `Settlement` and
+`SettlementRepository` live in the non-exported `settlement.domain.aggregate` package, so `Settlement.factory()` and
+pending events are public only inside the module; the apply guards keep a blank aggregate unusable.
 Business rejections such as `IdentifierConflict` use `Result`; malformed input throws.
 `Command<F extends CommandFailure, S>` keeps each command's failure type while a registered dispatcher provides
 exact-class routing, complete sealed-family registration, and ordered interceptors. Queries have a separate registered
 dispatcher. Shared handler registration stays internal.
 
 The common module exports events, in-memory events, event sourcing, commands, and queries, but not the handler registry.
-The app exports Settlement commands, queries, domain and domain events, alongside netting and valuation, but does not
-export its infrastructure. Durable-store delivery (outbox, catch-up subscriptions by global position, async projections
-with checkpoints), upcasters, correlation metadata, and bootstrap wiring are deferred.
+The app exports Settlement commands, queries, the domain published language (identifier, name, rejections) and domain
+events, alongside netting and valuation, but neither the aggregate package, the command and query handler packages, nor
+infrastructure; callers use the dispatchers, and a future bootstrap module gets qualified exports. Durable-store
+delivery (outbox, catch-up subscriptions by global position, async projections with checkpoints), upcasters, correlation
+metadata, and bootstrap wiring are deferred.
 
 This supersedes ADR-0005's identifier-only command results, stream enumeration, and repository-owned publication, and
 ADR-0006's aggregate replay/flush visibility, envelope creation by the repository, and repository publication. The
