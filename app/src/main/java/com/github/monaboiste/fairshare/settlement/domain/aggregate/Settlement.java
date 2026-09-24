@@ -1,9 +1,7 @@
 package com.github.monaboiste.fairshare.settlement.domain.aggregate;
 
-import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
-import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
@@ -15,7 +13,6 @@ import org.jspecify.annotations.Nullable;
 
 public final class Settlement extends AggregateRoot<SettlementId, SettlementEvent> {
     private final SettlementId id;
-    private @Nullable String openingName;
     private @Nullable String name;
     private @Nullable CurrencyUnit currency;
 
@@ -33,12 +30,6 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return settlement;
     }
 
-    public Result<IdentifierConflict, Settlement> acceptOpeningRetry(SettlementName name, CurrencyUnit currency) {
-        return name.value().equals(openingName) && currency.equals(this.currency)
-                ? Result.success(this)
-                : Result.failure(new IdentifierConflict(id));
-    }
-
     public void rename(SettlementName name, Instant now) {
         if (!name.value().equals(this.name)) {
             register(new SettlementRenamed(name.value(), now));
@@ -54,15 +45,14 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     protected void apply(SettlementEvent event) {
         switch (event) {
             case SettlementOpened opened -> {
-                if (openingName != null) {
+                if (currency != null) {
                     throw new IllegalStateException("Settlement already opened");
                 }
-                openingName = opened.name();
-                name = openingName;
+                name = opened.name();
                 currency = opened.currency();
             }
             case SettlementRenamed renamed -> {
-                if (openingName == null) {
+                if (currency == null) {
                     throw new IllegalStateException("Settlement opening missing");
                 }
                 name = renamed.name();

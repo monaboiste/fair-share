@@ -3,7 +3,6 @@ package com.github.monaboiste.fairshare.settlement.domain.aggregate
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.NewEvent
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
-import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
@@ -37,27 +36,6 @@ class SettlementSpec extends Specification {
     }
 
     @Unroll
-    def "opening retry with #openingDetails is #outcome after renaming"() {
-        given:
-        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
-        settlement.rename(new SettlementName("Mountains"), NOW)
-
-        when:
-        def retry = settlement.acceptOpeningRetry(new SettlementName(name), currency)
-
-        then:
-        retry.success() == accepted
-        retry.success() ? retry.getSuccess().is(settlement) : retry.getFailure() == new IdentifierConflict(ID)
-
-        where:
-        openingDetails      | name        | currency || accepted
-        "the original name" | "Holiday"   | EUR      || true
-        "the current name"  | "Mountains" | EUR      || false
-        "another currency"  | "Holiday"   | USD      || false
-
-        outcome = accepted ? "accepted" : "rejected"
-    }
-
     def "repository recreates Settlement with committed history"() {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
@@ -73,7 +51,6 @@ class SettlementSpec extends Specification {
         replayed.pendingEvents().empty
         replayed.version() == 2
         replayed.committedVersion() == 2
-        replayed.acceptOpeningRetry(new SettlementName("Holiday"), EUR).success()
 
         when:
         replayed.rename(new SettlementName("Mountains"), NOW)
@@ -121,7 +98,6 @@ class SettlementSpec extends Specification {
 
         then:
         settlement.version() == 1
-        settlement.acceptOpeningRetry(new SettlementName("Holiday"), EUR).getFailure() == new IdentifierConflict(ID)
 
         when:
         settlement.rename(new SettlementName("Current"), NOW)

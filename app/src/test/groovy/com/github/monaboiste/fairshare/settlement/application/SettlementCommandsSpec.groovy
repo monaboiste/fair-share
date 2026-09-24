@@ -14,7 +14,6 @@ import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementCommand
-import com.github.monaboiste.fairshare.settlement.application.command.SettlementNotFound
 import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
@@ -26,6 +25,7 @@ import com.github.monaboiste.fairshare.settlement.application.query.handler.GetS
 import com.github.monaboiste.fairshare.settlement.domain.IdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
+import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
@@ -50,7 +50,7 @@ class SettlementCommandsSpec extends Specification {
     def projector = new SettlementProjector()
     SettlementRepository repository = new EventSourcedSettlementRepository(store, { EVENT_ID })
     def commands = RegisteredCommandDispatcher.builder()
-        .register(OpenSettlement, new OpenSettlementHandler(repository, store, CLOCK))
+        .register(OpenSettlement, new OpenSettlementHandler(repository, CLOCK))
         .register(RenameSettlement, new RenameSettlementHandler(repository, CLOCK))
         .requireHandlersFor(SettlementCommand).build()
     def queries = RegisteredQueryDispatcher.builder()
@@ -82,26 +82,23 @@ class SettlementCommandsSpec extends Specification {
         queries.dispatch(new GetSettlementHistory(ID))*.sequence() == [1L, 2L]
     }
 
-    def "reopening with #reopening is #outcome"() {
+    def "opening an existing identifier with #openingDetails is an identifier conflict"() {
         given:
-        def opened = commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
+        commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
         commands.dispatch(new RenameSettlement(ID, new SettlementName("Mountains")))
 
         when:
         def result = commands.dispatch(new OpenSettlement(ID, new SettlementName(name), currency))
 
         then:
-        result.success() == accepted
-        result.success() ? result.getSuccess() == opened.getSuccess() : result.getFailure() == new IdentifierConflict(ID)
+        result.getFailure() == new IdentifierConflict(ID)
         queries.dispatch(new GetSettlementHistory(ID)).size() == 2
 
         where:
-        reopening              | name        | currency || accepted
-        "the opening details"  | "Holiday"   | EUR      || true
-        "the current name"     | "Mountains" | EUR      || false
-        "another currency"     | "Holiday"   | USD      || false
-
-        outcome = accepted ? "idempotent" : "an identifier conflict"
+        openingDetails         | name        | currency
+        "the opening details"  | "Holiday"   | EUR
+        "the current name"     | "Mountains" | EUR
+        "another currency"     | "Holiday"   | USD
     }
 
     def "unknown rename returns a rejection while unknown history throws"() {
@@ -152,31 +149,18 @@ class SettlementCommandsSpec extends Specification {
         queries.dispatch(new GetSettlement(ID)).orElseThrow().name() == "Winner"
     }
 
-    def "an identical concurrent open reloads and returns the original envelope"() {
-        given:
-        def opened = commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
-        SettlementRepository racing = repositoryMissingFirstLookup()
-
-        when:
-        def retry = new OpenSettlementHandler(racing, store, CLOCK)
-            .handle(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
-
-        then:
-        retry.getSuccess() == opened.getSuccess()
-        store.load(ID).size() == 1
-    }
-
-    def "a conflicting concurrent open reloads and returns identifier conflict"() {
+    def "a concurrent open that commits first fails the later open with a version conflict"() {
         given:
         commands.dispatch(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
         SettlementRepository racing = repositoryMissingFirstLookup()
 
         when:
-        def retry = new OpenSettlementHandler(racing, store, CLOCK)
-            .handle(new OpenSettlement(ID, new SettlementName("Different"), EUR))
+        new OpenSettlementHandler(racing, CLOCK).handle(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
 
         then:
-        retry.getFailure() == new IdentifierConflict(ID)
+        def failure = thrown(VersionConflictException)
+        failure.expectedVersion() == 0
+        failure.actualVersion() == 1
         store.load(ID).size() == 1
     }
 
@@ -185,7 +169,7 @@ class SettlementCommandsSpec extends Specification {
         def failingStore = new InMemoryEventStore<SettlementId, SettlementEvent>()
         failingStore.subscribe { throw new IllegalStateException("projection failed") }
         def failingRepository = new EventSourcedSettlementRepository(failingStore, { EVENT_ID })
-        def handler = new OpenSettlementHandler(failingRepository, failingStore, CLOCK)
+        def handler = new OpenSettlementHandler(failingRepository, CLOCK)
 
         when:
         handler.handle(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
@@ -207,7 +191,7 @@ class SettlementCommandsSpec extends Specification {
             CommitResult<SettlementId, SettlementEvent> append(SettlementId id, long version,
                     List<NewEvent<SettlementEvent>> events) { throw outage }
         }
-        def handler = new OpenSettlementHandler(new EventSourcedSettlementRepository(broken, { EVENT_ID }), broken, CLOCK)
+        def handler = new OpenSettlementHandler(new EventSourcedSettlementRepository(broken, { EVENT_ID }), CLOCK)
 
         when:
         handler.handle(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))

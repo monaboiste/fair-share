@@ -1,12 +1,13 @@
 # Expose committed events and separate event infrastructure
 
 A Settlement command returns a typed `Result` containing `CommitResult` (persisted envelopes and stream version), rather
-than only the Settlement identifier. An unchanged rename succeeds with no envelopes and the current version. An
-identical opening retry returns the original opening envelope and version 1, even after subsequent renames. Unknown
-history raises `StreamNotFoundException`; unknown rename is a typed `SettlementNotFound`. Version conflicts and store
-failures remain technical exceptions. On an opening version conflict, reload once and re-evaluate the original opening
-details; do not retry the write. A rename may supply an expected version, checked before deciding even when the name is
-unchanged.
+than only the Settlement identifier. An unchanged rename succeeds with no envelopes and the current version. Opening an
+identifier that already has a Settlement is an `IdentifierConflict` regardless of its details: idempotent open retries
+(issue #15) are deferred together with request idempotency, and caller permissions to use an identifier are out of
+scope. Unknown history raises `StreamNotFoundException`; unknown rename is a typed `SettlementNotFound`. Version
+conflicts and store failures remain technical exceptions. A concurrent open that commits first makes the later one throw
+`VersionConflictException`; nothing is retried. A rename may supply an expected version, checked before deciding even
+when the name is unchanged.
 
 Event sourcing lives in `common.eventsourcing`: aggregate replay and commit transitions are package-private and the
 generic repository owns replay and append, not publication. The stream identifier is already the aggregate identifier;
@@ -21,13 +22,14 @@ rejects gaps atomically per batch.
 
 Domain events are plain facts with occurrence time; `@EventType` supplies validated type and schema version when the
 store builds envelopes. A `SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds
-opening name, current name, and immutable Settlement Currency explicitly. Historical names are not re-validated during
-replay, so later input-rule changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency
-as `CurrencyUnit`; converting it to a currency code is a future serializer concern. `Settlement` and
-`SettlementRepository` live in the non-exported `settlement.domain.aggregate` package, so `Settlement.factory()` and
-pending events are public only inside the module; the apply guards keep a blank aggregate unusable.
-Business rejections such as `IdentifierConflict` use `Result`; malformed input throws.
-`Command<F extends CommandFailure, S>` keeps each command's failure type while a registered dispatcher provides
+the current name and the immutable Settlement Currency explicitly. Historical names are not re-validated during replay,
+so later input-rule changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency as
+`CurrencyUnit`; converting it to a currency code is a future serializer concern. `Settlement` and `SettlementRepository`
+live in the non-exported `settlement.domain.aggregate` package, so `Settlement.factory()` and pending events are public
+only inside the module; the apply guards keep a blank aggregate unusable. Business rejections use `Result` with the
+sealed `SettlementRejection` (`IdentifierConflict`, `SettlementNotFound`) shared by every Settlement command, so adding
+a rejection keeps command signatures stable and exhaustive switches flag unhandled cases; malformed input throws.
+`Command<F extends CommandFailure, S>` lets each aggregate fix one failure family while a registered dispatcher provides
 exact-class routing, complete sealed-family registration, and ordered interceptors. Queries have a separate registered
 dispatcher. Shared handler registration stays internal.
 
