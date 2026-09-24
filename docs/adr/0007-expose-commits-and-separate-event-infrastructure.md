@@ -20,9 +20,11 @@ subscription order, stop at the first failure, and must not append during delive
 failed publication logs and raises `PostCommitPublicationException` carrying the committed version without rolling back
 the stream. Projection rebuilds from global order, ignores duplicate deliveries, and rejects gaps atomically per batch.
 
-Domain events are plain facts with occurrence time and an `EventId` generated at the application boundary by an injected
-supplier and passed to the domain as a value like `Instant`. This supersedes ADR-0006's decision that the domain never
-sees event identifiers. `@EventType` supplies validated type and schema version when the store builds envelopes. A
+Domain events are plain facts with occurrence time and an `EventId` generated when each event is constructed. Canonical
+constructors accept an explicit identifier for replay and deserialization; convenience constructors generate one. Tests
+are deterministic except for generated event identifiers, superseding issue #15's requirement that identifiers be
+supplied to the application for deterministic tests. This also supersedes ADR-0006's decision that the domain never sees
+event identifiers. Each event declares `type()` and `schemaVersion()` directly, without an annotation. A
 `SettlementName` rejects blank input but preserves all non-blank spacing. The aggregate holds the current name and the
 immutable Settlement Currency explicitly. Historical names are not re-validated during replay, so later input-rule
 changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency as `CurrencyUnit`;
