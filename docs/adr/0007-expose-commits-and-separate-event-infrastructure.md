@@ -4,10 +4,11 @@ A Settlement command returns a typed `Result` containing `CommitResult` (persist
 than only the Settlement identifier. An unchanged rename succeeds with no envelopes and the current version. Opening an
 identifier that already has a Settlement is an `IdentifierConflict` regardless of its details: idempotent open retries
 (issue #15) are deferred together with request idempotency, and caller permissions to use an identifier are out of
-scope. Unknown history raises `StreamNotFoundException`; unknown rename is a typed `SettlementNotFound`. Version
-conflicts and store failures remain technical exceptions. A concurrent open that commits first makes the later one throw
-`VersionConflictException`; nothing is retried. Optimistic locking is the repository's append against the loaded
-stream version; request ETags belong to a future REST layer.
+scope. An unknown Settlement returns typed `SettlementNotFound` from rename, view, and history queries; the view query
+reads the projection, so with asynchronous delivery not found may also mean not projected yet. An unknown stream still
+raises `StreamNotFoundException` at the store level. Version conflicts and store failures remain technical exceptions. A
+concurrent open that commits first makes the later one throw `VersionConflictException`; nothing is retried. Optimistic
+locking is the repository's append against the loaded stream version; request ETags belong to a future REST layer.
 
 Event sourcing lives in `common.eventsourcing`: aggregate replay and commit transitions are package-private and the
 generic repository owns replay and append, not publication. The stream identifier is already the aggregate identifier;
@@ -33,11 +34,11 @@ streams. `SettlementOpened` carries the Settlement Currency as `CurrencyUnit`; c
 future serializer concern. `Settlement` and `SettlementRepository` live in the non-exported
 `settlement.domain.aggregate` package, so `Settlement.factory(Clock)` and pending events are public only inside the
 module; the apply guards keep a blank aggregate unusable. Business rejections use `Result` with the sealed
-`SettlementRejection` (`IdentifierConflict`, `SettlementNotFound`) shared by every Settlement command, so adding a
-rejection keeps command signatures stable and exhaustive switches flag unhandled cases; malformed input throws.
-`Command<F extends CommandFailure, S>` lets each aggregate fix one failure family while a registered dispatcher provides
-exact-class routing, complete sealed-family registration, and ordered interceptors. Queries have a separate registered
-dispatcher. Shared handler registration stays internal.
+`SettlementRejection` (`IdentifierConflict`, `SettlementNotFound`) shared by every Settlement command and query, so
+adding a rejection keeps signatures stable and exhaustive switches flag unhandled cases; malformed input throws.
+Commands and queries both return `Result<F, S>`. `Command<F, S>` and `Query<F, S>` have unbounded failure types; the
+`CommandFailure` marker is removed. Registered dispatchers provide exact-class routing and complete sealed-family
+registration; command interceptors are ordered. Shared handler registration stays internal.
 
 The common module exports events, in-memory events, event sourcing, commands, and queries, but not the handler registry.
 The app exports Settlement commands, queries, the domain published language (identifier, name, rejections) and domain
