@@ -25,13 +25,15 @@ public final class SettlementProjector
 
     @Override
     public synchronized void accept(List<EventEnvelope<SettlementId, SettlementEvent>> events) {
-        views = project(new HashMap<>(views), events);
+        project(views, events);
     }
 
     private Map<SettlementId, SettlementView> project(
-            Map<SettlementId, SettlementView> updated, List<EventEnvelope<SettlementId, SettlementEvent>> events) {
+            Map<SettlementId, SettlementView> current, List<EventEnvelope<SettlementId, SettlementEvent>> events) {
+        Map<SettlementId, SettlementView> staged = new HashMap<>();
         for (EventEnvelope<SettlementId, SettlementEvent> event : events) {
-            SettlementView previous = updated.get(event.streamId());
+            SettlementView previous =
+                    staged.containsKey(event.streamId()) ? staged.get(event.streamId()) : current.get(event.streamId());
             long version = previous == null ? 0 : previous.version();
             if (event.sequence() <= version) {
                 continue;
@@ -59,9 +61,10 @@ public final class SettlementProjector
                                     event.streamId(), renamed.name(), previous.currency(), event.sequence());
                         }
                     };
-            updated.put(event.streamId(), next);
+            staged.put(event.streamId(), next);
         }
-        return updated;
+        current.putAll(staged);
+        return current;
     }
 
     @Override

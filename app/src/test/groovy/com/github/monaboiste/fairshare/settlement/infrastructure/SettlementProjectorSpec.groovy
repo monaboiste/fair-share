@@ -37,6 +37,20 @@ class SettlementProjectorSpec extends Specification {
         projector.findById(ID).empty
     }
 
+    def "batch stages touched streams while preserving untouched views"() {
+        given:
+        def untouched = new SettlementId(UUID.randomUUID())
+        projector.accept([opened(untouched), opened(ID)])
+
+        when:
+        projector.accept([renamed(ID, 2, "Mountains"), opened(OTHER), renamed(OTHER, 2, "Forest")])
+
+        then:
+        projector.findById(untouched) == Optional.of(new SettlementView(untouched, "Holiday", EUR, 1))
+        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2))
+        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Forest", EUR, 2))
+    }
+
     def "rebuild replaces existing views with globally ordered history"() {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()

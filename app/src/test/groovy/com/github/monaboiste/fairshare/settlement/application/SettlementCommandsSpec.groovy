@@ -7,7 +7,6 @@ import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.EventStore
 import com.github.monaboiste.fairshare.common.events.NewEvent
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException
-import com.github.monaboiste.fairshare.common.events.PublishingEventStore
 import com.github.monaboiste.fairshare.common.events.StreamNotFoundException
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
@@ -49,8 +48,7 @@ class SettlementCommandsSpec extends Specification {
 
     def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
     def projector = new SettlementProjector()
-    EventStore<SettlementId, SettlementEvent> publishing = PublishingEventStore.of(store, projector)
-    SettlementRepository repository = new EventSourcedSettlementRepository(publishing, { EVENT_ID })
+    SettlementRepository repository = new EventSourcedSettlementRepository(store, { EVENT_ID })
     def commands = RegisteredCommandDispatcher.builder()
         .register(OpenSettlement, new OpenSettlementHandler(repository, store, CLOCK))
         .register(RenameSettlement, new RenameSettlementHandler(repository, CLOCK))
@@ -59,6 +57,10 @@ class SettlementCommandsSpec extends Specification {
         .register(GetSettlement, new GetSettlementHandler(projector))
         .register(GetSettlementHistory, new GetSettlementHistoryHandler(store))
         .requireHandlersFor(SettlementQuery).build()
+
+    def setup() {
+        store.subscribe(projector)
+    }
 
     def "open and rename return deterministic committed envelopes and an inspectable view"() {
         when:
@@ -180,10 +182,10 @@ class SettlementCommandsSpec extends Specification {
 
     def "publication failure leaves the command committed with a fatal versioned exception"() {
         given:
-        def failingStore = PublishingEventStore.of(store,
-            { throw new IllegalStateException("projection failed") })
+        def failingStore = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        failingStore.subscribe { throw new IllegalStateException("projection failed") }
         def failingRepository = new EventSourcedSettlementRepository(failingStore, { EVENT_ID })
-        def handler = new OpenSettlementHandler(failingRepository, store, CLOCK)
+        def handler = new OpenSettlementHandler(failingRepository, failingStore, CLOCK)
 
         when:
         handler.handle(new OpenSettlement(ID, new SettlementName("Holiday"), EUR))
@@ -192,7 +194,7 @@ class SettlementCommandsSpec extends Specification {
         def failure = thrown(PostCommitPublicationException)
         failure.streamId() == ID
         failure.committedVersion() == 1
-        store.load(ID).size() == 1
+        failingStore.load(ID).size() == 1
         projector.findById(ID).empty
     }
 
