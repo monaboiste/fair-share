@@ -1,3 +1,5 @@
 package com.github.monaboiste.fairshare.settlement.application.query;
 
-public sealed interface SettlementQuery<R> permits GetSettlement, GetSettlementHistory {}
+import com.github.monaboiste.fairshare.common.queries.Query;
+
+public sealed interface SettlementQuery<R> extends Query<R> permits GetSettlement, GetSettlementHistory {}

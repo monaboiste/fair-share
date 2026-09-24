@@ -14,6 +14,5 @@ module com.github.monaboiste.fairshare.app {
     exports com.github.monaboiste.fairshare.settlement.application.query;
     exports com.github.monaboiste.fairshare.settlement.domain;
     exports com.github.monaboiste.fairshare.settlement.domain.event;
-    exports com.github.monaboiste.fairshare.settlement.infrastructure;
     exports com.github.monaboiste.fairshare.valuation;
 }

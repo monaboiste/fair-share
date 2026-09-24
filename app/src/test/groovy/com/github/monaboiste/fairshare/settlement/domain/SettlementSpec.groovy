@@ -1,80 +1,101 @@
 package com.github.monaboiste.fairshare.settlement.domain
 
+import com.github.monaboiste.fairshare.common.events.EventId
+import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
+import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
+import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import java.time.Instant
 import javax.money.Monetary
 import spock.lang.Specification
 
 class SettlementSpec extends Specification {
     private static final SettlementId ID = new SettlementId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
-    private static final Instant OPENED_AT = Instant.parse("2026-01-01T12:00:00Z")
-    private static final Instant RENAMED_AT = Instant.parse("2026-01-02T12:00:00Z")
+    private static final Instant NOW = Instant.parse("2026-01-01T12:00:00Z")
     private static final EUR = Monetary.getCurrency("EUR")
     private static final USD = Monetary.getCurrency("USD")
 
-    def "opening a Settlement records when and how it was opened"() {
+    def "opening and renaming register only changed facts"() {
+        given:
+        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
+
         when:
-        def settlement = Settlement.open(ID, "Holiday", EUR, OPENED_AT)
+        settlement.rename(new SettlementName("Mountains"), NOW)
+        settlement.rename(new SettlementName("Mountains"), NOW)
 
         then:
-        settlement.id() == ID
-        settlement.pendingEvents() == [new SettlementOpened("Holiday", EUR, OPENED_AT)]
-        settlement.version() == 1
+        settlement.pendingEvents() == [new SettlementOpened("Holiday", "EUR", NOW),
+            new SettlementRenamed("Mountains", NOW)]
+        settlement.version() == 2
         settlement.committedVersion() == 0
     }
 
-    def "renaming records the new name"() {
+    def "opening retry accepts only the original name and immutable currency after renaming"() {
         given:
-        def settlement = Settlement.open(ID, "Holiday", EUR, OPENED_AT)
+        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
+        settlement.rename(new SettlementName("Mountains"), NOW)
 
         when:
-        settlement.rename("Mountains", RENAMED_AT)
+        def retry = settlement.acceptOpeningRetry(new SettlementName(name), currency)
 
         then:
-        settlement.pendingEvents().last() == new SettlementRenamed("Mountains", RENAMED_AT)
-        settlement.version() == 2
-    }
-
-    def "renaming to the current name records nothing"() {
-        given:
-        def settlement = recreated("Holiday", "Mountains")
-
-        when:
-        settlement.rename("Mountains", RENAMED_AT)
-
-        then:
-        settlement.pendingEvents().empty
-        settlement.version() == 2
-    }
-
-    def "a recreated Settlement has its history committed"() {
-        when:
-        def settlement = recreated("Holiday", "Mountains")
-
-        then:
-        settlement.pendingEvents().empty
-        settlement.version() == 2
-        settlement.committedVersion() == 2
-    }
-
-    def "a Settlement is opened with its original name and currency only"() {
-        given:
-        def settlement = recreated("Holiday", "Mountains")
-
-        expect:
-        settlement.isOpenedWith(name, currency) == openedWith
+        retry.success() == accepted
+        retry.success() ? retry.getSuccess().is(settlement) : retry.getFailure() == new IdentifierConflict(ID)
 
         where:
-        name        | currency || openedWith
+        name        | currency || accepted
         "Holiday"   | EUR      || true
         "Mountains" | EUR      || false
         "Holiday"   | USD      || false
     }
 
-    private static Settlement recreated(String openingName, String currentName) {
-        Settlement.recreate(ID, [
-            new SettlementOpened(openingName, EUR, OPENED_AT),
-            new SettlementRenamed(currentName, RENAMED_AT)])
+    def "repository recreates Settlement with committed history"() {
+        given:
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, EventId::random)
+        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, NOW)
+        settlement.rename(new SettlementName("Mountains"), NOW)
+        repository.save(settlement)
+
+        when:
+        def replayed = repository.findById(ID).orElseThrow()
+
+        then:
+        replayed.pendingEvents().empty
+        replayed.version() == 2
+        replayed.committedVersion() == 2
+        replayed.acceptOpeningRetry(new SettlementName("Holiday"), EUR).success()
+
+        when:
+        replayed.rename(new SettlementName("Mountains"), NOW)
+
+        then:
+        replayed.pendingEvents().empty
+    }
+
+    def "a non-opening first event and a second opening are rejected"() {
+        given:
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, EventId::random)
+        store.append(ID, 0, [new com.github.monaboiste.fairshare.common.events.NewEvent<SettlementEvent>(
+            EventId.random(), new SettlementRenamed("Wrong", NOW))])
+
+        when:
+        repository.findById(ID)
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        def otherId = new SettlementId(UUID.randomUUID())
+        store.append(otherId, 0, [new com.github.monaboiste.fairshare.common.events.NewEvent<SettlementEvent>(
+            EventId.random(), new SettlementOpened("Holiday", "EUR", NOW)),
+            new com.github.monaboiste.fairshare.common.events.NewEvent<SettlementEvent>(
+                EventId.random(), new SettlementOpened("Again", "USD", NOW))])
+        repository.findById(otherId)
+
+        then:
+        thrown(IllegalStateException)
     }
 }
