@@ -2,6 +2,8 @@ package com.github.monaboiste.fairshare.common.events
 
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import java.time.Instant
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import spock.lang.Specification
 
 class EventStoreSpec extends Specification {
@@ -111,6 +113,97 @@ class EventStoreSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
+    def "every append delivers committed envelopes to subscribers in subscription order"() {
+        given:
+        def store = new InMemoryEventStore<String, Event>()
+        List<String> deliveries = []
+        store.subscribe { events -> deliveries.add("first ${events.first().position()}") }
+        store.subscribe { events -> deliveries.add("second ${events.first().position()}") }
+
+        when:
+        def first = store.append("one", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+        def second = store.append("two", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+
+        then:
+        deliveries == ["first 1", "second 1", "first 2", "second 2"]
+        store.readAll(0) == first.events() + second.events()
+    }
+
+    def "a failing subscriber stops delivery but keeps the stream committed"() {
+        given:
+        def store = new InMemoryEventStore<String, Event>()
+        List<EventEnvelope<String, Event>> delivered = []
+        def outage = new IllegalStateException("projection failed")
+        store.subscribe { events -> delivered.addAll(events); throw outage }
+        store.subscribe { events -> throw new AssertionError("later subscriber must not run") }
+
+        when:
+        store.append("one", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+
+        then:
+        def failure = thrown(PostCommitPublicationException)
+        failure.streamId() == "one"
+        failure.committedVersion() == 1
+        failure.cause.is(outage)
+        delivered == store.load("one")
+        store.readAll(0) == delivered
+    }
+
+    def "concurrent writers deliver events in commit order"() {
+        given:
+        def store = new InMemoryEventStore<String, Event>()
+        def firstDelivered = new CountDownLatch(1)
+        def releaseFirst = new CountDownLatch(1)
+        List<Long> delivered = Collections.synchronizedList(new ArrayList<Long>())
+        List<Throwable> failures = Collections.synchronizedList(new ArrayList<Throwable>())
+        store.subscribe { events ->
+            if (events.first().streamId() == "one") {
+                firstDelivered.countDown()
+                if (!releaseFirst.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("first writer not released")
+                }
+            }
+            delivered.addAll(events*.position())
+        }
+        Thread first = Thread.ofPlatform().unstarted({
+            try {
+                store.append("one", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+            } catch (Throwable failure) {
+                failures.add(failure)
+            }
+        } as Runnable)
+        Thread second = Thread.ofPlatform().unstarted({
+            try {
+                store.append("two", 0, [new NewEvent<Event>(EventId.random(), new Changed(NOW))])
+            } catch (Throwable failure) {
+                failures.add(failure)
+            }
+        } as Runnable)
+
+        when:
+        boolean entered
+        boolean blocked
+        try {
+            first.start()
+            entered = firstDelivered.await(5, TimeUnit.SECONDS)
+            second.start()
+            blocked = awaitsAppendLock(second)
+        } finally {
+            releaseFirst.countDown()
+            first.join(5000)
+            second.join(5000)
+        }
+
+        then:
+        entered
+        blocked
+        !first.alive
+        !second.alive
+        failures.empty
+        delivered == [1L, 2L]
+        store.readAll(0)*.position() == delivered
+    }
+
     def "conflicting batch leaves existing stream unchanged"() {
         given:
         def store = new InMemoryEventStore<String, Event>()
@@ -126,5 +219,16 @@ class EventStoreSpec extends Specification {
         conflict.actualVersion() == 1
         store.load("one").size() == 1
         store.readAll(0).size() == 1
+    }
+
+    private static boolean awaitsAppendLock(Thread writer) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (System.nanoTime() < deadline) {
+            if (writer.state in [Thread.State.BLOCKED, Thread.State.WAITING]) {
+                return true
+            }
+            Thread.onSpinWait()
+        }
+        false
     }
 }
