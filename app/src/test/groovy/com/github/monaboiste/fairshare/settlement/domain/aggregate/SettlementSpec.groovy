@@ -26,7 +26,7 @@ class SettlementSpec extends Specification {
 
     def "opening and renaming register only changed facts"() {
         given:
-        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, CLOCK)
+        def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
 
         when:
         settlement.rename(new SettlementName("Mountains"))
@@ -43,16 +43,28 @@ class SettlementSpec extends Specification {
         settlement.committedVersion() == 0
     }
 
+    def "opening Settlements generates distinct identifiers"() {
+        when:
+        def first = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
+        def second = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
+
+        then:
+        first.id() != null
+        second.id() != null
+        first.id() != second.id()
+        first.id().value() != null
+    }
+
     def "repository recreates Settlement with committed history"() {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
-        def settlement = Settlement.open(ID, new SettlementName("Holiday"), EUR, CLOCK)
+        def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
         settlement.rename(new SettlementName("Mountains"))
         repository.save(settlement)
 
         when:
-        def replayed = repository.findById(ID).orElseThrow()
+        def replayed = repository.findById(settlement.id()).orElseThrow()
 
         then:
         replayed.pendingEvents().empty

@@ -13,7 +13,6 @@ import javax.money.Monetary
 import spock.lang.Specification
 
 class EventSourcedSettlementRepositorySpec extends Specification {
-    private static final SettlementId ID = new SettlementId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
     private static final Instant NOW = Instant.parse("2026-01-01T12:00:00Z")
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC)
     private static final EUR = Monetary.getCurrency("EUR")
@@ -22,9 +21,9 @@ class EventSourcedSettlementRepositorySpec extends Specification {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
-        repository.save(Settlement.open(ID, new SettlementName("Holiday"), EUR, CLOCK))
-        def stale = repository.findById(ID).orElseThrow()
-        def winner = repository.findById(ID).orElseThrow()
+        SettlementId id = repository.save(Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)).streamId()
+        def stale = repository.findById(id).orElseThrow()
+        def winner = repository.findById(id).orElseThrow()
         winner.rename(new SettlementName("Winner"))
         repository.save(winner)
         stale.rename(new SettlementName("Loser"))
@@ -35,6 +34,6 @@ class EventSourcedSettlementRepositorySpec extends Specification {
         then:
         thrown(VersionConflictException)
         stale.pendingEvents().size() == 1
-        store.load(ID)*.payload()*.name() == ["Holiday", "Winner"]
+        store.load(id)*.payload()*.name() == ["Holiday", "Winner"]
     }
 }

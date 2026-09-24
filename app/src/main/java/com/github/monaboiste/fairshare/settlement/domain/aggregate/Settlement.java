@@ -25,8 +25,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return id -> new Settlement(id, clock);
     }
 
-    public static Settlement open(SettlementId id, SettlementName name, CurrencyUnit currency, Clock clock) {
-        Settlement settlement = new Settlement(id, clock);
+    public static Settlement open(SettlementName name, CurrencyUnit currency, Clock clock) {
+        Settlement settlement = new Settlement(SettlementId.random(), clock);
         settlement.register(new SettlementOpened(name.value(), currency));
         return settlement;
     }

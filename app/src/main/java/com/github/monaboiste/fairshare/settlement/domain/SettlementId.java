@@ -2,4 +2,8 @@ package com.github.monaboiste.fairshare.settlement.domain;
 
 import java.util.UUID;
 
-public record SettlementId(UUID value) {}
+public record SettlementId(UUID value) {
+    public static SettlementId random() {
+        return new SettlementId(UUID.randomUUID());
+    }
+}
