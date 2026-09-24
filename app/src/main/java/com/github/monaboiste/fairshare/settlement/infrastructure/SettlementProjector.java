@@ -38,23 +38,22 @@ public final class SettlementProjector
                 continue;
             }
             if (event.sequence() != version + 1) {
-                throw new IllegalStateException("Gap in Settlement " + event.streamId() + " at " + event.sequence());
+                throw new IllegalStateException(
+                        "Gap in Settlement %s at %s".formatted(event.streamId(), event.sequence()));
             }
             SettlementView next =
                     switch (event.payload()) {
-                        case SettlementOpened opened -> {
+                        case SettlementOpened(var name, var currency) -> {
                             if (previous != null) {
                                 throw new IllegalStateException("Settlement already projected");
                             }
-                            yield new SettlementView(
-                                    event.streamId(), opened.name(), opened.currency(), event.sequence());
+                            yield new SettlementView(event.streamId(), name, currency, event.sequence());
                         }
-                        case SettlementRenamed renamed -> {
+                        case SettlementRenamed(var name) -> {
                             if (previous == null) {
                                 throw new IllegalStateException("Settlement opening missing");
                             }
-                            yield new SettlementView(
-                                    event.streamId(), renamed.name(), previous.currency(), event.sequence());
+                            yield new SettlementView(event.streamId(), name, previous.currency(), event.sequence());
                         }
                     };
             staged.put(event.streamId(), next);

@@ -45,18 +45,18 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     @Override
     protected void apply(SettlementEvent event) {
         switch (event) {
-            case SettlementOpened opened -> {
+            case SettlementOpened(var openedName, var openedCurrency) -> {
                 if (currency != null) {
                     throw new IllegalStateException("Settlement already opened");
                 }
-                name = opened.name();
-                currency = opened.currency();
+                name = openedName;
+                currency = openedCurrency;
             }
-            case SettlementRenamed renamed -> {
+            case SettlementRenamed(var newName) -> {
                 if (currency == null) {
                     throw new IllegalStateException("Settlement opening missing");
                 }
-                name = renamed.name();
+                name = newName;
             }
         }
     }

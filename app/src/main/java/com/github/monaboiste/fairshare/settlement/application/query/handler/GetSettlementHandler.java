@@ -24,7 +24,7 @@ public final class GetSettlementHandler implements QueryHandler<GetSettlement, S
     @Override
     public Result<SettlementRejection, SettlementView> handle(GetSettlement query) {
         return views.findById(query.id())
-                .map(view -> Result.<SettlementRejection, SettlementView>success(view))
+                .map(Result::<SettlementRejection, SettlementView>success)
                 .orElseGet(() -> Result.failure(new SettlementNotFound(query.id())));
     }
 }
