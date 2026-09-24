@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.scenarios
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Interpretation
@@ -11,9 +13,13 @@ import com.github.monaboiste.fairshare.pricing.component.SimpleComponentVersion
 import com.github.monaboiste.fairshare.pricing.component.Validity
 import com.github.monaboiste.fairshare.quantity.money.Money
 import java.time.LocalDateTime
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class EMobilityTemporalPricingScenarioSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
     private Calculator parking8
     private Calculator parking5
@@ -55,7 +61,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters jan15 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 1, 15, 10, 30),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         and:
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(jan15)
@@ -76,7 +82,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters feb14 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 2, 14, 14, 0),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(feb14)
 
@@ -94,7 +100,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters mar10 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 3, 10, 16, 45),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(mar10)
 
@@ -113,7 +119,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters may20 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 5, 20, 12, 0),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(may20)
 
@@ -136,7 +142,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters jul15 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 7, 15, 18, 20),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(jul15)
 
@@ -156,7 +162,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters sep15 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 9, 15, 14, 0),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(sep15)
 
@@ -178,7 +184,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
         Parameters dec05 = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 12, 5, 8, 0),
                 "kwh", BigDecimal.valueOf(20)
-        )
+        ).with(CURRENCY, PLN)
 
         ComponentBreakdown breakdown = totalPrice.calculateBreakdown(dec05)
 
@@ -225,7 +231,7 @@ class EMobilityTemporalPricingScenarioSpec extends Specification {
 
         expect:
         dates.collect { date ->
-            Parameters params = Parameters.of("timestamp", date, "kwh", BigDecimal.valueOf(20))
+            Parameters params = Parameters.of("timestamp", date, "kwh", BigDecimal.valueOf(20)).with(CURRENCY, PLN)
             totalPrice.calculate(params).money()
         } == expected
     }

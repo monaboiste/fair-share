@@ -67,6 +67,14 @@ public interface ApplicabilityConstraint {
         return new BetweenConstraint(parameterName, min, max);
     }
 
+    /**
+     * Applies at {@link com.github.monaboiste.fairshare.pricing.calculation.PricingContext#TIMESTAMP}s within the given
+     * validity.
+     */
+    static ApplicabilityConstraint validAt(Validity validity) {
+        return new ValidAtConstraint(validity);
+    }
+
     static ApplicabilityConstraint and(ApplicabilityConstraint... constraints) {
         return new AndConstraint(Arrays.asList(constraints));
     }
@@ -212,5 +220,12 @@ record AlwaysTrueConstraint() implements ApplicabilityConstraint {
     @Override
     public boolean isSatisfiedBy(Parameters p) {
         return true;
+    }
+}
+
+record ValidAtConstraint(Validity validity) implements ApplicabilityConstraint {
+    @Override
+    public boolean isSatisfiedBy(Parameters p) {
+        return validity.isValidAt(ComponentVersion.calculationTime(p));
     }
 }

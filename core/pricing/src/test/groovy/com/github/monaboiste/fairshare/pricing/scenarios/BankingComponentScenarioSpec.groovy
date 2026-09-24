@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.scenarios
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters
@@ -8,9 +10,13 @@ import com.github.monaboiste.fairshare.pricing.component.ComponentBreakdown
 import com.github.monaboiste.fairshare.pricing.component.ParameterExpression
 import com.github.monaboiste.fairshare.quantity.money.Money
 import java.time.temporal.ChronoUnit
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class BankingComponentScenarioSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
 
     private Calculator performanceFee
@@ -46,7 +52,7 @@ class BankingComponentScenarioSpec extends Specification {
         Parameters loanParams = Parameters.of(
                 "base", Money.of(BigDecimal.valueOf(100000), "PLN"),
                 "unit", ChronoUnit.YEARS
-        )
+        ).with(CURRENCY, PLN)
 
         Money result = totalLoanCost.calculate(loanParams).money()
 
@@ -80,7 +86,7 @@ class BankingComponentScenarioSpec extends Specification {
         def totalAccountFees = Component.composite("total-account-fees", Map.of(), monthlyFee, transactionFees)
 
         and:
-        Parameters accountParams = Parameters.of("quantity", BigDecimal.valueOf(50))
+        Parameters accountParams = Parameters.of("quantity", BigDecimal.valueOf(50)).with(CURRENCY, PLN)
         Money result = totalAccountFees.calculate(accountParams).money()
 
         and:
@@ -106,7 +112,7 @@ class BankingComponentScenarioSpec extends Specification {
         and:
         Parameters portfolioParams = Parameters.of(
                 "baseAmount", Money.of(BigDecimal.valueOf(1000000), "PLN")
-        )
+        ).with(CURRENCY, PLN)
 
         Money result = totalManagementFees.calculate(portfolioParams).money()
 
@@ -140,7 +146,7 @@ class BankingComponentScenarioSpec extends Specification {
         Parameters loanParams = Parameters.of(
                 "base", Money.of(BigDecimal.valueOf(200000), "PLN"),
                 "unit", ChronoUnit.YEARS
-        )
+        ).with(CURRENCY, PLN)
 
         Money result = financingCosts.calculate(loanParams).money()
 

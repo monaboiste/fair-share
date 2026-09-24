@@ -1,5 +1,6 @@
 package com.github.monaboiste.fairshare.pricing.component
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
 import static java.time.LocalDateTime.now
 
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
@@ -10,9 +11,13 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class CompositeComponentVersioningSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
     private final Clock clock = Clock.fixed(Instant.parse("2025-01-15T12:50:00Z"), ZoneOffset.UTC)
 
@@ -41,7 +46,7 @@ class CompositeComponentVersioningSpec extends Specification {
 
         expect:
         total.name() == "Total Price"
-        Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
+        Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0)).with(CURRENCY, PLN)
         total.calculate(params).money() == Money.of(123, "PLN")
     }
 
@@ -84,12 +89,12 @@ class CompositeComponentVersioningSpec extends Specification {
         total = total.updateWith(newVersion)
 
         and:
-        Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0))
+        Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         total.calculate(april).money() == Money.of(123, "PLN")
 
-        Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
+        Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0)).with(CURRENCY, PLN)
         total.calculate(may).money() == Money.of(133, "PLN")
     }
 
@@ -130,15 +135,15 @@ class CompositeComponentVersioningSpec extends Specification {
         )
 
         and:
-        Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
+        Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         total.calculate(jan15).money() == Money.of(123, "PLN")
 
-        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
+        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0)).with(CURRENCY, PLN)
         total.calculate(feb15).money() == Money.of(103, "PLN")
 
-        Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
+        Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0)).with(CURRENCY, PLN)
         total.calculate(mar15).money() == Money.of(123, "PLN")
     }
 
@@ -180,12 +185,12 @@ class CompositeComponentVersioningSpec extends Specification {
         total = total.updateWith(withoutSurcharge)
 
         and:
-        Parameters feb = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
+        Parameters feb = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         total.calculate(feb).money() == Money.of(133, "PLN")
 
-        Parameters mar = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
+        Parameters mar = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0)).with(CURRENCY, PLN)
         total.calculate(mar).money() == Money.of(123, "PLN")
     }
 
@@ -228,12 +233,12 @@ class CompositeComponentVersioningSpec extends Specification {
         total = total.updateWith(newVersion)
 
         and:
-        Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0))
+        Parameters april = Parameters.of("timestamp", LocalDateTime.of(2024, 4, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         total.calculate(april).money() == Money.of(123, "PLN")
 
-        Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0))
+        Parameters may = Parameters.of("timestamp", LocalDateTime.of(2024, 5, 15, 0, 0)).with(CURRENCY, PLN)
         total.calculate(may).money() == Money.of(173, "PLN")
     }
 
@@ -283,7 +288,7 @@ class CompositeComponentVersioningSpec extends Specification {
         composite = composite.updateWith(version3)
 
         and:
-        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
+        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         composite.calculate(feb15).money() == Money.of(300, "PLN")

@@ -1,9 +1,9 @@
 package com.github.monaboiste.fairshare.netting;
 
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators;
-import com.github.monaboiste.fairshare.pricing.calculation.ParameterKey;
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters;
-import com.github.monaboiste.fairshare.pricing.calculation.TotalPrice;
+import com.github.monaboiste.fairshare.pricing.calculation.PricingContext;
+import com.github.monaboiste.fairshare.pricing.component.ApplicabilityConstraint;
 import com.github.monaboiste.fairshare.pricing.component.Component;
 import com.github.monaboiste.fairshare.pricing.component.ComponentBreakdown;
 import com.github.monaboiste.fairshare.quantity.money.Money;
@@ -18,16 +18,12 @@ import java.util.Map;
  *
  * <p>Each participant's balance is a composite pricing {@link Component} whose children are the obligations touching
  * that participant - positive for incoming, negative for outgoing - so the same machinery yields both the balance
- * amount and an explainable {@link ComponentBreakdown}. Only obligations valid at the as-of time contribute, giving
- * balance history and {@link #simulate(List) simulation} across time. Parallel, opposite, loop and zero obligations net
- * away in the signed sum, so no separate normalization step is required.
- *
- * <p>Validity is filtered here rather than delegated to the component's version selection: the archetype returns a
- * PLN-denominated zero for a non-applicable version, which would corrupt a non-PLN settlement sum.
+ * amount and an explainable {@link ComponentBreakdown}. The evaluation runs in the settlement currency at the as-of
+ * time; an obligation applies only while it is valid and otherwise contributes zero, giving balance history and
+ * {@link #simulate(List) simulation} across time. Parallel, opposite, loop and zero obligations net away in the signed
+ * sum, so no separate normalization step is required.
  */
 final class Balances<P> {
-
-    private static final ParameterKey<LocalDateTime> TIMESTAMP = new ParameterKey<>("timestamp", LocalDateTime.class);
 
     private final Obligations<P> obligations;
     private final Map<P, Money> amounts;
@@ -37,11 +33,8 @@ final class Balances<P> {
     private Balances(Obligations<P> obligations, LocalDateTime asOf) {
         this.obligations = obligations;
 
-        String code = obligations.currency().getCurrencyCode();
-        List<Obligation<P>> valid = obligations.obligations().stream()
-                .filter(obligation -> obligation.validity().isValidAt(asOf))
-                .toList();
-        Parameters at = Parameters.of(TIMESTAMP, asOf);
+        Parameters at =
+                Parameters.of(PricingContext.TIMESTAMP, asOf).with(PricingContext.CURRENCY, obligations.currency());
 
         Map<P, Money> computedAmounts = new LinkedHashMap<>();
         Map<P, ComponentBreakdown> computedBreakdowns = new LinkedHashMap<>();
@@ -49,7 +42,7 @@ final class Balances<P> {
         for (P participant : obligations.participants()) {
             List<Component> contributions = new ArrayList<>();
 
-            for (Obligation<P> obligation : valid) {
+            for (Obligation<P> obligation : obligations.obligations()) {
                 if (obligation.to().equals(participant)) {
                     contributions.add(contribution(obligation, obligation.amount()));
                 }
@@ -59,18 +52,11 @@ final class Balances<P> {
                 }
             }
 
-            String name = "balance:" + participant;
-
-            if (contributions.isEmpty()) {
-                Money zero = Money.zero(code);
-                computedAmounts.put(participant, zero);
-                computedBreakdowns.put(participant, new ComponentBreakdown(name, new TotalPrice(zero)));
-            } else {
-                ComponentBreakdown breakdown = Component.composite(name, contributions.toArray(Component[]::new))
-                        .calculateBreakdown(at);
-                computedAmounts.put(participant, breakdown.total());
-                computedBreakdowns.put(participant, breakdown);
-            }
+            ComponentBreakdown breakdown = Component.composite(
+                            "balance:" + participant, contributions.toArray(Component[]::new))
+                    .calculateBreakdown(at);
+            computedAmounts.put(participant, breakdown.total());
+            computedBreakdowns.put(participant, breakdown);
         }
 
         this.amounts = Map.copyOf(computedAmounts);
@@ -126,6 +112,7 @@ final class Balances<P> {
 
     private static <P> Component contribution(Obligation<P> obligation, Money signedAmount) {
         String name = obligation.from() + "->" + obligation.to();
-        return Component.simple(name, Calculators.fixed(name, signedAmount));
+        return Component.simple(
+                name, Calculators.fixed(name, signedAmount), ApplicabilityConstraint.validAt(obligation.validity()));
     }
 }

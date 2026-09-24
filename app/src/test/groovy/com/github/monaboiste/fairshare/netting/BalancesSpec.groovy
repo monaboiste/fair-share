@@ -46,6 +46,22 @@ class BalancesSpec extends Specification {
         Balances.of(graph, DURING).amounts() == ["ada": Money.of(-10, "USD"), "bob": Money.of(10, "USD")]
     }
 
+    def "an obligation outside its validity is explained as a zero contribution in the settlement currency"() {
+        given:
+        Obligations<String> graph = Obligations.of(
+                ["ada", "bob"] as Set,
+                [new Obligation<>("ada", "bob", Money.of(10, "USD"), Validity.between(START, END))],
+                USD)
+
+        when:
+        def breakdown = Balances.of(graph, BEFORE).breakdown("ada")
+
+        then:
+        breakdown.total() == Money.zero("USD")
+        breakdown.children()*.name() == ["ada->bob"]
+        breakdown.children()*.total() == [Money.zero("USD")]
+    }
+
     def "breakdown explains a balance as its contributing obligations"() {
         given:
         Obligations<String> graph = Obligations.of(

@@ -1,12 +1,18 @@
 package com.github.monaboiste.fairshare.pricing.component
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters
 import com.github.monaboiste.fairshare.quantity.money.Money
 import java.time.LocalDateTime
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class CompositeComponentApplicabilitySpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
     private final Map<String, Component> components = [:]
 
@@ -53,8 +59,8 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 Map.of(),
                 "base-fee", "premium-bundle")
 
-        Parameters standard = Parameters.of("customer-type", "standard")
-        Parameters premium = Parameters.of("customer-type", "premium")
+        Parameters standard = Parameters.of("customer-type", "standard").with(CURRENCY, PLN)
+        Parameters premium = Parameters.of("customer-type", "premium").with(CURRENCY, PLN)
 
         expect:
         calculate("total", standard) == Money.of(BigDecimal.valueOf(100), "PLN")
@@ -76,7 +82,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 Map.of(),
                 "base-fee", "premium-bundle")
 
-        Parameters standard = Parameters.of("customer-type", "standard")
+        Parameters standard = Parameters.of("customer-type", "standard").with(CURRENCY, PLN)
         ComponentBreakdown breakdown = breakdown("total", standard)
 
         expect:
@@ -102,8 +108,8 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 Map.of(),
                 "light-delivery", "heavy-delivery")
 
-        Parameters light = Parameters.of("weight", BigDecimal.valueOf(3))
-        Parameters heavy = Parameters.of("weight", BigDecimal.valueOf(10))
+        Parameters light = Parameters.of("weight", BigDecimal.valueOf(3)).with(CURRENCY, PLN)
+        Parameters heavy = Parameters.of("weight", BigDecimal.valueOf(10)).with(CURRENCY, PLN)
 
         expect:
         calculate("delivery-cost", light) == Money.of(BigDecimal.valueOf(20), "PLN")
@@ -122,7 +128,7 @@ class CompositeComponentApplicabilitySpec extends Specification {
         composite("delivery-cost",
                 Map.of(), "light-delivery", "heavy-delivery")
 
-        Parameters boundary = Parameters.of("weight", BigDecimal.valueOf(5))
+        Parameters boundary = Parameters.of("weight", BigDecimal.valueOf(5)).with(CURRENCY, PLN)
 
         expect:
         calculate("delivery-cost", boundary) == Money.of(BigDecimal.valueOf(50), "PLN")
@@ -143,9 +149,9 @@ class CompositeComponentApplicabilitySpec extends Specification {
                 Map.of(),
                 "hazmat-package")
 
-        Parameters hazmatRestricted = Parameters.of("cargo", "hazmat", "zone", "restricted")
-        Parameters hazmatStandard = Parameters.of("cargo", "hazmat", "zone", "standard")
-        Parameters normalCargo = Parameters.of("cargo", "standard", "zone", "restricted")
+        Parameters hazmatRestricted = Parameters.of("cargo", "hazmat", "zone", "restricted").with(CURRENCY, PLN)
+        Parameters hazmatStandard = Parameters.of("cargo", "hazmat", "zone", "standard").with(CURRENCY, PLN)
+        Parameters normalCargo = Parameters.of("cargo", "standard", "zone", "restricted").with(CURRENCY, PLN)
 
         expect:
         calculate("contract", hazmatRestricted) == Money.of(BigDecimal.valueOf(150), "PLN")
@@ -169,12 +175,12 @@ class CompositeComponentApplicabilitySpec extends Specification {
         composite("total",
                 Map.of(),
                 "promo-bundle")
-        Parameters withinGold = Parameters.of("member", "gold")
+        Parameters withinGold = Parameters.of("member", "gold").with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 6, 15, 10, 0))
 
         expect:
         calculate("total", withinGold) == Money.of(BigDecimal.valueOf(80), "PLN")
-        Parameters withinSilver = Parameters.of("member", "silver")
+        Parameters withinSilver = Parameters.of("member", "silver").with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 6, 15, 10, 0))
         calculate("total", withinSilver) == Money.of(BigDecimal.ZERO, "PLN")
     }
@@ -194,8 +200,8 @@ class CompositeComponentApplicabilitySpec extends Specification {
         composite("service-cost", dependencies,
                 "base-service", "surcharge-bundle")
 
-        Parameters enterprise = Parameters.of("tier", "enterprise")
-        Parameters standard = Parameters.of("tier", "standard")
+        Parameters enterprise = Parameters.of("tier", "enterprise").with(CURRENCY, PLN)
+        Parameters standard = Parameters.of("tier", "standard").with(CURRENCY, PLN)
 
         expect:
         calculate("service-cost", enterprise) == Money.of(BigDecimal.valueOf(110), "PLN")

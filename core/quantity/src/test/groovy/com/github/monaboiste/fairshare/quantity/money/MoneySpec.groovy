@@ -1,6 +1,7 @@
 package com.github.monaboiste.fairshare.quantity.money
 
 import java.math.RoundingMode
+import javax.money.Monetary
 import javax.money.MonetaryException
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -183,6 +184,13 @@ class MoneySpec extends Specification {
         expect:
         money.add(zero) == money
         money.subtract(zero) == money
+    }
+
+    def "zero in a currency unit equals zero in its currency code"() {
+        expect:
+        Money.zero(Monetary.getCurrency("USD")) == Money.zero("USD")
+        Money.zero(Monetary.getCurrency("USD")).currency() == "USD"
+        Money.zero(Monetary.getCurrency("USD")).isZero()
     }
 
     def "handles negative amounts in comparisons"() {

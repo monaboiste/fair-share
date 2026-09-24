@@ -1,7 +1,6 @@
 package com.github.monaboiste.fairshare.pricing.component;
 
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator;
-import com.github.monaboiste.fairshare.pricing.calculation.Parameters;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -48,12 +47,6 @@ public record SimpleComponentVersion(
             ComponentVersionId id, Calculator calculator, Validity validity, LocalDateTime definedAt) {
         return new SimpleComponentVersion(
                 id, calculator, Map.of(), ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
-    }
-
-    /** Returns whether validity and applicability match the context. */
-    public boolean isApplicableFor(Parameters parameters) {
-        LocalDateTime time = ComponentVersion.calculationTime(parameters);
-        return validity.isValidAt(time) && applicabilityConstraint.isSatisfiedBy(parameters);
     }
 
     /** Create a version with an explicit applicability constraint. */

@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.component
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.ParameterKey
@@ -11,9 +13,13 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class SimpleComponentVersioningSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
     private final Clock clock = Clock.fixed(Instant.parse("2025-01-15T12:50:00Z"), ZoneOffset.UTC)
 
@@ -42,7 +48,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Component component = SimpleComponent.withInitialVersion("Base Price", calculator, validity, clock)
 
         and:
-        Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
+        Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0)).with(CURRENCY, PLN)
         PricingResult result = component.calculate(params)
 
         expect:
@@ -70,15 +76,15 @@ class SimpleComponentVersioningSpec extends Specification {
         SimpleComponent updated = component.updateWith(discountVersion)
 
         and:
-        Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
+        Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         updated.calculate(jan15).money() == Money.of(100, "PLN")
 
-        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
+        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0)).with(CURRENCY, PLN)
         updated.calculate(feb15).money() == Money.of(80, "PLN")
 
-        Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0))
+        Parameters mar15 = Parameters.of("timestamp", LocalDateTime.of(2024, 3, 15, 0, 0)).with(CURRENCY, PLN)
         updated.calculate(mar15).money() == Money.of(100, "PLN")
     }
 
@@ -97,7 +103,7 @@ class SimpleComponentVersioningSpec extends Specification {
         component = component.updateWith(new SimpleComponentVersion(calc2, Map.of(), validity2, LocalDateTime.now(clock)))
 
         and:
-        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0))
+        Parameters feb15 = Parameters.of("timestamp", LocalDateTime.of(2024, 2, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         component.calculate(feb15).money() == Money.of(90, "PLN")
@@ -110,7 +116,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Component component = SimpleComponent.withInitialVersion("Price", calculator, validity, clock)
 
         and:
-        Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
+        Parameters jan15 = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0)).with(CURRENCY, PLN)
 
         when:
         component.calculate(jan15)
@@ -128,7 +134,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Component component = SimpleComponent.withInitialVersion("Price", calculator, validity, clock)
 
         and:
-        Parameters params = Parameters.empty()
+        Parameters params = Parameters.of(CURRENCY, PLN)
         PricingResult result = component.calculate(params)
 
         expect:
@@ -165,7 +171,7 @@ class SimpleComponentVersioningSpec extends Specification {
         SimpleComponent updated = component.updateWith(duplicate, VersionUpdateStrategy.ALLOW_ALL)
 
         and:
-        Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0))
+        Parameters params = Parameters.of("timestamp", LocalDateTime.of(2024, 1, 15, 0, 0)).with(CURRENCY, PLN)
 
         expect:
         updated.calculate(params).money() == Money.of(200, "PLN")
@@ -214,10 +220,10 @@ class SimpleComponentVersioningSpec extends Specification {
         expect:
         component.calculate(Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 1, 15, 0, 0),
-                "legacyAmount", "legacy")).money() == Money.of(10, "PLN")
+                "legacyAmount", "legacy").with(CURRENCY, PLN)).money() == Money.of(10, "PLN")
         component.calculate(Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 2, 15, 0, 0),
-                "currentQuantity", BigDecimal.ONE)).money() == Money.of(20, "PLN")
+                "currentQuantity", BigDecimal.ONE).with(CURRENCY, PLN)).money() == Money.of(20, "PLN")
     }
 
     def "applicability is checked before selected calculator validation"() {
@@ -232,7 +238,7 @@ class SimpleComponentVersioningSpec extends Specification {
                 clock)
 
         when:
-        PricingResult result = component.calculate(Parameters.of("customer", "included"))
+        PricingResult result = component.calculate(Parameters.of("customer", "included").with(CURRENCY, PLN))
 
         then:
         result.money() == Money.zero("PLN")
@@ -267,7 +273,7 @@ class SimpleComponentVersioningSpec extends Specification {
         Parameters params = Parameters.of(
                 "timestamp", LocalDateTime.of(2024, 1, 15, 0, 0),
                 "kwh", BigDecimal.valueOf(15)
-        )
+        ).with(CURRENCY, PLN)
         PricingResult result = component.calculate(params)
 
         expect:

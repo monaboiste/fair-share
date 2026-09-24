@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.money.CurrencyUnit;
+import javax.money.Monetary;
 import javax.money.MonetaryException;
 import org.jspecify.annotations.Nullable;
 
@@ -49,7 +50,17 @@ public class Money implements Comparable<Money> {
      * @return zero Money
      */
     public static Money zero(String currencyCode) {
-        return new Money(org.javamoney.moneta.Money.of(0, currencyCode));
+        return zero(Monetary.getCurrency(currencyCode));
+    }
+
+    /**
+     * Creates a zero amount in the given currency.
+     *
+     * @param currency currency unit
+     * @return zero Money
+     */
+    public static Money zero(CurrencyUnit currency) {
+        return new Money(org.javamoney.moneta.Money.of(0, currency));
     }
 
     /**

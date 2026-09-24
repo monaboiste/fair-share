@@ -1,6 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.component;
 
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters;
+import com.github.monaboiste.fairshare.pricing.calculation.PricingContext;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -15,10 +16,10 @@ sealed interface ComponentVersion permits SimpleComponentVersion, CompositeCompo
     /** Returns when this version was defined. */
     LocalDateTime definedAt();
 
+    /** Returns this version's business condition, evaluated only after validity selects the version. */
+    ApplicabilityConstraint applicabilityConstraint();
+
     static LocalDateTime calculationTime(Parameters parameters) {
-        if (parameters.contains("timestamp")) {
-            return parameters.getLocalDateTime("timestamp");
-        }
-        return LocalDateTime.now(ZoneId.systemDefault());
+        return parameters.find(PricingContext.TIMESTAMP).orElseGet(() -> LocalDateTime.now(ZoneId.systemDefault()));
     }
 }

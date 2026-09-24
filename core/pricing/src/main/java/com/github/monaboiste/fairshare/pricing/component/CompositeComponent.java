@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -138,14 +139,11 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
 
     @Override
     public ComponentBreakdown calculateBreakdown(Parameters parameters) {
-        LocalDateTime time = ComponentVersion.calculationTime(parameters);
-        CompositeComponentVersion version = versionAt(time);
+        CurrencyUnit currency = EvaluationCurrency.of(parameters);
+        CompositeComponentVersion version = versionAt(ComponentVersion.calculationTime(parameters));
 
-        if (!version.isApplicableFor(parameters)) {
-            return new ComponentBreakdown(name, new TotalPrice(Money.zero("PLN")), List.of());
-        }
-        if (version.children().isEmpty()) {
-            throw new IllegalStateException("Composite component %s has no children".formatted(name));
+        if (!version.applicabilityConstraint().isSatisfiedBy(parameters)) {
+            return new ComponentBreakdown(name, new TotalPrice(Money.zero(currency)), List.of());
         }
 
         Map<Component, @Nullable PricingResult> componentResults = new HashMap<>();
@@ -157,11 +155,9 @@ record CompositeComponent(ComponentId id, String name, List<CompositeComponentVe
             componentResults.put(child, childBreakdown.result());
             childBreakdowns.add(childBreakdown);
         }
-        Money total = childBreakdowns.stream()
-                .map(ComponentBreakdown::total)
-                .reduce(Money::add)
-                .orElseThrow();
-        return new ComponentBreakdown(name, new TotalPrice(total), childBreakdowns);
+        Money total = childBreakdowns.stream().map(ComponentBreakdown::total).reduce(Money.zero(currency), Money::add);
+        return new ComponentBreakdown(
+                name, EvaluationCurrency.expect(name, currency, new TotalPrice(total)), childBreakdowns);
     }
 
     /**

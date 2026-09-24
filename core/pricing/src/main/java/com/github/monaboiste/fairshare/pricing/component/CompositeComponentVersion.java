@@ -1,6 +1,5 @@
 package com.github.monaboiste.fairshare.pricing.component;
 
-import com.github.monaboiste.fairshare.pricing.calculation.Parameters;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,8 +10,8 @@ import java.util.stream.Collectors;
 /**
  * Defines a composite component's children, dependencies, validity, and applicability.
  *
- * <p>A version is selected only when both its validity period and applicability constraint match the pricing context.
- * Each child component resolves its own version independently.
+ * <p>A version is selected by its validity period alone; its applicability constraint is evaluated only for the
+ * selected version. Each child component resolves its own version independently.
  */
 record CompositeComponentVersion(
         ComponentVersionId id,
@@ -47,15 +46,6 @@ record CompositeComponentVersion(
             Validity validity,
             LocalDateTime definedAt) {
         this(children, dependencies, ApplicabilityConstraint.alwaysTrue(), validity, definedAt);
-    }
-
-    /**
-     * Returns true when this version should be used for the given pricing context. Combines the time dimension
-     * (validity) with the business dimension (applicability).
-     */
-    public boolean isApplicableFor(Parameters parameters) {
-        LocalDateTime time = ComponentVersion.calculationTime(parameters);
-        return validity.isValidAt(time) && applicabilityConstraint.isSatisfiedBy(parameters);
     }
 
     /** Create a version with an explicit applicability constraint. */

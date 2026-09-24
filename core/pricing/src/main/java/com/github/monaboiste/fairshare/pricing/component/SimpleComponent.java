@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import javax.money.CurrencyUnit;
 
 /**
  * A simple component with a time-versioned calculator configuration.
@@ -101,17 +102,17 @@ record SimpleComponent(ComponentId id, String name, List<SimpleComponentVersion>
 
     @Override
     public PricingResult calculate(Parameters parameters) {
-        LocalDateTime time = ComponentVersion.calculationTime(parameters);
-        SimpleComponentVersion version = versionAt(time);
+        CurrencyUnit currency = EvaluationCurrency.of(parameters);
+        SimpleComponentVersion version = versionAt(ComponentVersion.calculationTime(parameters));
 
-        if (!version.isApplicableFor(parameters)) {
-            return new TotalPrice(Money.zero("PLN"));
+        if (!version.applicabilityConstraint().isSatisfiedBy(parameters)) {
+            return new TotalPrice(Money.zero(currency));
         }
 
         Parameters transformedParams = transformParameters(parameters, version.parameterMappings());
         Calculator adaptedCalculator =
                 InterpretationAdapters.adapt(version.calculator(), Interpretation.TOTAL, transformedParams);
-        return adaptedCalculator.calculate(transformedParams);
+        return EvaluationCurrency.expect(name, currency, adaptedCalculator.calculate(transformedParams));
     }
 
     @Override

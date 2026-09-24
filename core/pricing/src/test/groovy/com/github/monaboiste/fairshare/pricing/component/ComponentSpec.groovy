@@ -1,14 +1,20 @@
 package com.github.monaboiste.fairshare.pricing.component
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Interpretation
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters
 import com.github.monaboiste.fairshare.pricing.calculation.PricingResult
 import com.github.monaboiste.fairshare.quantity.money.Money
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class ComponentSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
     def "simple component delegates calculation to its wrapped calculator"() {
         given:
@@ -16,7 +22,7 @@ class ComponentSpec extends Specification {
         SimpleComponent component = SimpleComponent.of("base-fee", calculator)
 
         and:
-        PricingResult result = component.calculate(Parameters.empty())
+        PricingResult result = component.calculate(Parameters.of(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(20), "PLN")
@@ -28,7 +34,7 @@ class ComponentSpec extends Specification {
         SimpleComponent component = SimpleComponent.of("service-fee", calculator)
 
         and:
-        ComponentBreakdown breakdown = component.calculateBreakdown(Parameters.empty())
+        ComponentBreakdown breakdown = component.calculateBreakdown(Parameters.of(CURRENCY, PLN))
 
         expect:
         breakdown.name() == "service-fee"
@@ -45,7 +51,7 @@ class ComponentSpec extends Specification {
         CompositeComponent composite = CompositeComponent.of("total-fees", fee1, fee2)
 
         and:
-        PricingResult result = composite.calculate(Parameters.empty())
+        PricingResult result = composite.calculate(Parameters.of(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(40), "PLN")
@@ -66,7 +72,7 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total", baseFee, extra)
 
         and:
-        ComponentBreakdown breakdown = total.calculateBreakdown(Parameters.empty())
+        ComponentBreakdown breakdown = total.calculateBreakdown(Parameters.of(CURRENCY, PLN))
 
         expect:
         breakdown.name() == "total"
@@ -96,7 +102,7 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total-with-vat", dependencies, base, vat)
 
         and:
-        PricingResult result = total.calculate(Parameters.empty())
+        PricingResult result = total.calculate(Parameters.of(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(123), "PLN")
@@ -117,7 +123,7 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total-with-tax", dependencies, fee1, fee2, tax)
 
         and:
-        PricingResult result = total.calculate(Parameters.empty())
+        PricingResult result = total.calculate(Parameters.of(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(88), "PLN")
@@ -138,7 +144,7 @@ class ComponentSpec extends Specification {
         CompositeComponent financials = CompositeComponent.of("financials", dependencies, revenue, costs, profitTax)
 
         and:
-        PricingResult result = financials.calculate(Parameters.empty())
+        PricingResult result = financials.calculate(Parameters.of(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(1514), "PLN")
@@ -157,7 +163,7 @@ class ComponentSpec extends Specification {
         CompositeComponent total = CompositeComponent.of("total", dependencies, baseAmount, enhanced)
 
         and:
-        PricingResult result = total.calculate(Parameters.empty())
+        PricingResult result = total.calculate(Parameters.of(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(115), "PLN")
@@ -179,7 +185,7 @@ class ComponentSpec extends Specification {
         )
 
         when:
-        composite.calculate(Parameters.empty())
+        composite.calculate(Parameters.of(CURRENCY, PLN))
 
         then:
         def ex = thrown(IllegalStateException)
@@ -198,7 +204,7 @@ class ComponentSpec extends Specification {
         )
 
         when:
-        composite.calculate(Parameters.empty())
+        composite.calculate(Parameters.of(CURRENCY, PLN))
 
         then:
         def ex = thrown(IllegalArgumentException)
@@ -224,23 +230,11 @@ class ComponentSpec extends Specification {
         CompositeComponent composite = CompositeComponent.of("total", comp1, comp2)
 
         and:
-        Parameters params = Parameters.of("quantity", BigDecimal.valueOf(5))
+        Parameters params = Parameters.of("quantity", BigDecimal.valueOf(5)).with(CURRENCY, PLN)
         PricingResult result = composite.calculate(params)
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(25), "PLN")
-    }
-
-    def "composite component throws when it has no children"() {
-        given:
-        CompositeComponent empty = CompositeComponent.of("empty", List.of())
-
-        when:
-        empty.calculate(Parameters.empty())
-
-        then:
-        def ex = thrown(IllegalStateException)
-        ex.message == "Composite component empty has no children"
     }
 
     def "simple component maps parameters before delegating"() {
@@ -254,7 +248,7 @@ class ComponentSpec extends Specification {
                 Map.of("my_quantity", "quantity"))
 
         and:
-        PricingResult result = component.calculate(Parameters.of("my_quantity", BigDecimal.valueOf(5)))
+        PricingResult result = component.calculate(Parameters.of("my_quantity", BigDecimal.valueOf(5)).with(CURRENCY, PLN))
 
         expect:
         result.money() == Money.of(BigDecimal.valueOf(15), "PLN")
@@ -271,7 +265,7 @@ class ComponentSpec extends Specification {
                 Map.of("my_qty", "quantity"))
 
         and:
-        Parameters params = Parameters.of("my_qty", BigDecimal.valueOf(10))
+        Parameters params = Parameters.of("my_qty", BigDecimal.valueOf(10)).with(CURRENCY, PLN)
                 .with("time", BigDecimal.valueOf(5))
 
         PricingResult result = component.calculate(params)
@@ -293,7 +287,7 @@ class ComponentSpec extends Specification {
 
         and:
         PricingResult resultAsTotal = component.calculate(
-                Parameters.of("quantity", BigDecimal.valueOf(10)))
+                Parameters.of("quantity", BigDecimal.valueOf(10)).with(CURRENCY, PLN))
 
         expect:
         resultAsTotal.money() == Money.of(BigDecimal.valueOf(27.5), "PLN")
@@ -317,7 +311,7 @@ class ComponentSpec extends Specification {
         CompositeComponent composite = CompositeComponent.of("total", tier1, tier2)
 
         and:
-        Parameters params = Parameters.of("tier1_qty", BigDecimal.valueOf(5))
+        Parameters params = Parameters.of("tier1_qty", BigDecimal.valueOf(5)).with(CURRENCY, PLN)
                 .with("tier2_qty", BigDecimal.valueOf(3))
 
         PricingResult result = composite.calculate(params)

@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.scenarios
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.CalculatorRange
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Interpretation
@@ -12,9 +14,13 @@ import com.github.monaboiste.fairshare.pricing.component.SimpleComponentVersion
 import com.github.monaboiste.fairshare.pricing.component.Validity
 import com.github.monaboiste.fairshare.quantity.money.Money
 import java.time.LocalDateTime
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class LogisticsShipmentScenarioSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
     private Component totalCost
 
@@ -51,7 +57,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cargo-type", "standard",
                 "delivery-type", "standard",
                 "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN")).with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
@@ -86,7 +92,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cargo-type", "hazmat",
                 "delivery-type", "standard",
                 "cod-value", Money.of(BigDecimal.valueOf(800), "PLN"),
-                "insured-value", Money.of(BigDecimal.valueOf(1500), "PLN"))
+                "insured-value", Money.of(BigDecimal.valueOf(1500), "PLN")).with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
@@ -121,7 +127,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cargo-type", "standard",
                 "delivery-type", "time-window",
                 "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN")).with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         and:
@@ -154,7 +160,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cargo-type", "standard",
                 "delivery-type", "standard",
                 "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN")).with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 1, 20, 10, 0))
 
         Parameters apr = Parameters.of(
@@ -162,7 +168,7 @@ class LogisticsShipmentScenarioSpec extends Specification {
                 "cargo-type", "standard",
                 "delivery-type", "standard",
                 "cod-value", Money.of(BigDecimal.ZERO, "PLN"),
-                "insured-value", Money.of(BigDecimal.ZERO, "PLN"))
+                "insured-value", Money.of(BigDecimal.ZERO, "PLN")).with(CURRENCY, PLN)
                 .with("timestamp", LocalDateTime.of(2025, 4, 15, 10, 0))
 
         expect:

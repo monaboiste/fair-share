@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.scenarios
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters
@@ -7,9 +9,13 @@ import com.github.monaboiste.fairshare.pricing.component.Component
 import com.github.monaboiste.fairshare.pricing.component.ComponentBreakdown
 import com.github.monaboiste.fairshare.pricing.component.ParameterExpression
 import com.github.monaboiste.fairshare.quantity.money.Money
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class TelcoComponentScenarioSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
 
     private Calculator percentagerate
@@ -34,12 +40,12 @@ class TelcoComponentScenarioSpec extends Specification {
         def baseFee = Component.composite("base-fee", Map.of(), networkMaintenance, commission)
 
         and:
-        Money result = baseFee.calculate(Parameters.empty()).money()
+        Money result = baseFee.calculate(Parameters.of(CURRENCY, PLN)).money()
 
         expect:
         result == Money.of(BigDecimal.valueOf(45), "PLN")
 
-        ComponentBreakdown breakdown = baseFee.calculateBreakdown(Parameters.empty())
+        ComponentBreakdown breakdown = baseFee.calculateBreakdown(Parameters.of(CURRENCY, PLN))
         breakdown.name() == "base-fee"
         breakdown.total() == Money.of(BigDecimal.valueOf(45), "PLN")
         breakdown.children().size() == 2
@@ -56,7 +62,7 @@ class TelcoComponentScenarioSpec extends Specification {
         def monthlyBill = Component.composite("monthly-bill", Map.of(), baseFee, dataOverage)
 
         and:
-        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
+        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3)).with(CURRENCY, PLN)
         Money result = monthlyBill.calculate(usageParams).money()
 
         expect:
@@ -85,7 +91,7 @@ class TelcoComponentScenarioSpec extends Specification {
         def monthlyBill = Component.composite("monthly-bill", Map.of(), baseFee, roamingOverage)
 
         and:
-        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(20))
+        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(20)).with(CURRENCY, PLN)
         Money result = monthlyBill.calculate(usageParams).money()
 
         expect:
@@ -107,7 +113,7 @@ class TelcoComponentScenarioSpec extends Specification {
         def totalBill = Component.composite("total-bill", dependencies, netAmount, vat)
 
         and:
-        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
+        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3)).with(CURRENCY, PLN)
         Money result = totalBill.calculate(usageParams).money()
 
         and:
@@ -140,7 +146,7 @@ class TelcoComponentScenarioSpec extends Specification {
         def monthlyBill = Component.composite("monthly-bill", Map.of(), baseFee, dataOverage)
 
         and:
-        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3))
+        Parameters usageParams = Parameters.of("quantity", BigDecimal.valueOf(3)).with(CURRENCY, PLN)
         ComponentBreakdown breakdown = monthlyBill.calculateBreakdown(usageParams)
 
         expect:

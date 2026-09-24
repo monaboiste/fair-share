@@ -1,5 +1,7 @@
 package com.github.monaboiste.fairshare.pricing.scenarios
 
+import static com.github.monaboiste.fairshare.pricing.calculation.PricingContext.CURRENCY
+
 import com.github.monaboiste.fairshare.pricing.calculation.Calculator
 import com.github.monaboiste.fairshare.pricing.calculation.Calculators
 import com.github.monaboiste.fairshare.pricing.calculation.Interpretation
@@ -9,9 +11,13 @@ import com.github.monaboiste.fairshare.pricing.component.Component
 import com.github.monaboiste.fairshare.pricing.component.ComponentBreakdown
 import com.github.monaboiste.fairshare.pricing.component.ParameterExpression
 import com.github.monaboiste.fairshare.quantity.money.Money
+import javax.money.CurrencyUnit
+import javax.money.Monetary
 import spock.lang.Specification
 
 class EMobilityComponentScenarioSpec extends Specification {
+
+    private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
 
 
     private Calculator vatrate
@@ -58,7 +64,7 @@ class EMobilityComponentScenarioSpec extends Specification {
         Parameters sessionParams = Parameters.of(
                 "quantity", BigDecimal.valueOf(12),
                 "time", BigDecimal.valueOf(40)
-        )
+        ).with(CURRENCY, PLN)
 
         Money result = totalSessionCost.calculate(sessionParams).money()
 
@@ -127,7 +133,7 @@ class EMobilityComponentScenarioSpec extends Specification {
         Parameters sessionParams = Parameters.of(
                 "quantity", BigDecimal.valueOf(12),
                 "time", BigDecimal.valueOf(40)
-        )
+        ).with(CURRENCY, PLN)
 
         and:
         ComponentBreakdown breakdown = totalSessionCost.calculateBreakdown(sessionParams)
