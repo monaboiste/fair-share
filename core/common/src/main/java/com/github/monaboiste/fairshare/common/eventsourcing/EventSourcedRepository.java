@@ -31,7 +31,7 @@ public class EventSourcedRepository<ID, E extends Event, A extends AggregateRoot
     public CommitResult<ID, E> save(A aggregate) {
         List<PendingEvent<E>> pending = aggregate.pendingEvents();
         if (pending.isEmpty()) {
-            return new CommitResult<>(List.of(), aggregate.committedVersion());
+            return new CommitResult<>(aggregate.id(), List.of(), aggregate.committedVersion());
         }
         try {
             CommitResult<ID, E> result = store.append(aggregate.id(), aggregate.committedVersion(), pending);

@@ -34,6 +34,9 @@ class EventStoreSpec extends Specification {
 
         then:
         committed.version() == 2
+        committed.streamId() == "one"
+        other.streamId() == "two"
+        committed.events()*.streamId() == ["one", "one"]
         committed.events()*.sequence() == [1L, 2L]
         committed.events()*.position() == [1L, 2L]
         committed.events()*.eventId() == [first.eventId(), second.eventId()]

@@ -40,6 +40,7 @@ class EventSourcedRepositorySpec extends Specification {
 
         then:
         commit.version() == 2
+        commit.streamId() == "one"
         commit.events()*.sequence() == [1L, 2L]
         commit.events()*.eventId() == decidedIds
         commit.events()*.occurredAt() == [Instant.EPOCH, Instant.EPOCH]
@@ -47,6 +48,7 @@ class EventSourcedRepositorySpec extends Specification {
         loaded.pendingEvents().empty
         loaded.committedVersion() == 2
         unchanged.events().empty
+        unchanged.streamId() == "one"
         unchanged.version() == 2
         repository.findById("unknown").empty
     }

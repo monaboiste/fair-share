@@ -77,7 +77,7 @@ public final class InMemoryEventStore<S, E extends Event>
         updated.addAll(committed);
         streams.put(id, List.copyOf(updated));
         allEvents.addAll(committed);
-        CommitResult<S, E> result = new CommitResult<>(committed, updated.size());
+        CommitResult<S, E> result = new CommitResult<>(id, committed, updated.size());
         delivering = true;
         try {
             deliver(id, result);
