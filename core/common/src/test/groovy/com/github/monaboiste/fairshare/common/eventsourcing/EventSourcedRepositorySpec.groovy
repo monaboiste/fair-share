@@ -12,6 +12,8 @@ import spock.lang.Specification
 class EventSourcedRepositorySpec extends Specification {
     @EventType(name = "Incremented", version = 1)
     static class Incremented implements Event {
+        private final EventId identity = EventId.random()
+        EventId eventId() { identity }
         Instant occurredAt() { Instant.EPOCH }
     }
 
@@ -27,10 +29,11 @@ class EventSourcedRepositorySpec extends Specification {
     def "repository persists and replays events without pending changes"() {
         given:
         def store = new InMemoryEventStore<String, Incremented>()
-        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, EventId::random, Counter::new)
+        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, Counter::new)
         def counter = new Counter("one")
         counter.increment()
         counter.increment()
+        def decidedIds = counter.pendingEvents()*.eventId()
 
         when:
         def commit = repository.save(counter)
@@ -40,6 +43,7 @@ class EventSourcedRepositorySpec extends Specification {
         then:
         commit.version() == 2
         commit.events()*.sequence() == [1L, 2L]
+        commit.events()*.eventId() == decidedIds
         loaded.count == 2
         loaded.pendingEvents().empty
         loaded.committedVersion() == 2
@@ -52,7 +56,7 @@ class EventSourcedRepositorySpec extends Specification {
         given:
         def store = new InMemoryEventStore<String, Incremented>()
         store.subscribe { throw new IllegalStateException("subscriber failed") }
-        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, EventId::random, Counter::new)
+        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, Counter::new)
         def counter = new Counter("one")
         counter.increment()
 
@@ -70,7 +74,7 @@ class EventSourcedRepositorySpec extends Specification {
     def "failed save retains pending events"() {
         given:
         def store = new InMemoryEventStore<String, Incremented>()
-        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, EventId::random, Counter::new)
+        def repository = new EventSourcedRepository<String, Incremented, Counter>(store, Counter::new)
         def stale = new Counter("one")
         stale.increment()
         repository.save(new Counter("one").tap { increment() })

@@ -1,11 +1,14 @@
 package com.github.monaboiste.fairshare.common.eventsourcing
 
 import com.github.monaboiste.fairshare.common.events.Event
+import com.github.monaboiste.fairshare.common.events.EventId
 import java.time.Instant
 import spock.lang.Specification
 
 class AggregateRootSpec extends Specification {
     static class Changed implements Event {
+        private final EventId identity = EventId.random()
+        EventId eventId() { identity }
         Instant occurredAt() { Instant.EPOCH }
     }
 
