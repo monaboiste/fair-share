@@ -7,8 +7,6 @@ import com.github.monaboiste.fairshare.common.events.Event;
 import com.github.monaboiste.fairshare.common.events.EventEnvelope;
 import com.github.monaboiste.fairshare.common.events.EventStore;
 import com.github.monaboiste.fairshare.common.events.EventSubscriptions;
-import com.github.monaboiste.fairshare.common.events.EventType;
-import com.github.monaboiste.fairshare.common.events.EventTypes;
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException;
 import com.github.monaboiste.fairshare.common.events.StreamNotFoundException;
 import com.github.monaboiste.fairshare.common.events.VersionConflictException;
@@ -66,14 +64,8 @@ public final class InMemoryEventStore<S, E extends Event>
         }
         List<EventEnvelope<S, E>> committed = new ArrayList<>();
         for (E next : additions) {
-            EventType type = EventTypes.of(next);
             committed.add(new EventEnvelope<>(
-                    id,
-                    actual + committed.size() + 1,
-                    allEvents.size() + committed.size() + 1,
-                    type.name(),
-                    type.version(),
-                    next));
+                    id, actual + committed.size() + 1, allEvents.size() + committed.size() + 1, next));
         }
         List<EventEnvelope<S, E>> updated = new ArrayList<>(previous);
         updated.addAll(committed);

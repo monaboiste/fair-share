@@ -5,5 +5,9 @@ import java.time.Instant;
 public interface Event {
     EventId eventId();
 
+    String type();
+
+    int schemaVersion();
+
     Instant occurredAt();
 }

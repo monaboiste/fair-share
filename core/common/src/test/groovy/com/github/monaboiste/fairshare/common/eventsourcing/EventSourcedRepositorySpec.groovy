@@ -2,7 +2,6 @@ package com.github.monaboiste.fairshare.common.eventsourcing
 
 import com.github.monaboiste.fairshare.common.events.Event
 import com.github.monaboiste.fairshare.common.events.EventId
-import com.github.monaboiste.fairshare.common.events.EventType
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
@@ -10,10 +9,11 @@ import java.time.Instant
 import spock.lang.Specification
 
 class EventSourcedRepositorySpec extends Specification {
-    @EventType(name = "Incremented", version = 1)
     static class Incremented implements Event {
         private final EventId identity = EventId.random()
         EventId eventId() { identity }
+        String type() { "Incremented" }
+        int schemaVersion() { 1 }
         Instant occurredAt() { Instant.EPOCH }
     }
 

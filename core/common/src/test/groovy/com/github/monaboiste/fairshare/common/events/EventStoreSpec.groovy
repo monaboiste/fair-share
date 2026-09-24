@@ -9,29 +9,26 @@ import spock.lang.Specification
 class EventStoreSpec extends Specification {
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z")
 
-    @EventType(name = "Changed", version = 2)
     static class Changed implements Event {
         EventId identity
         Instant time
         Changed(Instant time) { this(EventId.random(), time) }
         Changed(EventId identity, Instant time) { this.identity = identity; this.time = time }
         EventId eventId() { identity }
+        String type() { "Changed" }
+        int schemaVersion() { 2 }
         Instant occurredAt() { time }
     }
 
-    @EventType(name = " ", version = 0)
     static class InvalidType implements Event {
         private final EventId identity = EventId.random()
+        String description
+        int version
+        InvalidType(String description, int version) { this.description = description; this.version = version }
         EventId eventId() { identity }
+        String type() { description }
+        int schemaVersion() { version }
         Instant occurredAt() { NOW }
-    }
-
-    static class Unannotated implements Event {
-        private final EventId identity = EventId.random()
-        Instant time
-        Unannotated(Instant time) { this.time = time }
-        EventId eventId() { identity }
-        Instant occurredAt() { time }
     }
 
     def "append assigns ordered stream sequences and global positions without losing metadata"() {
@@ -72,6 +69,8 @@ class EventStoreSpec extends Specification {
         committed.events().first().eventId() == identity
         committed.events().first().payload().is(event)
         store.load("one").first().eventId() == identity
+        committed.events().first().type() == event.type()
+        committed.events().first().schemaVersion() == event.schemaVersion()
     }
 
     def "unknown streams and invalid batches do not create streams"() {
@@ -93,14 +92,15 @@ class EventStoreSpec extends Specification {
         !store.exists("missing")
 
         when:
-        store.append("missing", 0, [new Unannotated(NOW)])
+        store.append("missing", 0, [new Changed(NOW), new InvalidType(" ", 1)])
 
         then:
         thrown(IllegalArgumentException)
         !store.exists("missing")
+        store.readAll(0).empty
 
         when:
-        store.append("missing", 0, [new Changed(NOW), new InvalidType()])
+        store.append("missing", 0, [new Changed(NOW), new InvalidType("Changed", 0)])
 
         then:
         thrown(IllegalArgumentException)
@@ -110,25 +110,25 @@ class EventStoreSpec extends Specification {
 
     def "invalid envelope metadata is rejected"() {
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 0, 1, "Changed", 1, new Changed(NOW))
+        new EventEnvelope<EventId, Event>(EventId.random(), 0, 1, new Changed(NOW))
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 1, 0, "Changed", 1, new Changed(NOW))
+        new EventEnvelope<EventId, Event>(EventId.random(), 1, 0, new Changed(NOW))
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, " ", 1, new Changed(NOW))
+        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, new InvalidType(" ", 1))
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, "Changed", 0, new Changed(NOW))
+        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, new InvalidType("Changed", 0))
 
         then:
         thrown(IllegalArgumentException)

@@ -9,6 +9,8 @@ class AggregateRootSpec extends Specification {
     static class Changed implements Event {
         private final EventId identity = EventId.random()
         EventId eventId() { identity }
+        String type() { "Changed" }
+        int schemaVersion() { 1 }
         Instant occurredAt() { Instant.EPOCH }
     }
 
