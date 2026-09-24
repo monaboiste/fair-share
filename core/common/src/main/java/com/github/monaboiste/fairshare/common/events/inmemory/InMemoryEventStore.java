@@ -7,6 +7,7 @@ import com.github.monaboiste.fairshare.common.events.Event;
 import com.github.monaboiste.fairshare.common.events.EventEnvelope;
 import com.github.monaboiste.fairshare.common.events.EventStore;
 import com.github.monaboiste.fairshare.common.events.EventSubscriptions;
+import com.github.monaboiste.fairshare.common.events.PendingEvent;
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException;
 import com.github.monaboiste.fairshare.common.events.StreamNotFoundException;
 import com.github.monaboiste.fairshare.common.events.VersionConflictException;
@@ -49,7 +50,7 @@ public final class InMemoryEventStore<S, E extends Event>
     }
 
     @Override
-    public synchronized CommitResult<S, E> append(S id, long expectedVersion, List<E> events) {
+    public synchronized CommitResult<S, E> append(S id, long expectedVersion, List<PendingEvent<E>> events) {
         if (delivering) {
             throw new IllegalStateException("Subscribers must not append during delivery");
         }
@@ -58,14 +59,19 @@ public final class InMemoryEventStore<S, E extends Event>
         if (actual != expectedVersion) {
             throw new VersionConflictException(id, expectedVersion, actual);
         }
-        List<E> additions = List.copyOf(events);
+        List<PendingEvent<E>> additions = List.copyOf(events);
         if (additions.isEmpty()) {
             throw new IllegalArgumentException("Append requires events");
         }
         List<EventEnvelope<S, E>> committed = new ArrayList<>();
-        for (E next : additions) {
+        for (PendingEvent<E> next : additions) {
             committed.add(new EventEnvelope<>(
-                    id, actual + committed.size() + 1, allEvents.size() + committed.size() + 1, next));
+                    id,
+                    actual + committed.size() + 1,
+                    allEvents.size() + committed.size() + 1,
+                    next.eventId(),
+                    next.occurredAt(),
+                    next.payload()));
         }
         List<EventEnvelope<S, E>> updated = new ArrayList<>(previous);
         updated.addAll(committed);

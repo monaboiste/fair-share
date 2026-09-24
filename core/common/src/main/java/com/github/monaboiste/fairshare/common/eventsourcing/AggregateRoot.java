@@ -1,13 +1,21 @@
 package com.github.monaboiste.fairshare.common.eventsourcing;
 
 import com.github.monaboiste.fairshare.common.events.Event;
+import com.github.monaboiste.fairshare.common.events.EventId;
+import com.github.monaboiste.fairshare.common.events.PendingEvent;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("squid:S119")
 public abstract class AggregateRoot<ID, E extends Event> {
-    private final List<E> pendingEvents = new ArrayList<>();
+    private final Clock clock;
+    private final List<PendingEvent<E>> pendingEvents = new ArrayList<>();
     private long version;
+
+    protected AggregateRoot(Clock clock) {
+        this.clock = clock;
+    }
 
     public abstract ID id();
 
@@ -15,7 +23,7 @@ public abstract class AggregateRoot<ID, E extends Event> {
 
     protected void register(E event) {
         apply(event);
-        pendingEvents.add(event);
+        pendingEvents.add(new PendingEvent<>(EventId.random(), event, clock.instant()));
         version++;
     }
 
@@ -42,7 +50,7 @@ public abstract class AggregateRoot<ID, E extends Event> {
         return version - pendingEvents.size();
     }
 
-    public List<E> pendingEvents() {
+    public List<PendingEvent<E>> pendingEvents() {
         return List.copyOf(pendingEvents);
     }
 }

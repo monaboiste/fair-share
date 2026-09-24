@@ -1,26 +1,24 @@
 package com.github.monaboiste.fairshare.common.eventsourcing
 
 import com.github.monaboiste.fairshare.common.events.Event
-import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException
 import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 import spock.lang.Specification
 
 class EventSourcedRepositorySpec extends Specification {
     static class Incremented implements Event {
-        private final EventId identity = EventId.random()
-        EventId eventId() { identity }
         String type() { "Incremented" }
         int schemaVersion() { 1 }
-        Instant occurredAt() { Instant.EPOCH }
     }
 
     static class Counter extends AggregateRoot<String, Incremented> {
         private final String key
         int count
-        Counter(String key) { this.key = key }
+        Counter(String key) { super(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)); this.key = key }
         String id() { key }
         void increment() { register(new Incremented()) }
         protected void apply(Incremented change) { count++ }
@@ -44,6 +42,7 @@ class EventSourcedRepositorySpec extends Specification {
         commit.version() == 2
         commit.events()*.sequence() == [1L, 2L]
         commit.events()*.eventId() == decidedIds
+        commit.events()*.occurredAt() == [Instant.EPOCH, Instant.EPOCH]
         loaded.count == 2
         loaded.pendingEvents().empty
         loaded.committedVersion() == 2

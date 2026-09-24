@@ -10,36 +10,27 @@ class EventStoreSpec extends Specification {
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z")
 
     static class Changed implements Event {
-        EventId identity
-        Instant time
-        Changed(Instant time) { this(EventId.random(), time) }
-        Changed(EventId identity, Instant time) { this.identity = identity; this.time = time }
-        EventId eventId() { identity }
         String type() { "Changed" }
         int schemaVersion() { 2 }
-        Instant occurredAt() { time }
     }
 
     static class InvalidType implements Event {
-        private final EventId identity = EventId.random()
         String description
         int version
         InvalidType(String description, int version) { this.description = description; this.version = version }
-        EventId eventId() { identity }
         String type() { description }
         int schemaVersion() { version }
-        Instant occurredAt() { NOW }
     }
 
     def "append assigns ordered stream sequences and global positions without losing metadata"() {
         given:
         def store = new InMemoryEventStore<String, Event>()
-        Event first = new Changed(NOW)
-        Event second = new Changed(NOW)
+        PendingEvent<Event> first = pending(new Changed())
+        PendingEvent<Event> second = pending(new Changed())
 
         when:
         def committed = store.append("one", 0, [first, second])
-        def other = store.append("two", 0, [new Changed(NOW)])
+        def other = store.append("two", 0, [pending(new Changed())])
 
         then:
         committed.version() == 2
@@ -60,13 +51,15 @@ class EventStoreSpec extends Specification {
         given:
         def store = new InMemoryEventStore<String, Event>()
         def identity = EventId.random()
-        def event = new Changed(identity, NOW)
+        def event = new Changed()
+        def decided = new PendingEvent<Event>(identity, event, NOW)
 
         when:
-        def committed = store.append("one", 0, [event])
+        def committed = store.append("one", 0, [decided])
 
         then:
         committed.events().first().eventId() == identity
+        committed.events().first().occurredAt() == NOW
         committed.events().first().payload().is(event)
         store.load("one").first().eventId() == identity
         committed.events().first().type() == event.type()
@@ -92,7 +85,7 @@ class EventStoreSpec extends Specification {
         !store.exists("missing")
 
         when:
-        store.append("missing", 0, [new Changed(NOW), new InvalidType(" ", 1)])
+        store.append("missing", 0, [pending(new Changed()), pending(new InvalidType(" ", 1))])
 
         then:
         thrown(IllegalArgumentException)
@@ -100,7 +93,7 @@ class EventStoreSpec extends Specification {
         store.readAll(0).empty
 
         when:
-        store.append("missing", 0, [new Changed(NOW), new InvalidType("Changed", 0)])
+        store.append("missing", 0, [pending(new Changed()), pending(new InvalidType("Changed", 0))])
 
         then:
         thrown(IllegalArgumentException)
@@ -110,25 +103,25 @@ class EventStoreSpec extends Specification {
 
     def "invalid envelope metadata is rejected"() {
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 0, 1, new Changed(NOW))
+        new EventEnvelope<EventId, Event>(EventId.random(), 0, 1, EventId.random(), NOW, new Changed())
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 1, 0, new Changed(NOW))
+        new EventEnvelope<EventId, Event>(EventId.random(), 1, 0, EventId.random(), NOW, new Changed())
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, new InvalidType(" ", 1))
+        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, EventId.random(), NOW, new InvalidType(" ", 1))
 
         then:
         thrown(IllegalArgumentException)
 
         when:
-        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, new InvalidType("Changed", 0))
+        new EventEnvelope<EventId, Event>(EventId.random(), 1, 1, EventId.random(), NOW, new InvalidType("Changed", 0))
 
         then:
         thrown(IllegalArgumentException)
@@ -142,8 +135,8 @@ class EventStoreSpec extends Specification {
         store.subscribe { events -> deliveries.add("second ${events.first().position()}") }
 
         when:
-        def first = store.append("one", 0, [new Changed(NOW)])
-        def second = store.append("two", 0, [new Changed(NOW)])
+        def first = store.append("one", 0, [pending(new Changed())])
+        def second = store.append("two", 0, [pending(new Changed())])
 
         then:
         deliveries == ["first 1", "second 1", "first 2", "second 2"]
@@ -159,7 +152,7 @@ class EventStoreSpec extends Specification {
         store.subscribe { events -> throw new AssertionError("later subscriber must not run") }
 
         when:
-        store.append("one", 0, [new Changed(NOW)])
+        store.append("one", 0, [pending(new Changed())])
 
         then:
         def failure = thrown(PostCommitPublicationException)
@@ -175,12 +168,12 @@ class EventStoreSpec extends Specification {
         def store = new InMemoryEventStore<String, Event>()
         store.subscribe { events ->
             if (events.first().streamId() == "one") {
-                store.append("two", 0, [new Changed(NOW)])
+                store.append("two", 0, [pending(new Changed())])
             }
         }
 
         when:
-        store.append("one", 0, [new Changed(NOW)])
+        store.append("one", 0, [pending(new Changed())])
 
         then:
         def failure = thrown(PostCommitPublicationException)
@@ -208,14 +201,14 @@ class EventStoreSpec extends Specification {
         }
         Thread first = Thread.ofPlatform().unstarted({
             try {
-                store.append("one", 0, [new Changed(NOW)])
+                store.append("one", 0, [pending(new Changed())])
             } catch (Throwable failure) {
                 failures.add(failure)
             }
         } as Runnable)
         Thread second = Thread.ofPlatform().unstarted({
             try {
-                store.append("two", 0, [new Changed(NOW)])
+                store.append("two", 0, [pending(new Changed())])
             } catch (Throwable failure) {
                 failures.add(failure)
             }
@@ -248,10 +241,10 @@ class EventStoreSpec extends Specification {
     def "conflicting batch leaves existing stream unchanged"() {
         given:
         def store = new InMemoryEventStore<String, Event>()
-        store.append("one", 0, [new Changed(NOW)])
+        store.append("one", 0, [pending(new Changed())])
 
         when:
-        store.append("one", 0, [new Changed(NOW)])
+        store.append("one", 0, [pending(new Changed())])
 
         then:
         def conflict = thrown(VersionConflictException)
@@ -260,6 +253,10 @@ class EventStoreSpec extends Specification {
         conflict.actualVersion() == 1
         store.load("one").size() == 1
         store.readAll(0).size() == 1
+    }
+
+    private static PendingEvent<Event> pending(Event event) {
+        new PendingEvent<Event>(EventId.random(), event, NOW)
     }
 
     private static boolean awaitsAppendLock(Thread writer) {

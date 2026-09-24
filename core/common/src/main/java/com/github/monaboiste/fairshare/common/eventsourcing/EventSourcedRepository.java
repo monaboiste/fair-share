@@ -4,6 +4,7 @@ import com.github.monaboiste.fairshare.common.events.CommitResult;
 import com.github.monaboiste.fairshare.common.events.Event;
 import com.github.monaboiste.fairshare.common.events.EventEnvelope;
 import com.github.monaboiste.fairshare.common.events.EventStore;
+import com.github.monaboiste.fairshare.common.events.PendingEvent;
 import com.github.monaboiste.fairshare.common.events.PostCommitPublicationException;
 import java.util.List;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public class EventSourcedRepository<ID, E extends Event, A extends AggregateRoot
     }
 
     public CommitResult<ID, E> save(A aggregate) {
-        List<E> pending = aggregate.pendingEvents();
+        List<PendingEvent<E>> pending = aggregate.pendingEvents();
         if (pending.isEmpty()) {
             return new CommitResult<>(List.of(), aggregate.committedVersion());
         }
