@@ -18,7 +18,8 @@ qodana {
 }
 
 tasks.named("qodanaScan") {
-    mustRunAfter(tasks.named("check"))
+    mustRunAfter(subprojects.collect { it.tasks })
+    mustRunAfter(tasks.matching { !(it.name in ["qodanaScan", "scan"]) })
 
     arguments = [
             "--linter", "qodana-jvm-community",
