@@ -1,6 +1,10 @@
 ---
 name: feature
-description: Orchestrate issue-driven feature implementation in this repository using interactive planning, bounded Herdr scouts, Matt Pocock's domain-modeling/TDD disciplines, GPT-6 Sol implementation, and independent Standards + Spec review. Use when implementing a GitHub issue, feature request, or other bounded change that should be planned with the user before autonomous implementation.
+description: > 
+  Orchestrate issue-driven feature implementation in this repository using interactive planning, 
+  bounded Herdr scouts, domain-modeling/TDD disciplines, and independent Standards + Spec review. 
+  Use when implementing an issue, feature request, or other bounded change that should be 
+  planned with the user before autonomous implementation.
 ---
 
 # Feature workflow
