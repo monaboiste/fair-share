@@ -39,7 +39,7 @@ final class Participant {
         status = ParticipantStatus.REMOVED;
     }
 
-    enum ParticipantStatus {
+    private enum ParticipantStatus {
         ACTIVE,
         REMOVED
     }
