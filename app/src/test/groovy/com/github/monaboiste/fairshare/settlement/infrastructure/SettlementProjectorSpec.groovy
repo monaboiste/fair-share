@@ -25,7 +25,7 @@ class SettlementProjectorSpec extends Specification {
         projector.accept([opened(ID), opened(ID), renamed(ID, 2, "Mountains")])
 
         then:
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2))
+        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2, []))
     }
 
     def "a batch containing a gap does not partially update any view"() {
@@ -46,9 +46,9 @@ class SettlementProjectorSpec extends Specification {
         projector.accept([renamed(ID, 2, "Mountains"), opened(OTHER), renamed(OTHER, 2, "Forest")])
 
         then:
-        projector.findById(untouched) == Optional.of(new SettlementView(untouched, "Holiday", EUR, 1))
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2))
-        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Forest", EUR, 2))
+        projector.findById(untouched) == Optional.of(new SettlementView(untouched, "Holiday", EUR, 1, []))
+        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2, []))
+        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Forest", EUR, 2, []))
     }
 
     def "rebuild replaces existing views with globally ordered history"() {
@@ -64,8 +64,8 @@ class SettlementProjectorSpec extends Specification {
         projector.rebuild(store)
 
         then:
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2))
-        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Other", EUR, 1))
+        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2, []))
+        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Other", EUR, 1, []))
         projector.findById(stale).empty
     }
 

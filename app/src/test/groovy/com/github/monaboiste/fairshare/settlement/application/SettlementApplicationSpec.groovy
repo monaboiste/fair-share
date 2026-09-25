@@ -24,7 +24,7 @@ class SettlementApplicationSpec extends Specification {
         then:
         opened.getSuccess().version() == 1
         renamed.getSuccess().version() == 2
-        view.getSuccess() == new SettlementView(id, "Mountains", configuration.EUR, 2)
+        view.getSuccess() == new SettlementView(id, "Mountains", configuration.EUR, 2, [])
         history.getSuccess()*.sequence() == [1L, 2L]
     }
 

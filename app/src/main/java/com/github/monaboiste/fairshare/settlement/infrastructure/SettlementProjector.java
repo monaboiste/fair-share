@@ -3,12 +3,17 @@ package com.github.monaboiste.fairshare.settlement.infrastructure;
 import com.github.monaboiste.fairshare.common.events.AllEventsReader;
 import com.github.monaboiste.fairshare.common.events.CommittedEventsListener;
 import com.github.monaboiste.fairshare.common.events.EventEnvelope;
+import com.github.monaboiste.fairshare.settlement.application.query.ParticipantView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementViews;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
+import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
+import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
+import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,13 +52,63 @@ public final class SettlementProjector
                             if (previous != null) {
                                 throw new IllegalStateException("Settlement already projected");
                             }
-                            yield new SettlementView(event.streamId(), name, currency, event.sequence());
+                            yield new SettlementView(event.streamId(), name, currency, event.sequence(), List.of());
                         }
                         case SettlementRenamed(var name) -> {
                             if (previous == null) {
                                 throw new IllegalStateException("Settlement opening missing");
                             }
-                            yield new SettlementView(event.streamId(), name, previous.currency(), event.sequence());
+                            yield new SettlementView(
+                                    event.streamId(),
+                                    name,
+                                    previous.currency(),
+                                    event.sequence(),
+                                    previous.participants());
+                        }
+                        case ParticipantAdded(var participantId, var name) -> {
+                            if (previous == null
+                                    || previous.participants().stream().anyMatch(p -> p.id().equals(participantId))) {
+                                throw new IllegalStateException("Invalid Participant addition");
+                            }
+                            List<ParticipantView> participants = new ArrayList<>(previous.participants());
+                            participants.add(new ParticipantView(participantId, name));
+                            yield new SettlementView(
+                                    event.streamId(),
+                                    previous.name(),
+                                    previous.currency(),
+                                    event.sequence(),
+                                    List.copyOf(participants));
+                        }
+                        case ParticipantRenamed(var participantId, var name) -> {
+                            if (previous == null
+                                    || previous.participants().stream().noneMatch(p -> p.id().equals(participantId))) {
+                                throw new IllegalStateException("Participant missing for rename");
+                            }
+                            List<ParticipantView> participants = previous.participants().stream()
+                                    .map(p ->
+                                            p.id().equals(participantId) ? new ParticipantView(participantId, name) : p)
+                                    .toList();
+                            yield new SettlementView(
+                                    event.streamId(),
+                                    previous.name(),
+                                    previous.currency(),
+                                    event.sequence(),
+                                    participants);
+                        }
+                        case ParticipantRemoved(var participantId) -> {
+                            if (previous == null
+                                    || previous.participants().stream().noneMatch(p -> p.id().equals(participantId))) {
+                                throw new IllegalStateException("Participant missing for removal");
+                            }
+                            List<ParticipantView> participants = previous.participants().stream()
+                                    .filter(p -> !p.id().equals(participantId))
+                                    .toList();
+                            yield new SettlementView(
+                                    event.streamId(),
+                                    previous.name(),
+                                    previous.currency(),
+                                    event.sequence(),
+                                    participants);
                         }
                     };
             staged.put(event.streamId(), next);

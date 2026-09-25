@@ -3,10 +3,16 @@ package com.github.monaboiste.fairshare.settlement.application
 import com.github.monaboiste.fairshare.common.commands.RegisteredCommandDispatcher
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
+import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
+import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant
+import com.github.monaboiste.fairshare.settlement.application.command.RenameParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementCommand
+import com.github.monaboiste.fairshare.settlement.application.command.handler.AddParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.RemoveParticipantHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
@@ -37,11 +43,17 @@ class SettlementTestConfiguration {
     final SettlementRepository repository = new EventSourcedSettlementRepository(store, CLOCK)
     final OpenSettlementHandler openHandler = new OpenSettlementHandler(repository, CLOCK)
     final RenameSettlementHandler renameHandler = new RenameSettlementHandler(repository)
+    final AddParticipantHandler addHandler = new AddParticipantHandler(repository)
+    final RenameParticipantHandler renameParticipantHandler = new RenameParticipantHandler(repository)
+    final RemoveParticipantHandler removeParticipantHandler = new RemoveParticipantHandler(repository)
     final GetSettlementHandler viewHandler = new GetSettlementHandler(projector)
     final GetSettlementHistoryHandler historyHandler = new GetSettlementHistoryHandler(store)
     final RegisteredCommandDispatcher commands = RegisteredCommandDispatcher.builder()
         .register(OpenSettlement, openHandler)
         .register(RenameSettlement, renameHandler)
+        .register(AddParticipant, addHandler)
+        .register(RenameParticipant, renameParticipantHandler)
+        .register(RemoveParticipant, removeParticipantHandler)
         .requireHandlersFor(SettlementCommand).build()
     final RegisteredQueryDispatcher queries = RegisteredQueryDispatcher.builder()
         .register(GetSettlement, viewHandler)
