@@ -25,8 +25,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private final SettlementId id;
     private @Nullable String name;
     private @Nullable CurrencyUnit currency;
-    private final Map<ParticipantId, String> originalNames = new HashMap<>();
-    private final Map<ParticipantId, String> activeNames = new HashMap<>();
+    private final Map<ParticipantId, Participant> participants = new HashMap<>();
 
     private Settlement(SettlementId id, Clock clock) {
         super(clock);
@@ -51,9 +50,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
 
     public Result<ParticipantIdentifierConflict, ParticipantId> addParticipant(
             ParticipantId participantId, ParticipantName name) {
-        String original = originalNames.get(participantId);
-        if (original != null) {
-            return original.equals(name.value())
+        Participant participant = participants.get(participantId);
+        if (participant != null) {
+            return participant.isAddedAs(name)
                     ? Result.success(participantId)
                     : Result.failure(new ParticipantIdentifierConflict(id, participantId));
         }
@@ -63,18 +62,19 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
 
     public Result<ParticipantNotFound, ParticipantId> renameParticipant(
             ParticipantId participantId, ParticipantName name) {
-        String current = activeNames.get(participantId);
-        if (current == null) {
+        Participant participant = participants.get(participantId);
+        if (participant == null || !participant.isActive()) {
             return Result.failure(new ParticipantNotFound(id, participantId));
         }
-        if (!current.equals(name.value())) {
+        if (!participant.isNamed(name)) {
             register(new ParticipantRenamed(participantId, name.value()));
         }
         return Result.success(participantId);
     }
 
     public Result<ParticipantNotFound, ParticipantId> removeParticipant(ParticipantId participantId) {
-        if (!activeNames.containsKey(participantId)) {
+        Participant participant = participants.get(participantId);
+        if (participant == null || !participant.isActive()) {
             return Result.failure(new ParticipantNotFound(id, participantId));
         }
         register(new ParticipantRemoved(participantId));
@@ -97,22 +97,22 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 currency = openedCurrency;
             }
             case ParticipantAdded(var participantId, var participantName) -> {
-                if (currency == null || originalNames.containsKey(participantId)) {
+                if (currency == null || participants.containsKey(participantId)) {
                     throw new IllegalStateException("Invalid Participant addition");
                 }
-                originalNames.put(participantId, participantName);
-                activeNames.put(participantId, participantName);
+                participants.put(participantId, new Participant(participantId, participantName));
             }
             case ParticipantRenamed(var participantId, var participantName) -> {
-                if (currency == null || !activeNames.containsKey(participantId)) {
+                if (currency == null || !participants.containsKey(participantId)) {
                     throw new IllegalStateException("Participant missing for rename");
                 }
-                activeNames.put(participantId, participantName);
+                participants.get(participantId).rename(participantName);
             }
             case ParticipantRemoved(var participantId) -> {
-                if (currency == null || activeNames.remove(participantId) == null) {
+                if (currency == null || !participants.containsKey(participantId)) {
                     throw new IllegalStateException("Participant missing for removal");
                 }
+                participants.get(participantId).remove();
             }
             case SettlementRenamed(var newName) -> {
                 if (currency == null) {

@@ -189,6 +189,25 @@ class SettlementSpec extends Specification {
         invalid << [new ParticipantRenamed(PARTICIPANT, "Ada"), new ParticipantRemoved(PARTICIPANT)]
     }
 
+    def "a removed Participant cannot be changed by a later event"() {
+        given:
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, CLOCK)
+        store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
+            pending(EventId.random(), new ParticipantAdded(PARTICIPANT, "Alex")),
+            pending(EventId.random(), new ParticipantRemoved(PARTICIPANT)),
+            pending(RENAMED_ID, laterEvent)])
+
+        when:
+        repository.findById(ID)
+
+        then:
+        thrown(IllegalStateException)
+
+        where:
+        laterEvent << [new ParticipantRenamed(PARTICIPANT, "Ada"), new ParticipantRemoved(PARTICIPANT)]
+    }
+
     private static PendingEvent<SettlementEvent> pending(EventId id, SettlementEvent payload) {
         new PendingEvent<SettlementEvent>(id, payload, NOW)
     }
