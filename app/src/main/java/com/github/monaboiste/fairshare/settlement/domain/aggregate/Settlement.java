@@ -100,7 +100,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 if (currency == null || participants.containsKey(participantId)) {
                     throw new IllegalStateException("Invalid Participant addition");
                 }
-                participants.put(participantId, new Participant(participantId, participantName));
+                participants.put(participantId, new Participant(participantName));
             }
             case ParticipantRenamed(var participantId, var participantName) -> {
                 if (currency == null || !participants.containsKey(participantId)) {

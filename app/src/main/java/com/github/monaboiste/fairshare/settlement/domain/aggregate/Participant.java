@@ -1,18 +1,13 @@
 package com.github.monaboiste.fairshare.settlement.domain.aggregate;
 
-import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName;
 
 final class Participant {
-    @SuppressWarnings("UnusedVariable")
-    private final ParticipantId id;
-
     private final String addedName;
     private String name;
     private ParticipantStatus status;
 
-    Participant(ParticipantId id, String addedName) {
-        this.id = id;
+    Participant(String addedName) {
         this.addedName = addedName;
         name = addedName;
         status = ParticipantStatus.ACTIVE;
