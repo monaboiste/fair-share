@@ -9,7 +9,8 @@ transfers.
 Expenses, Repayments, and lifecycle. _Avoid_: Group, trip, event
 
 **Participant**: A person included in a Settlement who can pay an Expense, receive a Share, or make a Repayment.
-Identity is independent of the Participant's non-unique display name. _Avoid_: User, member, friend
+Identity is independent of the Participant's non-unique display name. A Participant identifier is permanently bound to
+its original add data and is never reused or reactivated. _Avoid_: User, member, friend
 
 **Expense**: A described outlay incurred on a specified date, paid by exactly one Participant, and allocated among one
 or more Participants. The payer does not need to receive a Share. _Avoid_: Payment, transaction, bill
