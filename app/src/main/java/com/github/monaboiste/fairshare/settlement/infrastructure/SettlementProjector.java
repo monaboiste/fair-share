@@ -6,6 +6,7 @@ import com.github.monaboiste.fairshare.common.events.EventEnvelope;
 import com.github.monaboiste.fairshare.settlement.application.query.ParticipantView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementViews;
+import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
@@ -15,29 +16,33 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public final class SettlementProjector
         implements SettlementViews, CommittedEventsListener<SettlementId, SettlementEvent> {
-    private Map<SettlementId, SettlementView> views = new HashMap<>();
+    private Map<SettlementId, Projection> projections = new HashMap<>();
 
     public synchronized void rebuild(AllEventsReader<SettlementId, SettlementEvent> events) {
-        views = project(new HashMap<>(), events.readAll(0));
+        projections = project(new HashMap<>(), events.readAll(0));
     }
 
     @Override
     public synchronized void accept(List<EventEnvelope<SettlementId, SettlementEvent>> events) {
-        project(views, events);
+        project(projections, events);
     }
 
-    private Map<SettlementId, SettlementView> project(
-            Map<SettlementId, SettlementView> current, List<EventEnvelope<SettlementId, SettlementEvent>> events) {
-        Map<SettlementId, SettlementView> staged = new HashMap<>();
+    private Map<SettlementId, Projection> project(
+            Map<SettlementId, Projection> current, List<EventEnvelope<SettlementId, SettlementEvent>> events) {
+        Map<SettlementId, Projection> staged = new HashMap<>();
         for (EventEnvelope<SettlementId, SettlementEvent> event : events) {
-            SettlementView previous =
+            Projection projection =
                     staged.containsKey(event.streamId()) ? staged.get(event.streamId()) : current.get(event.streamId());
+            SettlementView previous = projection == null ? null : projection.view();
+            Set<ParticipantId> retired = projection == null ? Set.of() : projection.retiredParticipantIds();
             long version = previous == null ? 0 : previous.version();
             if (event.sequence() <= version) {
                 continue;
@@ -67,6 +72,7 @@ public final class SettlementProjector
                         }
                         case ParticipantAdded(var participantId, var name) -> {
                             if (previous == null
+                                    || retired.contains(participantId)
                                     || previous.participants().stream().anyMatch(p -> p.id().equals(participantId))) {
                                 throw new IllegalStateException("Invalid Participant addition");
                             }
@@ -111,7 +117,13 @@ public final class SettlementProjector
                                     participants);
                         }
                     };
-            staged.put(event.streamId(), next);
+            Set<ParticipantId> nextRetired = retired;
+            if (event.payload() instanceof ParticipantRemoved(var removedId)) {
+                Set<ParticipantId> withRemoved = new HashSet<>(retired);
+                withRemoved.add(removedId);
+                nextRetired = Set.copyOf(withRemoved);
+            }
+            staged.put(event.streamId(), new Projection(next, nextRetired));
         }
         current.putAll(staged);
         return current;
@@ -119,6 +131,8 @@ public final class SettlementProjector
 
     @Override
     public synchronized Optional<SettlementView> findById(SettlementId id) {
-        return Optional.ofNullable(views.get(id));
+        return Optional.ofNullable(projections.get(id)).map(Projection::view);
     }
+
+    private record Projection(SettlementView view, Set<ParticipantId> retiredParticipantIds) {}
 }
