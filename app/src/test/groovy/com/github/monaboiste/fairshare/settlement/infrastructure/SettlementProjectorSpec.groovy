@@ -9,6 +9,7 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved
+import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
@@ -40,6 +41,35 @@ class SettlementProjectorSpec extends Specification {
         then:
         thrown(IllegalStateException)
         projector.findById(ID).empty
+    }
+
+    def "a gap in an opened Settlement is rejected"() {
+        given:
+        projector.accept([opened(ID)])
+
+        when:
+        projector.accept([renamed(ID, 3, "Skipped")])
+
+        then:
+        thrown(IllegalStateException)
+        projector.findById(ID) == Optional.of(new SettlementView(ID, "Holiday", EUR, 1, []))
+    }
+
+    def "a missing Participant cannot be #change"() {
+        given:
+        projector.accept([opened(ID)])
+
+        when:
+        projector.accept([event(ID, 2, payload)])
+
+        then:
+        thrown(IllegalStateException)
+        projector.findById(ID) == Optional.of(new SettlementView(ID, "Holiday", EUR, 1, []))
+
+        where:
+        change    | payload
+        "renamed" | new ParticipantRenamed(PARTICIPANT, "Sam")
+        "removed" | new ParticipantRemoved(PARTICIPANT)
     }
 
     def "batch stages touched streams while preserving untouched views"() {
