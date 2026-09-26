@@ -164,50 +164,69 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     @Override
     protected void apply(SettlementEvent event) {
         switch (event) {
-            case ExpenseRecorded recorded -> {
-                if (currency == null
-                        || expenses.containsKey(recorded.expenseId())
-                        || !active(recorded.payer())
-                        || recorded.allocation().recipients().stream().anyMatch(recipient -> !active(recipient))) {
-                    throw new IllegalStateException("Invalid Expense recording");
-                }
-                expenses.put(recorded.expenseId(), recorded);
-            }
-            case SettlementOpened(var openedName, var openedCurrency) -> {
-                if (currency != null) {
-                    throw new IllegalStateException("Settlement already opened");
-                }
-                name = openedName;
-                currency = openedCurrency;
-            }
-            case ParticipantAdded(var participantId, var participantName) -> {
-                if (currency == null || participants.containsKey(participantId)) {
-                    throw new IllegalStateException("Invalid Participant addition");
-                }
-                participants.put(participantId, new Participant(participantName));
-            }
-            case ParticipantRenamed(var participantId, var participantName) -> {
-                if (currency == null || !participants.containsKey(participantId)) {
-                    throw new IllegalStateException("Participant missing for rename");
-                }
-                participants.get(participantId).rename(participantName);
-            }
-            case ParticipantRemoved(var participantId) -> {
-                if (currency == null
-                        || !active(participantId)
-                        || expenses.values().stream()
-                                .anyMatch(expense -> expense.payer().equals(participantId)
-                                        || expense.allocation().recipients().contains(participantId))) {
-                    throw new IllegalStateException("Participant missing or referenced for removal");
-                }
-                participants.get(participantId).remove();
-            }
-            case SettlementRenamed(var newName) -> {
-                if (currency == null) {
-                    throw new IllegalStateException("Settlement opening missing");
-                }
-                name = newName;
-            }
+            case ExpenseRecorded recorded -> applyExpenseRecorded(recorded);
+            case SettlementOpened(var openedName, var openedCurrency) ->
+                applySettlementOpened(openedName, openedCurrency);
+            case ParticipantAdded(var participantId, var participantName) ->
+                applyParticipantAdded(participantId, participantName);
+            case ParticipantRenamed(var participantId, var participantName) ->
+                applyParticipantRenamed(participantId, participantName);
+            case ParticipantRemoved(var participantId) -> applyParticipantRemoved(participantId);
+            case SettlementRenamed(var newName) -> applySettlementRenamed(newName);
         }
+    }
+
+    private void applySettlementRenamed(String newName) {
+        if (currency == null) {
+            throw new IllegalStateException("Settlement opening missing");
+        }
+        name = newName;
+    }
+
+    private void applyParticipantRemoved(ParticipantId participantId) {
+        if (currency == null
+                || !active(participantId)
+                || expenses.values().stream()
+                        .anyMatch(expense -> expense.payer().equals(participantId)
+                                || expense.allocation().recipients().contains(participantId))) {
+            throw new IllegalStateException("Participant missing or referenced for removal");
+        }
+        participants.get(participantId).remove();
+    }
+
+    private void applyParticipantRenamed(ParticipantId participantId, String participantName) {
+        if (currency == null || !participants.containsKey(participantId)) {
+            throw new IllegalStateException("Participant missing for rename");
+        }
+        participants.get(participantId).rename(participantName);
+    }
+
+    private void applyParticipantAdded(ParticipantId participantId, String participantName) {
+        if (currency == null || participants.containsKey(participantId)) {
+            throw new IllegalStateException("Invalid Participant addition");
+        }
+        participants.put(participantId, new Participant(participantName));
+    }
+
+    private void applySettlementOpened(String openedName, CurrencyUnit openedCurrency) {
+        if (currency != null) {
+            throw new IllegalStateException("Settlement already opened");
+        }
+        name = openedName;
+        currency = openedCurrency;
+    }
+
+    private void applyExpenseRecorded(ExpenseRecorded recorded) {
+        if (currency == null
+                || expenses.containsKey(recorded.expenseId())
+                || !active(recorded.payer())
+                || anyRecipientInactive(recorded)) {
+            throw new IllegalStateException("Invalid Expense recording");
+        }
+        expenses.put(recorded.expenseId(), recorded);
+    }
+
+    private boolean anyRecipientInactive(ExpenseRecorded recorded) {
+        return recorded.allocation().recipients().stream().anyMatch(recipient -> !active(recipient));
     }
 }

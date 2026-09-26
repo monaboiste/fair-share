@@ -52,8 +52,8 @@ public record EqualShareAllocation(SequencedSet<ParticipantId> recipients) imple
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof EqualShareAllocation allocation
-                && List.copyOf(recipients).equals(List.copyOf(allocation.recipients));
+        return other instanceof EqualShareAllocation(SequencedSet<ParticipantId> otherRecipients)
+                && List.copyOf(recipients).equals(List.copyOf(otherRecipients));
     }
 
     @Override
