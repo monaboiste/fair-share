@@ -1,6 +1,8 @@
 package com.github.monaboiste.fairshare.netting
 
+import com.github.monaboiste.fairshare.pricing.component.Validity
 import com.github.monaboiste.fairshare.quantity.money.Money
+import java.time.LocalDateTime
 import javax.money.CurrencyUnit
 import javax.money.Monetary
 import spock.lang.Specification
@@ -28,6 +30,31 @@ class ObligationsSpec extends Specification {
 
         then:
         obligations.obligations() == [owed]
+    }
+
+    def "current signed balances include uninvolved participants"() {
+        given:
+        def obligations = Obligations.of(["ada", "bob", "cal"] as Set,
+            [Obligation.of("ada", "bob", Money.of(10, "PLN"))], PLN)
+
+        when:
+        def balances = obligations.signedBalances()
+
+        then:
+        balances == ["ada": Money.of(-10, "PLN"), "bob": Money.of(10, "PLN"), "cal": Money.zero("PLN")]
+    }
+
+    def "time-specific signed balances respect obligation validity"() {
+        given:
+        def start = LocalDateTime.of(2025, 1, 1, 0, 0)
+        def end = LocalDateTime.of(2025, 12, 31, 0, 0)
+        def obligations = Obligations.of(["ada", "bob"] as Set,
+            [new Obligation<>("ada", "bob", Money.of(10, "PLN"), Validity.between(start, end))], PLN)
+
+        expect:
+        obligations.signedBalances(start.minusDays(1)) == ["ada": Money.zero("PLN"), "bob": Money.zero("PLN")]
+        obligations.signedBalances(start.plusDays(1)) ==
+            ["ada": Money.of(-10, "PLN"), "bob": Money.of(10, "PLN")]
     }
 
     def "rejects obligations in mixed currencies"() {

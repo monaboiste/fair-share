@@ -61,6 +61,12 @@ public final class Obligations<P> {
         return graph.edges().stream().map(Edge::property).toList();
     }
 
+    /** Signed balances at the current local date and time, including zero-balance participants. */
+    public Map<P, Money> signedBalances() {
+        return signedBalances(LocalDateTime.now());
+    }
+
+    /** Signed balances at the specified time, including zero-balance participants. */
     public Map<P, Money> signedBalances(LocalDateTime asOf) {
         return Balances.of(this, asOf).amounts();
     }

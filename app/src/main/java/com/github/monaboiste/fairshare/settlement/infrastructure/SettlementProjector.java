@@ -20,7 +20,6 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRename
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -181,7 +180,7 @@ public final class SettlementProjector
         Set<ParticipantId> roster = new HashSet<>();
         participants.forEach(participant -> roster.add(participant.id()));
         Map<ParticipantId, Money> computed =
-                Obligations.of(roster, obligations, previous.currency()).signedBalances(LocalDateTime.MAX);
+                Obligations.of(roster, obligations, previous.currency()).signedBalances();
         Map<ParticipantId, Money> ordered = new LinkedHashMap<>();
         participants.forEach(participant -> ordered.put(participant.id(), computed.get(participant.id())));
         return new SettlementView(

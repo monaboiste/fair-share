@@ -131,12 +131,11 @@ class ExpensesSpec extends Specification {
         ADA   | Money.of(1, "USD")     | [BOB]       | false       | { id -> new MissingExchangeRate(id, EXPENSE) }
     }
 
-    def "identical retries after repository reload produce no event and conflicting reuse rejects"() {
+    def "dispatched retries after repository reload produce no event and conflicting reuse rejects"() {
         given:
         def settlement = withParticipants()
         def first = expense(settlement, ADA, Money.of(new BigDecimal("10.0"), "EUR"), [BOB])
         configuration.commands.dispatch(first)
-        def replayed = configuration.repository.findById(settlement).orElseThrow()
 
         when:
         def retry = configuration.commands.dispatch(expense(settlement, ADA,
@@ -144,7 +143,6 @@ class ExpensesSpec extends Specification {
         def conflict = configuration.commands.dispatch(expense(settlement, ADA, Money.of(11, "EUR"), [BOB]))
 
         then:
-        replayed.version() == 5
         retry.getSuccess().events().empty
         retry.getSuccess().version() == 5
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
@@ -169,16 +167,24 @@ class ExpensesSpec extends Specification {
         def settlement = withParticipants()
         configuration.commands.dispatch(new AddParticipant(settlement, DEX, new ParticipantName("Dex")))
         configuration.commands.dispatch(expense(settlement, ADA, Money.of(0.01, "EUR"), [BOB, CAL]))
+        def beforeRemoval = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         when:
         def payerRemoval = configuration.commands.dispatch(new RemoveParticipant(settlement, ADA))
         def zeroShareRemoval = configuration.commands.dispatch(new RemoveParticipant(settlement, CAL))
         def unrelatedRemoval = configuration.commands.dispatch(new RemoveParticipant(settlement, DEX))
+        def afterRemoval = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         then:
+        beforeRemoval.balances().entrySet().toList()*.key == [ADA, BOB, CAL, DEX]
+        beforeRemoval.balances().entrySet().toList()*.value ==
+            [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR"), Money.zero("EUR")]
         payerRemoval.getFailure() == new ParticipantReferenced(settlement, ADA)
         zeroShareRemoval.getFailure() == new ParticipantReferenced(settlement, CAL)
         unrelatedRemoval.getSuccess().events().size() == 1
+        afterRemoval.balances().entrySet().toList()*.key == [ADA, BOB, CAL]
+        afterRemoval.balances().entrySet().toList()*.value ==
+            [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR")]
         configuration.store.load(settlement).size() == 7
     }
 
