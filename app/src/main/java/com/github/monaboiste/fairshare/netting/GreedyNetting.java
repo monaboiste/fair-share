@@ -1,7 +1,6 @@
 package com.github.monaboiste.fairshare.netting;
 
 import com.github.monaboiste.fairshare.quantity.money.Money;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -18,9 +17,8 @@ import java.util.PriorityQueue;
 final class GreedyNetting implements Netting {
 
     @Override
-    public <P> ProposedRepayments<P> net(
-            Obligations<P> obligations, ParticipantComparator<? super P> order, LocalDateTime asOf) {
-        Balances<P> balances = Balances.of(obligations, asOf);
+    public <P> ProposedRepayments<P> net(Obligations<P> obligations, ParticipantComparator<? super P> order) {
+        Balances<P> balances = Balances.of(obligations);
         List<ProposedRepayment<P>> repayments = match(balances, order);
         return ProposedRepayments.of(obligations.participants(), repayments, obligations.currency());
     }

@@ -221,7 +221,7 @@ public final class SettlementProjector
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
         for (Share share : recorded.shares()) {
             if (!share.participantId().equals(recorded.payer())) {
-                obligations.add(Obligation.of(share.participantId(), recorded.payer(), share.amount()));
+                obligations.add(new Obligation<>(share.participantId(), recorded.payer(), share.amount()));
             }
         }
         return new Projection(

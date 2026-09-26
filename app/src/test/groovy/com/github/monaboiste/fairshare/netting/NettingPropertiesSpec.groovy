@@ -1,8 +1,6 @@
 package com.github.monaboiste.fairshare.netting
 
-import com.github.monaboiste.fairshare.pricing.component.Validity
 import com.github.monaboiste.fairshare.quantity.money.Money
-import java.time.LocalDateTime
 import javax.money.CurrencyUnit
 import javax.money.Monetary
 import spock.lang.Specification
@@ -10,7 +8,6 @@ import spock.lang.Specification
 class NettingPropertiesSpec extends Specification {
 
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
-    private static final LocalDateTime BASE = LocalDateTime.of(2025, 1, 1, 0, 0)
     private static final ParticipantComparator<String> ORDER = { a, b -> a <=> b } as ParticipantComparator<String>
 
     private final Netting netting = Netting.greedy()
@@ -35,21 +32,20 @@ class NettingPropertiesSpec extends Specification {
     private Map<String, Boolean> netOneRandomGraph(Random random) {
         int people = 2 + random.nextInt(5)
         List<String> participants = (0..<people).collect { "p" + it }
-        LocalDateTime asOf = BASE.plusDays(random.nextInt(365))
 
         List<Obligation<String>> obligations = []
         random.nextInt(3 * people + 1).times {
             String from = participants[random.nextInt(people)]
             String to = participants[random.nextInt(people)]
             Money amount = Money.of(1 + random.nextInt(100), "PLN")
-            obligations << new Obligation<>(from, to, amount, randomValidity(random, asOf))
+            obligations << new Obligation<>(from, to, amount)
         }
         Obligations<String> graph = Obligations.of(participants as Set, obligations, PLN)
 
-        ProposedRepayments<String> proposal = netting.net(graph, ORDER, asOf)
+        ProposedRepayments<String> proposal = netting.net(graph, ORDER)
 
         Map<String, Money> expected = balances(participants) { balance ->
-            obligations.findAll { it.validity().isValidAt(asOf) }.each { obligation ->
+            obligations.each { obligation ->
                 balance[obligation.from()] = balance[obligation.from()].subtract(obligation.amount())
                 balance[obligation.to()] = balance[obligation.to()].add(obligation.amount())
             }
@@ -67,17 +63,6 @@ class NettingPropertiesSpec extends Specification {
             acyclic: acyclic(proposal),
             withinEdgeBound: proposal.proposedRepayments().size() <= Math.max(0, unbalanced - 1)
         ]
-    }
-
-    private static Validity randomValidity(Random random, LocalDateTime asOf) {
-        switch (random.nextInt(3)) {
-            case 0:
-                return Validity.always()
-            case 1:
-                return Validity.between(asOf.minusDays(1), asOf.plusDays(1))
-            default:
-                return Validity.between(asOf.plusDays(5), asOf.plusDays(10))
-        }
     }
 
     private static Map<String, Money> balances(List<String> participants, Closure<?> accumulate) {

@@ -3,9 +3,7 @@ package com.github.monaboiste.fairshare.netting;
 import com.github.monaboiste.fairshare.graphs.Edge;
 import com.github.monaboiste.fairshare.graphs.Graph;
 import com.github.monaboiste.fairshare.graphs.Node;
-import com.github.monaboiste.fairshare.pricing.component.Validity;
 import com.github.monaboiste.fairshare.quantity.money.Money;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,20 +61,12 @@ public final class Obligations<P> {
     }
 
     /**
-     * Time-independent signed balances including zero-balance participants, only when every obligation is always valid.
+     * Signed balances including zero-balance participants, when every obligation is in the settlement currency.
      *
-     * @throws IllegalStateException if any obligation has bounded validity
+     * @return a map from every participant to its signed balance in the settlement currency
      */
     public Map<P, Money> signedBalances() {
-        if (obligations().stream().anyMatch(obligation -> !Validity.always().equals(obligation.validity()))) {
-            throw new IllegalStateException("Time-specific obligations require an as-of time");
-        }
-        return Balances.timeless(this).amounts();
-    }
-
-    /** Signed balances at the specified time, including zero-balance participants. */
-    public Map<P, Money> signedBalances(LocalDateTime asOf) {
-        return Balances.of(this, asOf).amounts();
+        return Balances.of(this).amounts();
     }
 
     public CurrencyUnit currency() {
