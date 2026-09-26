@@ -174,8 +174,8 @@ class GreedyNettingSpec extends Specification {
         CurrencyUnit currency = Monetary.getCurrency(currencyCode)
         Obligations<String> obligations = Obligations.of(
                 ["ada", "bob", "cid"] as Set,
-                [Obligation.of("ada", "bob", Money.of(new BigDecimal(owed), currencyCode)),
-                 Obligation.of("bob", "cid", Money.of(new BigDecimal(owed), currencyCode))],
+                [new Obligation<>("ada", "bob", Money.of(new BigDecimal(owed), currencyCode)),
+                 new Obligation<>("bob", "cid", Money.of(new BigDecimal(owed), currencyCode))],
                 currency)
 
         when:
@@ -196,7 +196,7 @@ class GreedyNettingSpec extends Specification {
         given:
         Obligations<Integer> obligations = Obligations.of(
                 [3, 1, 2] as Set,
-                [Obligation.of(3, 1, Money.of(10, "PLN"))],
+                [new Obligation<>(3, 1, Money.of(10, "PLN"))],
                 PLN)
 
         when:
@@ -232,7 +232,7 @@ class GreedyNettingSpec extends Specification {
 
     private static Obligations<String> obligationsOf(List<String> participants, List<List> entries) {
         List<Obligation<String>> obligations = entries.collect { entry ->
-            Obligation.of(entry[0] as String, entry[1] as String, Money.of(entry[2], "PLN"))
+            new Obligation<>(entry[0] as String, entry[1] as String, Money.of(entry[2] as BigDecimal, "PLN"))
         }
         return Obligations.of(participants as Set, obligations, PLN)
     }
