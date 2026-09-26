@@ -20,8 +20,6 @@ import javax.money.CurrencyUnit;
  */
 public final class Obligations<P> {
 
-    private static final LocalDateTime TIMELESS_EVALUATION_TIME = LocalDateTime.of(1970, 1, 1, 0, 0);
-
     private final Graph<P, Obligation<P>> graph;
     private final CurrencyUnit currency;
 
@@ -65,8 +63,7 @@ public final class Obligations<P> {
     }
 
     /**
-     * Signed balances including zero-balance participants, only when every obligation is always valid. Evaluates at a
-     * fixed instant (1970-01-01 00:00); its value cannot affect unbounded validity.
+     * Time-independent signed balances including zero-balance participants, only when every obligation is always valid.
      *
      * @throws IllegalStateException if any obligation has bounded validity
      */
@@ -74,7 +71,7 @@ public final class Obligations<P> {
         if (obligations().stream().anyMatch(obligation -> !Validity.always().equals(obligation.validity()))) {
             throw new IllegalStateException("Time-specific obligations require an as-of time");
         }
-        return signedBalances(TIMELESS_EVALUATION_TIME);
+        return Balances.timeless(this).amounts();
     }
 
     /** Signed balances at the specified time, including zero-balance participants. */

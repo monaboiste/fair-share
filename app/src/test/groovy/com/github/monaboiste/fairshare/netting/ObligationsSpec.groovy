@@ -42,6 +42,8 @@ class ObligationsSpec extends Specification {
 
         then:
         balances == ["ada": Money.of(-10, "PLN"), "bob": Money.of(10, "PLN"), "cal": Money.zero("PLN")]
+        balances == obligations.signedBalances(LocalDateTime.of(2000, 1, 1, 0, 0))
+        balances == obligations.signedBalances(LocalDateTime.of(2050, 1, 1, 0, 0))
         balances.values().inject(Money.zero("PLN")) { sum, amount -> sum.add(amount) }.isZero()
     }
 
