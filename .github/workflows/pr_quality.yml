@@ -20,7 +20,7 @@ permissions:
   checks: write
 
 jobs:
-  quality:
+  verify:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
@@ -37,6 +37,12 @@ jobs:
           distribution: liberica
           java-version: "25"
           cache: gradle
+
+      - name: Compile
+        run: ./gradlew assemble --no-daemon
+
+      - name: Unit Tests
+        run: ./gradlew test --no-daemon
 
       - name: Coverage Check
         run: ./gradlew coverageCheck --no-daemon
