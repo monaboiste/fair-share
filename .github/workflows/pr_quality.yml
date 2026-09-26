@@ -38,7 +38,7 @@ jobs:
           java-version: "25"
           cache: gradle
 
-      - name: Compile
+      - name: Build
         run: ./gradlew assemble
 
       - name: Unit Tests
@@ -57,6 +57,25 @@ jobs:
           comment-type: both
           min-coverage-overall: "80"
           min-coverage-changed-files: "80"
+
+  mutation:
+    if: github.event.pull_request.draft == false
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: liberica
+          java-version: "25"
+          cache: gradle
 
       - name: Mutation Testing
         run: ./gradlew mutationCheck
@@ -164,6 +183,25 @@ jobs:
                   f"{api}/issues/{pr_number}/comments",
                   {"body": body},
               )
+
+  quality:
+    if: github.event.pull_request.draft == false
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: liberica
+          java-version: "25"
+          cache: gradle
 
       - name: Code Quality Scan
         uses: JetBrains/qodana-action@v2026.2
