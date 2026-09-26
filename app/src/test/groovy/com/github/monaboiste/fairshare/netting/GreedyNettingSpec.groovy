@@ -232,7 +232,7 @@ class GreedyNettingSpec extends Specification {
 
     private static Obligations<String> obligationsOf(List<String> participants, List<List> entries) {
         List<Obligation<String>> obligations = entries.collect { entry ->
-            new Obligation<>(entry[0] as String, entry[1] as String, Money.of(entry[2], "PLN"))
+            new Obligation<>(entry[0] as String, entry[1] as String, Money.of(entry[2] as BigDecimal, "PLN"))
         }
         return Obligations.of(participants as Set, obligations, PLN)
     }

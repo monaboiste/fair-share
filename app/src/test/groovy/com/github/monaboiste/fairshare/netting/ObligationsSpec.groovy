@@ -85,7 +85,7 @@ class ObligationsSpec extends Specification {
 
         where:
         missing        | participants   | obligations
-        "participants" | null           | List.of()
+        "participants" | null           | List.<Obligation<String>>of()
         "obligations"  | ["ada"] as Set | null
     }
 }
