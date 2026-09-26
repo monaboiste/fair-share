@@ -8,7 +8,7 @@ jacoco {
 }
 
 tasks.named("jacocoTestReport") {
-    dependsOn(tasks.named("check"))
+    dependsOn(tasks.named("test"))
 
     reports {
         xml.required = true
@@ -31,8 +31,8 @@ tasks.register("coverageCheck") {
     dependsOn(tasks.named("jacocoTestReport"))
 }
 
-tasks.named("test") {
-    finalizedBy(tasks.named("coverageCheck"))
+tasks.named("check") {
+    dependsOn(tasks.named("coverageCheck"))
 }
 
 tasks.register("mutationCheck") {
