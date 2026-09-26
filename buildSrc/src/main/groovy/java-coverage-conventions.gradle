@@ -32,7 +32,7 @@ tasks.register("coverageCheck") {
 }
 
 tasks.named("check") {
-    finalizedBy(tasks.named("coverageCheck"))
+    dependsOn(tasks.named("coverageCheck"))
 }
 
 tasks.register("mutationCheck") {
