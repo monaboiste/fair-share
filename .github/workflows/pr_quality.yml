@@ -106,13 +106,22 @@ jobs:
                   stats["branch_missed"],
               )
 
+          def indicator(value):
+              if value is None:
+                  return "⚪"
+              if value >= 85:
+                  return "🟢"
+              if value >= 65:
+                  return "🟠"
+              return "🔴"
+
           def display(value):
-              return f"{value:.1f}%" if value is not None else "—"
+              if value is None:
+                  return "⚪ —"
+              return f"{indicator(value)} {value:.1f}%"
 
           reports = list(
-              Path(".").glob(
-                  "**/build/reports/jacoco/test/jacocoTestReport.xml"
-              )
+              Path(".").glob("**/build/reports/jacoco/test/jacocoTestReport.xml")
           )
 
           if not reports:
@@ -248,7 +257,6 @@ jobs:
                   f"{api}/issues/{pr_number}/comments",
                   {"body": body},
               )
-
   mutation:
     if: github.event.pull_request.draft == false
     needs: verify
@@ -332,8 +340,19 @@ jobs:
 
               return 100.0 * stats["detected"] / stats["total"]
 
+          def indicator(value):
+              if value is None:
+                  return "⚪"
+              if value >= 85:
+                  return "🟢"
+              if value >= 65:
+                  return "🟠"
+              return "🔴"
+
           def display(value):
-              return f"{value:.1f}%" if value is not None else "—"
+              if value is None:
+                  return "⚪ —"
+              return f"{indicator(value)} {value:.1f}%"
 
           reports = list(
               Path(".").glob(
@@ -471,7 +490,6 @@ jobs:
                   f"{api}/issues/{pr_number}/comments",
                   {"body": body},
               )
-
   quality:
     if: github.event.pull_request.draft == false
     needs: verify
