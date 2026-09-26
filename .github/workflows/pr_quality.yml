@@ -39,13 +39,13 @@ jobs:
           cache: gradle
 
       - name: Compile
-        run: ./gradlew assemble --no-daemon
+        run: ./gradlew assemble
 
       - name: Unit Tests
-        run: ./gradlew test --no-daemon
+        run: ./gradlew test
 
       - name: Coverage Check
-        run: ./gradlew coverageCheck --no-daemon
+        run: ./gradlew coverageCheck
 
       - name: Publish Coverage Report
         uses: madrapps/jacoco-report@v1.8.0
@@ -59,7 +59,7 @@ jobs:
           min-coverage-changed-files: "80"
 
       - name: Mutation Testing
-        run: ./gradlew mutationCheck --no-daemon
+        run: ./gradlew mutationCheck
 
       - name: Publish Mutation Testing Report
         env:
