@@ -33,7 +33,7 @@ identifiers. Replay passes payloads alone; switch to envelopes if the aggregate 
 immutable Settlement Currency explicitly. Historical names are not re-validated during replay, so later input-rule
 changes do not invalidate stored streams. `SettlementOpened` carries the Settlement Currency as `CurrencyUnit`;
 converting it to a currency code is a future serializer concern. `Settlement` and `SettlementRepository` live in the
-non-exported `settlement.domain.aggregate` package, so `Settlement.factory(Clock)` and pending events are public only
+non-exported `settlement.domain.model` package, so `Settlement.factory(Clock)` and pending events are public only
 inside the module; the apply guards keep a blank aggregate unusable. Business rejections use `Result` with the sealed
 `SettlementRejection` (`SettlementNotFound`) shared by every Settlement command and query, so adding a rejection keeps
 signatures stable and exhaustive switches flag unhandled cases; malformed input throws. Commands and queries both return

@@ -6,9 +6,9 @@ import com.github.monaboiste.fairshare.common.events.CommitResult;
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
+import com.github.monaboiste.fairshare.settlement.domain.model.Settlement;
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository;
 import java.time.Clock;
 
 /**

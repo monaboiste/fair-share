@@ -10,9 +10,9 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
+import com.github.monaboiste.fairshare.settlement.domain.model.Settlement;
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository;
 
 /**
  * Removes an active Participant while retaining its identifier and original add data in history.

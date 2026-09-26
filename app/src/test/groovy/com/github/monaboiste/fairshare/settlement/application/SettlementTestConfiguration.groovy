@@ -23,8 +23,8 @@ import com.github.monaboiste.fairshare.settlement.application.query.handler.GetS
 import com.github.monaboiste.fairshare.settlement.application.query.handler.GetSettlementHistoryHandler
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import java.time.Clock

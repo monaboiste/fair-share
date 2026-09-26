@@ -1,4 +1,4 @@
-package com.github.monaboiste.fairshare.settlement.domain.aggregate;
+package com.github.monaboiste.fairshare.settlement.domain.model;
 
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;

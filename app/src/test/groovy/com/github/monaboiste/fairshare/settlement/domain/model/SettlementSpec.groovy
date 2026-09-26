@@ -1,4 +1,4 @@
-package com.github.monaboiste.fairshare.settlement.domain.aggregate
+package com.github.monaboiste.fairshare.settlement.domain.model
 
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.PendingEvent
