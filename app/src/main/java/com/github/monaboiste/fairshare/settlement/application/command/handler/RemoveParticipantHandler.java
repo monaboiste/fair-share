@@ -6,19 +6,21 @@ import com.github.monaboiste.fairshare.common.events.CommitResult;
 import com.github.monaboiste.fairshare.common.events.VersionConflictException;
 import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound;
+import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
+import com.github.monaboiste.fairshare.settlement.domain.model.Settlement;
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository;
 
 /**
  * Removes an active Participant while retaining its identifier and original add data in history.
  *
  * <p>Unknown Settlements reject with {@link SettlementNotFound}; unknown or removed Participants reject with
- * {@link ParticipantNotFound}. Concurrent commits throw {@link VersionConflictException}; store and post-commit
- * failures propagate as exceptions.
+ * {@link ParticipantNotFound}. A Participant referenced as payer or Share Allocation recipient of a recorded Expense
+ * rejects with {@link ParticipantReferenced}. Concurrent commits throw {@link VersionConflictException}; store and
+ * post-commit failures propagate as exceptions.
  */
 public final class RemoveParticipantHandler
         implements CommandHandler<RemoveParticipant, SettlementRejection, CommitResult<SettlementId, SettlementEvent>> {

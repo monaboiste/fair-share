@@ -10,10 +10,10 @@ import com.github.monaboiste.fairshare.settlement.application.command.RenameSett
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
+import com.github.monaboiste.fairshare.settlement.domain.model.Settlement
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository
 import spock.lang.Specification
 
 class RenameSettlementHandlerSpec extends Specification {

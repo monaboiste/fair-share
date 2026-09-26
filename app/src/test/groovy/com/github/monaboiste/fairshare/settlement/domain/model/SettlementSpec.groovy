@@ -1,14 +1,21 @@
-package com.github.monaboiste.fairshare.settlement.domain.aggregate
+package com.github.monaboiste.fairshare.settlement.domain.model
 
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.PendingEvent
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
+import com.github.monaboiste.fairshare.quantity.money.Money
+import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound
+import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed
@@ -18,6 +25,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import javax.money.Monetary
 import spock.lang.Specification
@@ -210,6 +218,35 @@ class SettlementSpec extends Specification {
             new ParticipantRemoved(PARTICIPANT),
             new ParticipantAdded(PARTICIPANT, "Alex")
         ]
+    }
+
+    def "replay preserves Expense inputs for retries and protects referenced Participants"() {
+        given:
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, CLOCK)
+        def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
+        def expenseId = new ExpenseId(UUID.randomUUID())
+        def date = LocalDate.of(2026, 1, 2)
+        def allocation = new EqualShareAllocation([PARTICIPANT])
+        settlement.addParticipant(PARTICIPANT, new ParticipantName("Ada"))
+        settlement.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
+            Money.of(10.0, "EUR"), allocation)
+        repository.save(settlement)
+
+        when:
+        def replayed = repository.findById(settlement.id()).orElseThrow()
+        def retry = replayed.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
+            Money.of(10.00, "EUR"), allocation)
+        def conflict = replayed.recordExpense(expenseId, new ExpenseDescription("Lunch"), date, PARTICIPANT,
+            Money.of(10, "EUR"), allocation)
+
+        then:
+        retry.success()
+        conflict.getFailure() == new ExpenseIdentifierConflict(settlement.id(), expenseId)
+        replayed.removeParticipant(PARTICIPANT).getFailure() == new ParticipantReferenced(settlement.id(), PARTICIPANT)
+        replayed.pendingEvents().empty
+        replayed.version() == 3
+        store.load(settlement.id()).last().payload() instanceof ExpenseRecorded
     }
 
     private static PendingEvent<SettlementEvent> pending(EventId id, SettlementEvent payload) {

@@ -9,9 +9,9 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierCo
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement;
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
+import com.github.monaboiste.fairshare.settlement.domain.model.Settlement;
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository;
 
 /**
  * Adds a caller-identified Participant to an existing Settlement.

@@ -5,12 +5,14 @@ import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
 import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
+import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense
 import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementCommand
 import com.github.monaboiste.fairshare.settlement.application.command.handler.AddParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.RecordExpenseHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RemoveParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
@@ -21,8 +23,8 @@ import com.github.monaboiste.fairshare.settlement.application.query.handler.GetS
 import com.github.monaboiste.fairshare.settlement.application.query.handler.GetSettlementHistoryHandler
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
+import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import java.time.Clock
@@ -46,6 +48,7 @@ class SettlementTestConfiguration {
     final AddParticipantHandler addHandler = new AddParticipantHandler(repository)
     final RenameParticipantHandler renameParticipantHandler = new RenameParticipantHandler(repository)
     final RemoveParticipantHandler removeParticipantHandler = new RemoveParticipantHandler(repository)
+    final RecordExpenseHandler recordExpenseHandler = new RecordExpenseHandler(repository)
     final GetSettlementHandler viewHandler = new GetSettlementHandler(projector)
     final GetSettlementHistoryHandler historyHandler = new GetSettlementHistoryHandler(store)
     final RegisteredCommandDispatcher commands = RegisteredCommandDispatcher.builder()
@@ -54,6 +57,7 @@ class SettlementTestConfiguration {
         .register(AddParticipant, addHandler)
         .register(RenameParticipant, renameParticipantHandler)
         .register(RemoveParticipant, removeParticipantHandler)
+        .register(RecordExpense, recordExpenseHandler)
         .requireHandlersFor(SettlementCommand).build()
     final RegisteredQueryDispatcher queries = RegisteredQueryDispatcher.builder()
         .register(GetSettlement, viewHandler)

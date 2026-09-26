@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Per-participant net balances (incoming minus outgoing) computed through the pricing archetype.
@@ -31,10 +32,15 @@ final class Balances<P> {
 
     /** Computes balances from the obligations valid at the given time. */
     private Balances(Obligations<P> obligations, LocalDateTime asOf) {
-        this.obligations = obligations;
+        this(
+                obligations,
+                Parameters.of(PricingContext.TIMESTAMP, asOf).with(PricingContext.CURRENCY, obligations.currency()),
+                obligation -> ApplicabilityConstraint.validAt(obligation.validity()));
+    }
 
-        Parameters at =
-                Parameters.of(PricingContext.TIMESTAMP, asOf).with(PricingContext.CURRENCY, obligations.currency());
+    private Balances(
+            Obligations<P> obligations, Parameters at, Function<Obligation<P>, ApplicabilityConstraint> applicability) {
+        this.obligations = obligations;
 
         Map<P, Money> computedAmounts = new LinkedHashMap<>();
         Map<P, ComponentBreakdown> computedBreakdowns = new LinkedHashMap<>();
@@ -44,11 +50,11 @@ final class Balances<P> {
 
             for (Obligation<P> obligation : obligations.obligations()) {
                 if (obligation.to().equals(participant)) {
-                    contributions.add(contribution(obligation, obligation.amount()));
+                    contributions.add(contribution(obligation, obligation.amount(), applicability.apply(obligation)));
                 }
                 if (obligation.from().equals(participant)) {
                     contributions.add(
-                            contribution(obligation, obligation.amount().negate()));
+                            contribution(obligation, obligation.amount().negate(), applicability.apply(obligation)));
                 }
             }
 
@@ -65,6 +71,13 @@ final class Balances<P> {
 
     static <P> Balances<P> of(Obligations<P> obligations, LocalDateTime asOf) {
         return new Balances<>(obligations, asOf);
+    }
+
+    static <P> Balances<P> timeless(Obligations<P> obligations) {
+        return new Balances<>(
+                obligations,
+                Parameters.of(PricingContext.CURRENCY, obligations.currency()),
+                _ -> ApplicabilityConstraint.alwaysTrue());
     }
 
     /** Signed balance of every participant, positive for a creditor and negative for a debtor. */
@@ -110,9 +123,9 @@ final class Balances<P> {
         return simulated;
     }
 
-    private static <P> Component contribution(Obligation<P> obligation, Money signedAmount) {
+    private static <P> Component contribution(
+            Obligation<P> obligation, Money signedAmount, ApplicabilityConstraint applicability) {
         String name = obligation.from() + "->" + obligation.to();
-        return Component.simple(
-                name, Calculators.fixed(name, signedAmount), ApplicabilityConstraint.validAt(obligation.validity()));
+        return Component.simple(name, Calculators.fixed(name, signedAmount), applicability);
     }
 }

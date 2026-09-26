@@ -4,8 +4,8 @@ import com.github.monaboiste.fairshare.common.events.VersionConflictException
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
-import com.github.monaboiste.fairshare.settlement.domain.aggregate.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
+import com.github.monaboiste.fairshare.settlement.domain.model.Settlement
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
