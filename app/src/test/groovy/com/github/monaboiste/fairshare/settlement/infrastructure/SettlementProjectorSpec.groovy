@@ -39,7 +39,7 @@ class SettlementProjectorSpec extends Specification {
         projector.accept([opened(ID), opened(ID), renamed(ID, 2, "Mountains")])
 
         then:
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2, []))
+        projector.findById(ID) == Optional.of(emptySettlementView(ID, "Mountains", 2))
     }
 
     def "a batch containing a gap does not partially update any view"() {
@@ -60,7 +60,7 @@ class SettlementProjectorSpec extends Specification {
 
         then:
         thrown(IllegalStateException)
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Holiday", EUR, 1, []))
+        projector.findById(ID) == Optional.of(emptySettlementView(ID, "Holiday", 1))
     }
 
     def "a missing Participant cannot be #change"() {
@@ -72,7 +72,7 @@ class SettlementProjectorSpec extends Specification {
 
         then:
         thrown(IllegalStateException)
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Holiday", EUR, 1, []))
+        projector.findById(ID) == Optional.of(emptySettlementView(ID, "Holiday", 1))
 
         where:
         change    | payload
@@ -89,9 +89,9 @@ class SettlementProjectorSpec extends Specification {
         projector.accept([renamed(ID, 2, "Mountains"), opened(OTHER), renamed(OTHER, 2, "Forest")])
 
         then:
-        projector.findById(untouched) == Optional.of(new SettlementView(untouched, "Holiday", EUR, 1, []))
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2, []))
-        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Forest", EUR, 2, []))
+        projector.findById(untouched) == Optional.of(emptySettlementView(untouched, "Holiday", 1))
+        projector.findById(ID) == Optional.of(emptySettlementView(ID, "Mountains", 2))
+        projector.findById(OTHER) == Optional.of(emptySettlementView(OTHER, "Forest", 2))
     }
 
     def "rebuild replaces existing views with globally ordered history"() {
@@ -107,8 +107,8 @@ class SettlementProjectorSpec extends Specification {
         projector.rebuild(store)
 
         then:
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Mountains", EUR, 2, []))
-        projector.findById(OTHER) == Optional.of(new SettlementView(OTHER, "Other", EUR, 1, []))
+        projector.findById(ID) == Optional.of(emptySettlementView(ID, "Mountains", 2))
+        projector.findById(OTHER) == Optional.of(emptySettlementView(OTHER, "Other", 1))
         projector.findById(stale).empty
     }
 
@@ -125,7 +125,7 @@ class SettlementProjectorSpec extends Specification {
 
         then:
         thrown(IllegalStateException)
-        projector.findById(ID) == Optional.of(new SettlementView(ID, "Holiday", EUR, 3, []))
+        projector.findById(ID) == Optional.of(emptySettlementView(ID, "Holiday", 3))
     }
 
     def "a removed Participant cannot be re-added during rebuild"() {
@@ -226,6 +226,10 @@ class SettlementProjectorSpec extends Specification {
         then:
         thrown(IllegalStateException)
         projector.findById(ID).orElseThrow().version() == 4
+    }
+
+    private static SettlementView emptySettlementView(SettlementId id, String name, long version) {
+        new SettlementView(id, name, EUR, version, [], [], [], [:])
     }
 
     private static PendingEvent<SettlementEvent> pending(SettlementEvent payload) {

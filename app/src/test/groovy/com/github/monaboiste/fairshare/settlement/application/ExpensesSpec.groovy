@@ -131,6 +131,26 @@ class ExpensesSpec extends Specification {
         ADA   | Money.of(1, "USD")     | [BOB]       | false       | { id -> new MissingExchangeRate(id, EXPENSE) }
     }
 
+    def "Expense rejection favors #priority"() {
+        given:
+        def settlement = withParticipants()
+        def version = configuration.store.load(settlement).size()
+
+        when:
+        def result = configuration.commands.dispatch(expense(settlement, payer, amount, recipients))
+
+        then:
+        result.getFailure() == rejection.call(settlement)
+        configuration.store.load(settlement).size() == version
+
+        where:
+        priority                       | amount             | payer   | recipients | rejection
+        "non-positive over empty"      | Money.zero("EUR")  | ADA     | []         | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        "empty over unknown payer"     | Money.of(1, "EUR") | UNKNOWN | []         | { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "unknown payer over currency"  | Money.of(1, "USD") | UNKNOWN | [BOB]      | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "unknown recipient over currency" | Money.of(1, "USD") | ADA | [UNKNOWN] | { id -> new ParticipantNotFound(id, UNKNOWN) }
+    }
+
     def "dispatched retries after repository reload produce no event and conflicting reuse rejects"() {
         given:
         def settlement = withParticipants()
@@ -147,6 +167,26 @@ class ExpensesSpec extends Specification {
         retry.getSuccess().version() == 5
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.store.load(settlement).size() == 5
+    }
+
+    def "equal Share Allocation exposes immutable insertion order"() {
+        given:
+        def allocation = new EqualShareAllocation([CAL, BOB, CAL, ADA])
+
+        when:
+        def recipients = allocation.recipients()
+
+        then:
+        recipients.toList() == [CAL, BOB, ADA]
+        recipients.getFirst() == CAL
+        recipients.getLast() == ADA
+        allocation != new EqualShareAllocation([BOB, CAL, ADA])
+
+        when:
+        allocation.recipients().add(UNKNOWN)
+
+        then:
+        thrown(UnsupportedOperationException)
     }
 
     def "reordering recipients conflicts with the original Expense allocation"() {

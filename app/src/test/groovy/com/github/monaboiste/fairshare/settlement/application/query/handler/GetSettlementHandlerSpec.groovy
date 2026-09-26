@@ -22,7 +22,7 @@ class GetSettlementHandlerSpec extends Specification {
         def result = configuration.viewHandler.handle(new GetSettlement(id))
 
         then:
-        result.getSuccess() == new SettlementView(id, "Holiday", EUR, 1, [])
+        result.getSuccess() == new SettlementView(id, "Holiday", EUR, 1, [], [], [], [:])
     }
 
     def "querying an unknown Settlement rejects with not found"() {

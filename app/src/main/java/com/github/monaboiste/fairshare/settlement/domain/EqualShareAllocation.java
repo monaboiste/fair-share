@@ -4,15 +4,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 
-public record EqualShareAllocation(Set<ParticipantId> recipients) implements ShareAllocation {
+public record EqualShareAllocation(SequencedSet<ParticipantId> recipients) implements ShareAllocation {
     public EqualShareAllocation(Collection<ParticipantId> recipients) {
         this(new LinkedHashSet<>(recipients));
     }
 
     public EqualShareAllocation {
-        recipients = Collections.unmodifiableSet(new LinkedHashSet<>(recipients));
+        recipients = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(recipients));
     }
 
     @Override

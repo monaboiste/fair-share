@@ -16,9 +16,4 @@ public record SettlementView(
         List<ParticipantView> participants,
         List<ExpenseView> expenses,
         List<Obligation<ParticipantId>> obligations,
-        Map<ParticipantId, Money> balances) {
-    public SettlementView(
-            SettlementId id, String name, CurrencyUnit currency, long version, List<ParticipantView> participants) {
-        this(id, name, currency, version, participants, List.of(), List.of(), Map.of());
-    }
-}
+        Map<ParticipantId, Money> balances) {}

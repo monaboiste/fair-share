@@ -1,7 +1,7 @@
 package com.github.monaboiste.fairshare.settlement.domain;
 
-import java.util.Set;
+import java.util.SequencedSet;
 
 public sealed interface ShareAllocation permits EqualShareAllocation {
-    Set<ParticipantId> recipients();
+    SequencedSet<ParticipantId> recipients();
 }

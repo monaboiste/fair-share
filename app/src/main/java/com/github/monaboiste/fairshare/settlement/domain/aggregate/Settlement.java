@@ -122,11 +122,11 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                     && existing.originalAmount().compareTo(amount) == 0;
             return identical ? Result.success(expenseId) : Result.failure(new ExpenseIdentifierConflict(id, expenseId));
         }
-        if (allocation.recipients().isEmpty()) {
-            return Result.failure(new EmptyShareAllocation(id, expenseId));
-        }
         if (amount.isZero() || amount.isNegative()) {
             return Result.failure(new NonPositiveExpenseAmount(id, expenseId));
+        }
+        if (allocation.recipients().isEmpty()) {
+            return Result.failure(new EmptyShareAllocation(id, expenseId));
         }
         if (!active(payer)) {
             return Result.failure(new ParticipantNotFound(id, payer));
