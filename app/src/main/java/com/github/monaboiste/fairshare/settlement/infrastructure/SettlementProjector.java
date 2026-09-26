@@ -21,7 +21,6 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -92,7 +91,7 @@ public final class SettlementProjector
                                 List.of(),
                                 List.of(),
                                 List.of(),
-                                Map.of()),
+                                new LinkedHashMap<>()),
                         retired);
             }
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
@@ -181,7 +180,7 @@ public final class SettlementProjector
         participants.forEach(participant -> roster.add(participant.id()));
         Map<ParticipantId, Money> computed =
                 Obligations.of(roster, obligations, previous.currency()).signedBalances();
-        Map<ParticipantId, Money> ordered = new LinkedHashMap<>();
+        LinkedHashMap<ParticipantId, Money> ordered = new LinkedHashMap<>();
         participants.forEach(participant -> ordered.put(participant.id(), computed.get(participant.id())));
         return new SettlementView(
                 event.streamId(),
@@ -191,7 +190,7 @@ public final class SettlementProjector
                 participants,
                 expenses,
                 obligations,
-                Collections.unmodifiableMap(ordered));
+                ordered);
     }
 
     private static Projection recordExpense(

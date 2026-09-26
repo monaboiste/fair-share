@@ -10,6 +10,8 @@ import spock.lang.Specification
 class ObligationsSpec extends Specification {
 
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
+    private static final LocalDateTime START = LocalDateTime.of(2025, 1, 1, 0, 0)
+    private static final LocalDateTime END = LocalDateTime.of(2025, 12, 31, 0, 0)
 
     def "keeps every participant even with no obligations"() {
         when:
@@ -61,17 +63,21 @@ class ObligationsSpec extends Specification {
         thrown(IllegalStateException)
     }
 
-    def "time-specific signed balances respect obligation validity"() {
+    def "time-specific signed balances #validityStage an obligation's validity"() {
         given:
-        def start = LocalDateTime.of(2025, 1, 1, 0, 0)
-        def end = LocalDateTime.of(2025, 12, 31, 0, 0)
         def obligations = Obligations.of(["ada", "bob"] as Set,
-            [new Obligation<>("ada", "bob", Money.of(10, "PLN"), Validity.between(start, end))], PLN)
+            [new Obligation<>("ada", "bob", Money.of(10, "PLN"), Validity.between(START, END))], PLN)
 
-        expect:
-        obligations.signedBalances(start.minusDays(1)) == ["ada": Money.zero("PLN"), "bob": Money.zero("PLN")]
-        obligations.signedBalances(start.plusDays(1)) ==
-            ["ada": Money.of(-10, "PLN"), "bob": Money.of(10, "PLN")]
+        when:
+        def balances = obligations.signedBalances(asOf)
+
+        then:
+        balances == expected
+
+        where:
+        validityStage | asOf               | expected
+        "before"      | START.minusDays(1) | ["ada": Money.zero("PLN"), "bob": Money.zero("PLN")]
+        "during"      | START.plusDays(1)  | ["ada": Money.of(-10, "PLN"), "bob": Money.of(10, "PLN")]
     }
 
     def "rejects obligations in mixed currencies"() {

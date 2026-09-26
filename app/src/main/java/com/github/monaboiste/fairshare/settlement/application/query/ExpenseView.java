@@ -23,6 +23,10 @@ public record ExpenseView(
         Money valuation,
         List<Share> shares,
         Status status) {
+    public ExpenseView {
+        shares = List.copyOf(shares);
+    }
+
     public enum Status {
         ACTIVE
     }

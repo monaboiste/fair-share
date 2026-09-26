@@ -18,7 +18,6 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
-import com.github.monaboiste.fairshare.settlement.domain.Share;
 import com.github.monaboiste.fairshare.settlement.domain.ShareAllocation;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
@@ -28,11 +27,8 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,39 +147,13 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 valued.componentVersion().id(),
                 valued.exchangeRate(),
                 valuation,
-                equalShares(valuation, allocation)));
+                allocation.resolve(valuation)));
         return Result.success(expenseId);
     }
 
     private boolean active(ParticipantId participantId) {
         Participant participant = participants.get(participantId);
         return participant != null && participant.isActive();
-    }
-
-    private static List<Share> equalShares(Money valuation, ShareAllocation allocation) {
-        int count = allocation.recipients().size();
-        Money[] division = valuation.divideAndRemainder(BigDecimal.valueOf(count));
-        Money unit = valuation.smallestUnit();
-        int residual = division[1].value().divideToIntegralValue(unit.value()).intValueExact();
-        List<ParticipantId> priority = allocation.recipients().stream()
-                .sorted(Comparator.comparing(ParticipantId::value))
-                .toList();
-        Map<ParticipantId, Money> resolved = new HashMap<>();
-        for (ParticipantId recipient : allocation.recipients()) {
-            resolved.put(recipient, division[0]);
-        }
-        for (int i = 0; i < residual; i++) {
-            ParticipantId recipient = priority.get(i);
-            resolved.put(recipient, resolved.get(recipient).add(unit));
-        }
-        List<Share> shares = new ArrayList<>();
-        for (ParticipantId recipient : allocation.recipients()) {
-            Money share = resolved.get(recipient);
-            if (!share.isZero()) {
-                shares.add(new Share(recipient, share));
-            }
-        }
-        return List.copyOf(shares);
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.github.monaboiste.fairshare.settlement.application.command.RemovePart
 import com.github.monaboiste.fairshare.settlement.application.query.ExpenseView
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
+import com.github.monaboiste.fairshare.settlement.application.query.SettlementView
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
@@ -19,6 +20,7 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantName
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
+import com.github.monaboiste.fairshare.settlement.domain.Share
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import java.time.LocalDate
@@ -72,6 +74,45 @@ class ExpensesSpec extends Specification {
         view.balances().values().inject(Money.zero("EUR")) { sum, balance -> sum.add(balance) }.isZero()
         rebuilt.findById(settlement).orElseThrow() == view
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess().last().payload() == recorded
+    }
+
+    def "read models freeze collections without losing Balance order"() {
+        given:
+        def settlement = withParticipants()
+        configuration.commands.dispatch(expense(settlement, ADA, Money.of(3, "EUR"), [BOB, CAL]))
+        def original = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
+        def frozen = original.expenses().get(0)
+        def shares = new ArrayList<Share>(frozen.shares())
+        def participants = new ArrayList(original.participants())
+        def expenses = new ArrayList(original.expenses())
+        def obligations = new ArrayList(original.obligations())
+        def balances = new LinkedHashMap(original.balances())
+
+        when:
+        def copiedExpense = new ExpenseView(frozen.id(), frozen.description(), frozen.incurredOn(), frozen.payer(),
+            frozen.originalAmount(), frozen.allocation(), frozen.componentVersionId(), frozen.exchangeRate(),
+            frozen.valuation(), shares, frozen.status())
+        def copiedSettlement = new SettlementView(original.id(), original.name(), original.currency(),
+            original.version(), participants, expenses, obligations, balances)
+        shares.clear()
+        participants.clear()
+        expenses.clear()
+        obligations.clear()
+        balances.clear()
+
+        then:
+        copiedExpense.shares() == frozen.shares()
+        copiedSettlement.participants() == original.participants()
+        copiedSettlement.expenses() == original.expenses()
+        copiedSettlement.obligations() == original.obligations()
+        copiedSettlement.balances().entrySet().toList()*.key == [ADA, BOB, CAL]
+        copiedSettlement.balances() == original.balances()
+
+        when:
+        copiedSettlement.balances().clear()
+
+        then:
+        thrown(UnsupportedOperationException)
     }
 
     def "residual minor units follow identifier order, not allocation order, and zero shares are omitted"() {
