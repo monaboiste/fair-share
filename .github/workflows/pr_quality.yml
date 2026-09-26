@@ -6,9 +6,8 @@ on:
       - master
     types:
       - opened
-      - ready_for_review
-      - synchronize
       - reopened
+      - ready_for_review
 
 concurrency:
   group: pr-quality-${{ github.event.pull_request.number }}
