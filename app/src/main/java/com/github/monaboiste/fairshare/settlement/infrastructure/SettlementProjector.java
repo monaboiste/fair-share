@@ -3,20 +3,29 @@ package com.github.monaboiste.fairshare.settlement.infrastructure;
 import com.github.monaboiste.fairshare.common.events.AllEventsReader;
 import com.github.monaboiste.fairshare.common.events.CommittedEventsListener;
 import com.github.monaboiste.fairshare.common.events.EventEnvelope;
+import com.github.monaboiste.fairshare.netting.Obligation;
+import com.github.monaboiste.fairshare.netting.Obligations;
+import com.github.monaboiste.fairshare.quantity.money.Money;
+import com.github.monaboiste.fairshare.settlement.application.query.ExpenseView;
 import com.github.monaboiste.fairshare.settlement.application.query.ParticipantView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementViews;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
+import com.github.monaboiste.fairshare.settlement.domain.Share;
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -76,13 +85,30 @@ public final class SettlementProjector
                     throw new IllegalStateException("Settlement already projected");
                 }
                 yield new Projection(
-                        new SettlementView(event.streamId(), name, currency, event.sequence(), List.of()), retired);
+                        new SettlementView(
+                                event.streamId(),
+                                name,
+                                currency,
+                                event.sequence(),
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                Map.of()),
+                        retired);
             }
+            case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
             case SettlementRenamed(var name) -> {
                 SettlementView view = requireSettlement(previous);
                 yield new Projection(
                         new SettlementView(
-                                event.streamId(), name, view.currency(), event.sequence(), view.participants()),
+                                event.streamId(),
+                                name,
+                                view.currency(),
+                                event.sequence(),
+                                view.participants(),
+                                view.expenses(),
+                                view.obligations(),
+                                view.balances()),
                         retired);
             }
             case ParticipantAdded(var participantId, var name) ->
@@ -126,6 +152,11 @@ public final class SettlementProjector
             EventEnvelope<SettlementId, SettlementEvent> event,
             ParticipantId participantId) {
         requireParticipant(previous, participantId, "Participant missing for removal");
+        if (previous.expenses().stream()
+                .anyMatch(expense -> expense.payer().equals(participantId)
+                        || expense.allocation().recipients().contains(participantId))) {
+            throw new IllegalStateException("Participant referenced by Expense");
+        }
         List<ParticipantView> participants = previous.participants().stream()
                 .filter(participant -> !participant.id().equals(participantId))
                 .toList();
@@ -138,8 +169,66 @@ public final class SettlementProjector
             SettlementView previous,
             EventEnvelope<SettlementId, SettlementEvent> event,
             List<ParticipantView> participants) {
+        return updated(previous, event, participants, previous.expenses(), previous.obligations());
+    }
+
+    private static SettlementView updated(
+            SettlementView previous,
+            EventEnvelope<SettlementId, SettlementEvent> event,
+            List<ParticipantView> participants,
+            List<ExpenseView> expenses,
+            List<Obligation<ParticipantId>> obligations) {
+        Set<ParticipantId> roster = new HashSet<>();
+        participants.forEach(participant -> roster.add(participant.id()));
+        Map<ParticipantId, Money> computed =
+                Obligations.of(roster, obligations, previous.currency()).signedBalances(LocalDateTime.MAX);
+        Map<ParticipantId, Money> ordered = new LinkedHashMap<>();
+        participants.forEach(participant -> ordered.put(participant.id(), computed.get(participant.id())));
         return new SettlementView(
-                event.streamId(), previous.name(), previous.currency(), event.sequence(), participants);
+                event.streamId(),
+                previous.name(),
+                previous.currency(),
+                event.sequence(),
+                participants,
+                expenses,
+                obligations,
+                Collections.unmodifiableMap(ordered));
+    }
+
+    private static Projection recordExpense(
+            SettlementView previous,
+            Set<ParticipantId> retired,
+            EventEnvelope<SettlementId, SettlementEvent> event,
+            ExpenseRecorded recorded) {
+        if (previous.expenses().stream().anyMatch(expense -> expense.id().equals(recorded.expenseId()))) {
+            throw new IllegalStateException("Duplicate Expense");
+        }
+        requireParticipant(previous, recorded.payer(), "Expense payer missing");
+        recorded.allocation()
+                .recipients()
+                .forEach(recipient -> requireParticipant(previous, recipient, "Expense recipient missing"));
+        List<ExpenseView> expenses = new ArrayList<>(previous.expenses());
+        expenses.add(new ExpenseView(
+                recorded.expenseId(),
+                recorded.description(),
+                recorded.incurredOn(),
+                recorded.payer(),
+                recorded.originalAmount(),
+                recorded.allocation(),
+                recorded.componentVersionId(),
+                recorded.exchangeRate(),
+                recorded.valuation(),
+                recorded.shares(),
+                ExpenseView.Status.ACTIVE));
+        List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
+        for (Share share : recorded.shares()) {
+            if (!share.participantId().equals(recorded.payer())) {
+                obligations.add(Obligation.of(share.participantId(), recorded.payer(), share.amount()));
+            }
+        }
+        return new Projection(
+                updated(previous, event, previous.participants(), List.copyOf(expenses), List.copyOf(obligations)),
+                retired);
     }
 
     private static SettlementView requireSettlement(@Nullable SettlementView view) {

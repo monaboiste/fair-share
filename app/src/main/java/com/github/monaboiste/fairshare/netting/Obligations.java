@@ -3,7 +3,10 @@ package com.github.monaboiste.fairshare.netting;
 import com.github.monaboiste.fairshare.graphs.Edge;
 import com.github.monaboiste.fairshare.graphs.Graph;
 import com.github.monaboiste.fairshare.graphs.Node;
+import com.github.monaboiste.fairshare.quantity.money.Money;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.money.CurrencyUnit;
@@ -56,6 +59,10 @@ public final class Obligations<P> {
 
     public List<Obligation<P>> obligations() {
         return graph.edges().stream().map(Edge::property).toList();
+    }
+
+    public Map<P, Money> signedBalances(LocalDateTime asOf) {
+        return Balances.of(this, asOf).amounts();
     }
 
     public CurrencyUnit currency() {
