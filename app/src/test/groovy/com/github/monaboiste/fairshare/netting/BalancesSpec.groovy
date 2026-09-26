@@ -10,14 +10,15 @@ class BalancesSpec extends Specification {
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
     private static final CurrencyUnit USD = Monetary.getCurrency("USD")
 
-    def "nets parallel, opposite and loop contributions into signed balances"() {
+    def "nets parallel, opposite, loop and zero contributions into signed balances that sum to zero"() {
         given:
         Obligations<String> obligations = Obligations.of(
                 ["ada", "bob", "cid"] as Set,
                 [new Obligation<>("ada", "bob", Money.of(10, "PLN")),
                  new Obligation<>("ada", "bob", Money.of(5, "PLN")),
                  new Obligation<>("bob", "ada", Money.of(7, "PLN")),
-                 new Obligation<>("bob", "bob", Money.of(3, "PLN"))],
+                 new Obligation<>("bob", "bob", Money.of(3, "PLN")),
+                 new Obligation<>("cid", "ada", Money.zero("PLN"))],
                 PLN)
 
         when:
@@ -27,6 +28,7 @@ class BalancesSpec extends Specification {
         balances.amounts() == ["ada": Money.of(-8, "PLN"), "bob": Money.of(8, "PLN"), "cid": Money.zero("PLN")]
         balances.debtors() == ["ada": Money.of(8, "PLN")]
         balances.creditors() == ["bob": Money.of(8, "PLN")]
+        balances.amounts().values().inject(Money.zero("PLN")) { sum, amount -> sum.add(amount) }.isZero()
     }
 
     def "every participant appears, including uninvolved ones in the settlement currency"() {

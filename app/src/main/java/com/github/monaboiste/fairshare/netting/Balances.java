@@ -48,18 +48,12 @@ record Balances<P>(Map<P, Money> amounts) {
         Map<P, Money> amounts = new LinkedHashMap<>();
 
         for (P participant : obligations.participants()) {
-            Money balance = Money.zero(obligations.currency());
+            amounts.put(participant, Money.zero(obligations.currency()));
+        }
 
-            for (Obligation<P> obligation : obligations.obligations()) {
-                if (obligation.to().equals(participant)) {
-                    balance = balance.add(obligation.amount());
-                }
-                if (obligation.from().equals(participant)) {
-                    balance = balance.subtract(obligation.amount());
-                }
-            }
-
-            amounts.put(participant, balance);
+        for (Obligation<P> obligation : obligations.obligations()) {
+            amounts.merge(obligation.to(), obligation.amount(), Money::add);
+            amounts.merge(obligation.from(), obligation.amount().negate(), Money::add);
         }
 
         return amounts;
