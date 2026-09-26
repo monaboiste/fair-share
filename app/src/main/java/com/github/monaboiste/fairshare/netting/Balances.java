@@ -12,38 +12,14 @@ import java.util.Map;
  * is required. Every roster participant appears in the result, including uninvolved participants with a zero balance in
  * the settlement currency.
  */
-final class Balances<P> {
+record Balances<P>(Map<P, Money> amounts) {
 
-    private final Map<P, Money> amounts;
-
-    private Balances(Obligations<P> obligations) {
-        Map<P, Money> computedAmounts = new LinkedHashMap<>();
-
-        for (P participant : obligations.participants()) {
-            Money balance = moneyZero(obligations);
-
-            for (Obligation<P> obligation : obligations.obligations()) {
-                if (obligation.to().equals(participant)) {
-                    balance = balance.add(obligation.amount());
-                }
-                if (obligation.from().equals(participant)) {
-                    balance = balance.subtract(obligation.amount());
-                }
-            }
-
-            computedAmounts.put(participant, balance);
-        }
-
-        this.amounts = Map.copyOf(computedAmounts);
+    Balances {
+        amounts = Map.copyOf(amounts);
     }
 
     static <P> Balances<P> of(Obligations<P> obligations) {
-        return new Balances<>(obligations);
-    }
-
-    /** Signed balance of every participant, positive for a creditor and negative for a debtor. */
-    Map<P, Money> amounts() {
-        return amounts;
+        return new Balances<>(computeAmounts(obligations));
     }
 
     /** Participants who owe money, mapped to the positive amount they owe. */
@@ -68,7 +44,24 @@ final class Balances<P> {
         return Map.copyOf(creditors);
     }
 
-    private static <P> Money moneyZero(Obligations<P> obligations) {
-        return Money.zero(obligations.currency());
+    private static <P> Map<P, Money> computeAmounts(Obligations<P> obligations) {
+        Map<P, Money> amounts = new LinkedHashMap<>();
+
+        for (P participant : obligations.participants()) {
+            Money balance = Money.zero(obligations.currency());
+
+            for (Obligation<P> obligation : obligations.obligations()) {
+                if (obligation.to().equals(participant)) {
+                    balance = balance.add(obligation.amount());
+                }
+                if (obligation.from().equals(participant)) {
+                    balance = balance.subtract(obligation.amount());
+                }
+            }
+
+            amounts.put(participant, balance);
+        }
+
+        return amounts;
     }
 }
