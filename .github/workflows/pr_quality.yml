@@ -1,0 +1,171 @@
+name: PR Quality
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - ready_for_review
+      - synchronize
+      - reopened
+
+concurrency:
+  group: pr-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  quality:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: liberica
+          java-version: "25"
+          cache: gradle
+
+      - name: Coverage Check
+        run: ./gradlew coverageCheck --no-daemon
+
+      - name: Publish Coverage Report
+        uses: madrapps/jacoco-report@v1.8.0
+        with:
+          paths: ${{ github.workspace }}/**/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ github.token }}
+          title: Coverage
+          update-comment: true
+          comment-type: both
+          min-coverage-overall: "80"
+          min-coverage-changed-files: "80"
+
+      - name: Mutation Testing
+        run: ./gradlew mutationCheck --no-daemon
+
+      - name: Publish Mutation Testing Report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: python
+        run: |
+          import json
+          import os
+          import urllib.request
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          marker = "<!-- fair-share-pitest-report -->"
+
+          total = 0
+          detected = 0
+          survived = 0
+          no_coverage = 0
+
+          reports = list(Path(".").glob("**/build/reports/pitest/mutations.xml"))
+
+          if not reports:
+              raise RuntimeError("No PIT mutation reports found")
+
+          for report in reports:
+              for mutation in ET.parse(report).getroot().findall("mutation"):
+                  total += 1
+
+                  if mutation.attrib.get("detected") == "true":
+                      detected += 1
+
+                  status = mutation.attrib.get("status")
+
+                  if status == "SURVIVED":
+                      survived += 1
+                  elif status == "NO_COVERAGE":
+                      no_coverage += 1
+
+          score = 100.0 * detected / total if total else 100.0
+
+          body = f"""{marker}
+          ## Mutation Testing
+
+          | Metric         |        Result |
+          | -------------- | ------------: |
+          | Mutation score |  {score:.1f}% |
+          | Detected       |    {detected} |
+          | Survived       |    {survived} |
+          | No coverage    | {no_coverage} |
+          | Total mutants  |       {total} |
+          """
+
+          repository = os.environ["GH_REPOSITORY"]
+          pr_number = os.environ["PR_NUMBER"]
+          token = os.environ["GH_TOKEN"]
+
+          api = f"https://api.github.com/repos/{repository}"
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+          }
+
+          def request(method, url, payload=None):
+              data = json.dumps(payload).encode() if payload else None
+              req = urllib.request.Request(
+                  url,
+                  data=data,
+                  headers=headers,
+                  method=method,
+              )
+              with urllib.request.urlopen(req) as response:
+                  return json.load(response)
+
+          comments = request(
+              "GET",
+              f"{api}/issues/{pr_number}/comments?per_page=100",
+          )
+
+          previous = next(
+              (
+                  comment
+                  for comment in comments
+                  if comment.get("user", {}).get("type") == "Bot"
+                  and marker in comment.get("body", "")
+              ),
+              None,
+          )
+
+          if previous:
+              request(
+                  "PATCH",
+                  f"{api}/issues/comments/{previous['id']}",
+                  {"body": body},
+              )
+          else:
+              request(
+                  "POST",
+                  f"{api}/issues/{pr_number}/comments",
+                  {"body": body},
+              )
+
+      - name: Code Quality Scan
+        uses: JetBrains/qodana-action@v2026.2
+        with:
+          args: |
+            --linter qodana-jvm-community
+            --within-docker false
+          pr-mode: true
+          post-pr-comment: true
+          use-annotations: true
+          upload-result: true
