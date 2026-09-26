@@ -32,7 +32,7 @@ class ObligationsSpec extends Specification {
         obligations.obligations() == [owed]
     }
 
-    def "current signed balances include uninvolved participants"() {
+    def "always-valid signed balances include uninvolved participants and sum to zero"() {
         given:
         def obligations = Obligations.of(["ada", "bob", "cal"] as Set,
             [Obligation.of("ada", "bob", Money.of(10, "PLN"))], PLN)
@@ -42,6 +42,21 @@ class ObligationsSpec extends Specification {
 
         then:
         balances == ["ada": Money.of(-10, "PLN"), "bob": Money.of(10, "PLN"), "cal": Money.zero("PLN")]
+        balances.values().inject(Money.zero("PLN")) { sum, amount -> sum.add(amount) }.isZero()
+    }
+
+    def "timeless signed balances reject bounded obligations"() {
+        given:
+        def bounded = new Obligation<>("ada", "bob", Money.of(10, "PLN"),
+            Validity.between(LocalDateTime.of(2025, 1, 1, 0, 0), LocalDateTime.of(2025, 12, 31, 0, 0)))
+        def obligations = Obligations.of(["ada", "bob"] as Set,
+            [Obligation.of("bob", "ada", Money.of(2, "PLN")), bounded], PLN)
+
+        when:
+        obligations.signedBalances()
+
+        then:
+        thrown(IllegalStateException)
     }
 
     def "time-specific signed balances respect obligation validity"() {
