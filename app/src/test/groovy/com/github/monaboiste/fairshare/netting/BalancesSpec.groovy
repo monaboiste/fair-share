@@ -42,20 +42,4 @@ class BalancesSpec extends Specification {
         then:
         balances.amounts() == ["ada": Money.of(-10, "USD"), "bob": Money.of(10, "USD"), "cal": Money.zero("USD")]
     }
-
-    def "an uninvolved participant keeps a zero balance while others move money"() {
-        given:
-        Obligations<String> obligations = Obligations.of(
-                ["ada", "bob", "cid", "dan"] as Set,
-                [new Obligation<>("ada", "bob", Money.of(10, "USD")),
-                 new Obligation<>("ada", "cid", Money.of(4, "USD"))],
-                USD)
-
-        when:
-        Balances<String> balances = Balances.of(obligations)
-
-        then:
-        balances.amounts()["dan"] == Money.zero("USD")
-    }
-
 }

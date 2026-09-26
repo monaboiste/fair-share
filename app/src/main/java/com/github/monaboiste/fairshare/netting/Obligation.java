@@ -3,11 +3,11 @@ package com.github.monaboiste.fairshare.netting;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 
 /**
- * An Obligation has no validity period; it represents an obligation in the current Settlement state. Its lifetime
+ * A directional monetary amount owed by one participant to another.
+ *
+ * <p>An Obligation has no validity period; it represents an obligation in the current Settlement state. Its lifetime
  * follows the source Expense or Repayment through Settlement events. Exchange Rate validity is a separate Valuation
  * concern.
- *
- * <p>The negative-amount check rejects invalid input; loops and zero amounts net away when balances are computed.
  *
  * @param from participant who owes
  * @param to participant who is owed

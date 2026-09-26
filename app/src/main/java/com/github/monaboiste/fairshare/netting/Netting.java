@@ -23,10 +23,10 @@ package com.github.monaboiste.fairshare.netting;
  * Proposed repayments:
  *
  *          ProposedRepayment(PLN 20)
- *       Ada ─────────────────────▶ Bob
+ *       Ada ─────────────────────────▶ Bob
  *        │
  *        │ ProposedRepayment(PLN 5)
- *        └──────────────────────────▶ Cid
+ *        └───────────────────────────▶ Cid
  * </pre>
  *
  * <p>The original four-obligation cycle is reduced to two acyclic proposed repayments while preserving every

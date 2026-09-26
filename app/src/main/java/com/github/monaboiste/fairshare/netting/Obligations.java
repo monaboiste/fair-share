@@ -60,11 +60,7 @@ public final class Obligations<P> {
         return graph.edges().stream().map(Edge::property).toList();
     }
 
-    /**
-     * Signed balances including zero-balance participants, when every obligation is in the settlement currency.
-     *
-     * @return a map from every participant to its signed balance in the settlement currency
-     */
+    /** Signed balances of every participant, including zero-balance participants, in the settlement currency. */
     public Map<P, Money> signedBalances() {
         return Balances.of(this).amounts();
     }
