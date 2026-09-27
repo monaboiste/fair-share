@@ -146,7 +146,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 return Optional.of(new ParticipantNotFound(id, recipient));
             }
         }
-        if (!amount.currencyUnit().equals(currency)) {
+        if (!amount.currencyUnit().equals(settlementCurrency())) {
             return Optional.of(new MissingExchangeRate(id, expenseId));
         }
         return Optional.empty();
@@ -159,10 +159,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             ParticipantId payer,
             Money amount,
             ShareAllocation allocation) {
-        if (currency == null) {
-            throw new IllegalStateException("Settlement opening missing");
-        }
-        var valued = ValuationEngine.standard().value(amount, currency, incurredOn.atStartOfDay(), List.of());
+        var valued =
+                ValuationEngine.standard().value(amount, settlementCurrency(), incurredOn.atStartOfDay(), List.of());
         Money valuation = valued.money();
         register(new ExpenseRecorded(
                 expenseId,
@@ -176,6 +174,14 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 valuation,
                 allocation.resolve(valuation)));
         return Result.success(expenseId);
+    }
+
+    private CurrencyUnit settlementCurrency() {
+        CurrencyUnit openedCurrency = currency;
+        if (openedCurrency == null) {
+            throw new IllegalStateException("Settlement opening missing");
+        }
+        return openedCurrency;
     }
 
     private boolean active(ParticipantId participantId) {

@@ -81,12 +81,10 @@ class ExpensesSpec extends Specification {
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess().last().payload() == recorded
     }
 
-    def "exact and weighted Expenses persist Shares visible in the settlement view"() {
+    def "exact Expense persists valued Shares in the settlement view"() {
         given:
         def settlement = withParticipants()
-        def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")
-        ]))
+        def allocation = exact([(CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")])
 
         when:
         def recorded = (ExpenseRecorded) configuration.commands.dispatch(
@@ -95,20 +93,25 @@ class ExpensesSpec extends Specification {
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         then:
+        recorded.shares() == [new Share(CAL, Money.of(5, "EUR")), new Share(BOB, Money.of(5.01, "EUR"))]
         view.expenses().first().shares() == recorded.shares()
+    }
+
+    def "weighted Expense retains recipients while persisting non-zero Shares"() {
+        given:
+        def settlement = withParticipants()
+        def allocation = weighted([(CAL): 1, (BOB): 1, (ADA): 2])
 
         when:
-        def weightedSettlement = withParticipants()
-        def weights = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (CAL): 1, (BOB): 1, (ADA): 2
-        ]))
-        def weighted = (ExpenseRecorded) configuration.commands.dispatch(
-            expenseWithAllocation(weightedSettlement, ADA, Money.of(0.01, "EUR"), weights))
+        def recorded = (ExpenseRecorded) configuration.commands.dispatch(
+            expenseWithAllocation(settlement, ADA, Money.of(0.01, "EUR"), allocation))
             .getSuccess().events().first().payload()
-        def weightedView = configuration.queries.dispatch(new GetSettlement(weightedSettlement)).getSuccess()
+        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         then:
-        weightedView.expenses().first().shares() == weighted.shares()
+        recorded.allocation().recipients().toList() == [CAL, BOB, ADA]
+        recorded.shares() == [new Share(ADA, Money.of(0.01, "EUR"))]
+        view.expenses().first().shares() == recorded.shares()
     }
 
     def "invalid Share Allocations reject without committing: #caseName"() {
