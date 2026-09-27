@@ -20,7 +20,7 @@ class WeightedShareAllocationSpec extends Specification {
         then:
         shares*.participantId() == [CAL, BOB, ADA]
         shares*.amount()*.value() == expected
-        shares*.amount().inject(Money.zero(currency)) { sum, share -> sum.add(share) }.compareTo(Money.of(total, currency)) == 0
+        shares*.amount().inject(Money.zero(currency)) { sum, share -> sum.add(share) } == Money.of(total, currency)
 
         where:
         currency | total | expected
@@ -85,6 +85,12 @@ class WeightedShareAllocationSpec extends Specification {
         allocation != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(CAL): 1, (BOB): 1]))
         allocation != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(BOB): 2, (CAL): 2]))
         allocation.recipients().toList() == [CAL, BOB]
+        allocation.hashCode() != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
+            (CAL): 1, (BOB): 2
+        ])).hashCode()
+        allocation.hashCode() != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
+            (BOB): 2, (CAL): 2
+        ])).hashCode()
 
         when:
         allocation.weights().put(ADA, 1)

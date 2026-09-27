@@ -21,7 +21,7 @@ class ExactShareAllocationSpec extends Specification {
         then:
         shares*.participantId() == [CAL, BOB, ADA]
         shares*.amount()*.value() == expected
-        shares*.amount().inject(Money.zero(currency)) { sum, share -> sum.add(share) }.compareTo(Money.of(valuation, currency)) == 0
+        shares*.amount().inject(Money.zero(currency)) { sum, share -> sum.add(share) } == Money.of(valuation, currency)
 
         where:
         currency | calShare | bobShare | adaShare | valuation | expected
@@ -68,8 +68,7 @@ class ExactShareAllocationSpec extends Specification {
 
         then:
         shares == [new Share(CAL, Money.of(3, "EUR")), new Share(BOB, Money.of(7, "EUR"))]
-        shares*.amount().inject(Money.zero("EUR")) { sum, share -> sum.add(share) }
-            .compareTo(Money.of(10, "EUR")) == 0
+        shares*.amount().inject(Money.zero("EUR")) { sum, share -> sum.add(share) } == Money.of(10, "EUR")
     }
 
     def "mixed-currency exact amounts cannot be resolved"() {
@@ -121,6 +120,15 @@ class ExactShareAllocationSpec extends Specification {
             (CAL): Money.of(10, "USD"), (BOB): Money.of(2, "EUR")
         ]))
         allocation.recipients().toList() == [CAL, BOB]
+        allocation != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
+            (CAL): Money.of(10, "EUR")
+        ]))
+        allocation.hashCode() != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
+            (BOB): Money.of(2, "EUR"), (CAL): Money.of(10, "EUR")
+        ])).hashCode()
+        allocation.hashCode() != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
+            (CAL): Money.of(11, "EUR"), (BOB): Money.of(2, "EUR")
+        ])).hashCode()
 
         when:
         allocation.amounts().put(ADA, Money.of(1, "EUR"))

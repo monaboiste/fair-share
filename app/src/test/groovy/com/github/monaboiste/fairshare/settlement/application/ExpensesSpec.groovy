@@ -131,6 +131,9 @@ class ExpensesSpec extends Specification {
         caseName | amount | allocation | removeFirst | rejection
         "exact currency" | Money.of(1, "EUR") | exact([(BOB): Money.of(1, "USD")]) | false |
             { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
+        "mixed exact currencies" | Money.of(10, "EUR") |
+            exact([(CAL): Money.of(3, "USD"), (BOB): Money.of(7, "EUR")]) | false |
+            { id -> new ExactShareCurrencyMismatch(id, EXPENSE, CAL) }
         "exact zero" | Money.of(1, "EUR") | exact([(BOB): Money.zero("EUR")]) | false |
             { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
         "exact negative" | Money.of(1, "EUR") | exact([(BOB): Money.of(-1, "EUR")]) | false |
