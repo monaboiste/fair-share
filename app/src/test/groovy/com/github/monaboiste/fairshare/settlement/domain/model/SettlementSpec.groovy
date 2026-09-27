@@ -41,14 +41,14 @@ class SettlementSpec extends Specification {
     private static final USD = Monetary.getCurrency("USD")
 
     def "opening and renaming register only changed facts"() {
-        given:
+        given: "a Settlement called Holiday is opened in euros"
         def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
 
-        when:
+        when: "it is renamed to Mountains twice"
         settlement.rename(new SettlementName("Mountains"))
         settlement.rename(new SettlementName("Mountains"))
 
-        then:
+        then: "only the opening and a single rename are remembered, both stamped with the current time"
         settlement.pendingEvents()*.payload() == [new SettlementOpened("Holiday", EUR),
             new SettlementRenamed("Mountains")]
         settlement.pendingEvents().first().payload().currency() == EUR
@@ -60,11 +60,11 @@ class SettlementSpec extends Specification {
     }
 
     def "opening Settlements generates distinct identifiers"() {
-        when:
+        when: "two Settlements with the same name are opened"
         def first = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
         def second = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
 
-        then:
+        then: "each one gets its own distinct identity"
         first.id() != null
         second.id() != null
         first.id() != second.id()
@@ -72,78 +72,78 @@ class SettlementSpec extends Specification {
     }
 
     def "repository recreates Settlement with committed history"() {
-        given:
+        given: "a Settlement that was opened, renamed and saved"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
         settlement.rename(new SettlementName("Mountains"))
         repository.save(settlement)
 
-        when:
+        when: "it is loaded again from its saved history"
         def replayed = repository.findById(settlement.id()).orElseThrow()
 
-        then:
+        then: "it knows its history and has nothing new waiting to be saved"
         replayed.pendingEvents().empty
         replayed.version() == 2
         replayed.committedVersion() == 2
 
-        when:
+        when: "it is renamed to the name it already has"
         replayed.rename(new SettlementName("Mountains"))
 
-        then:
+        then: "nothing new is recorded"
         replayed.pendingEvents().empty
     }
 
     def "a non-opening first event is rejected on replay"() {
-        given:
+        given: "a saved history that starts with a rename instead of an opening"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(RENAMED_ID, new SettlementRenamed("Wrong"))])
 
-        when:
+        when: "the Settlement is loaded"
         repository.findById(ID)
 
-        then:
+        then: "loading fails because the history is broken"
         thrown(IllegalStateException)
     }
 
     def "a second opening event is rejected on replay"() {
-        given:
+        given: "a saved history in which the Settlement is opened twice"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
             pending(RENAMED_ID, new SettlementOpened("Again", USD))])
 
-        when:
+        when: "the Settlement is loaded"
         repository.findById(ID)
 
-        then:
+        then: "loading fails because the history is broken"
         thrown(IllegalStateException)
     }
 
     def "historical names are replayed without applying current input validation"() {
-        given:
+        given: "a saved history with a blank name that today's rules would not allow"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("", EUR))])
 
-        when:
+        when: "the Settlement is loaded"
         def settlement = repository.findById(ID).orElseThrow()
 
-        then:
+        then: "the old name is accepted as it was"
         settlement.version() == 1
 
-        when:
+        when: "it is renamed with a valid name and saved"
         settlement.rename(new SettlementName("Current"))
         def committed = repository.save(settlement)
 
-        then:
+        then: "the rename is saved as the next step in its history"
         committed.version() == 2
         repository.findById(ID).orElseThrow().pendingEvents().empty
     }
 
     def "replay retains original add data after rename and removal"() {
-        given:
+        given: "a Participant who was added as Alex, renamed to Ada and then removed"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
@@ -152,12 +152,12 @@ class SettlementSpec extends Specification {
         settlement.removeParticipant(PARTICIPANT)
         repository.save(settlement)
 
-        when:
+        when: "the Settlement is loaded and the Participant is added again, once as Alex and once as Ada"
         def replayed = repository.findById(settlement.id()).orElseThrow()
         def retry = replayed.addParticipant(PARTICIPANT, new ParticipantName("Alex"))
         def conflict = replayed.addParticipant(PARTICIPANT, new ParticipantName("Ada"))
 
-        then:
+        then: "repeating the original addition is accepted, changing it is refused, and renaming is refused"
         retry.success()
         conflict.getFailure() == new ParticipantIdentifierConflict(settlement.id(), PARTICIPANT)
         replayed.renameParticipant(PARTICIPANT, new ParticipantName("Again")).getFailure() ==
@@ -167,30 +167,30 @@ class SettlementSpec extends Specification {
     }
 
     def "historical Participant names replay without current input validation"() {
-        given:
+        given: "a saved history with a blank Participant name that today's rules would not allow"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
             pending(RENAMED_ID, new ParticipantAdded(PARTICIPANT, ""))])
 
-        when:
+        when: "the Settlement is loaded"
         def replayed = repository.findById(ID).orElseThrow()
 
-        then:
+        then: "the old name is accepted and the Participant can still be renamed"
         replayed.version() == 2
         replayed.renameParticipant(PARTICIPANT, new ParticipantName("Ada")).success()
     }
 
     def "invalid Participant event sequences are rejected on replay"() {
-        given:
+        given: "a saved history that changes a Participant who was never added"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)), pending(RENAMED_ID, invalid)])
 
-        when:
+        when: "the Settlement is loaded"
         repository.findById(ID)
 
-        then:
+        then: "loading fails because the history is broken"
         thrown(IllegalStateException)
 
         where:
@@ -198,7 +198,7 @@ class SettlementSpec extends Specification {
     }
 
     def "a removed Participant cannot be changed or re-added by a later event"() {
-        given:
+        given: "a saved history that changes or re-adds a Participant after they were removed"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
@@ -206,10 +206,10 @@ class SettlementSpec extends Specification {
             pending(EventId.random(), new ParticipantRemoved(PARTICIPANT)),
             pending(RENAMED_ID, laterEvent)])
 
-        when:
+        when: "the Settlement is loaded"
         repository.findById(ID)
 
-        then:
+        then: "loading fails because the history is broken"
         thrown(IllegalStateException)
 
         where:
@@ -221,7 +221,7 @@ class SettlementSpec extends Specification {
     }
 
     def "replay preserves Expense inputs for retries and protects referenced Participants"() {
-        given:
+        given: "a Settlement with a Dinner Expense paid by and shared with one Participant"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
@@ -233,14 +233,14 @@ class SettlementSpec extends Specification {
             Money.of(10.0, "EUR"), allocation)
         repository.save(settlement)
 
-        when:
+        when: "the Settlement is loaded and the same Expense is recorded again, once unchanged and once as Lunch"
         def replayed = repository.findById(settlement.id()).orElseThrow()
         def retry = replayed.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
             Money.of(10.00, "EUR"), allocation)
         def conflict = replayed.recordExpense(expenseId, new ExpenseDescription("Lunch"), date, PARTICIPANT,
             Money.of(10, "EUR"), allocation)
 
-        then:
+        then: "the repeat is accepted, the change is refused, and the Participant cannot be removed while in use"
         retry.success()
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement.id(), expenseId)
         replayed.removeParticipant(PARTICIPANT).getFailure() == new ParticipantReferenced(settlement.id(), PARTICIPANT)
