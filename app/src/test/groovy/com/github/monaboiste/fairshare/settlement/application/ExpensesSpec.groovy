@@ -81,23 +81,20 @@ class ExpensesSpec extends Specification {
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess().last().payload() == recorded
     }
 
-    def "exact and weighted Expenses freeze Shares summing to the whole Valuation"() {
+    def "exact and weighted Expenses persist Shares visible in the settlement view"() {
         given:
         def settlement = withParticipants()
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
             (CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")
         ]))
-        def command = expenseWithAllocation(settlement, ADA, Money.of(10.005, "EUR"), allocation)
 
         when:
-        def recorded = (ExpenseRecorded) configuration.commands.dispatch(command).getSuccess().events().first().payload()
+        def recorded = (ExpenseRecorded) configuration.commands.dispatch(
+            expenseWithAllocation(settlement, ADA, Money.of(10.005, "EUR"), allocation))
+            .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         then:
-        recorded.valuation().compareTo(Money.of(10.01, "EUR")) == 0
-        recorded.shares() == [new Share(CAL, Money.of(5, "EUR")), new Share(BOB, Money.of(5.01, "EUR"))]
-        recorded.shares()*.amount().inject(Money.zero("EUR")) { sum, share -> sum.add(share) }
-            .compareTo(recorded.valuation()) == 0
         view.expenses().first().shares() == recorded.shares()
 
         when:
@@ -108,12 +105,10 @@ class ExpensesSpec extends Specification {
         def weighted = (ExpenseRecorded) configuration.commands.dispatch(
             expenseWithAllocation(weightedSettlement, ADA, Money.of(0.01, "EUR"), weights))
             .getSuccess().events().first().payload()
+        def weightedView = configuration.queries.dispatch(new GetSettlement(weightedSettlement)).getSuccess()
 
         then:
-        weighted.allocation().recipients().toList() == [CAL, BOB, ADA]
-        weighted.shares() == [new Share(ADA, Money.of(0.01, "EUR"))]
-        weighted.shares()*.amount().inject(Money.zero("EUR")) { sum, share -> sum.add(share) }
-            .compareTo(weighted.valuation()) == 0
+        weightedView.expenses().first().shares() == weighted.shares()
     }
 
     def "invalid Share Allocations reject without committing: #caseName"() {

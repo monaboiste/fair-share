@@ -136,7 +136,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         }
         var invalidAllocation = allocation.validate(id, expenseId, amount);
         if (invalidAllocation.isPresent()) {
-            return Optional.of(invalidAllocation.orElseThrow());
+            return invalidAllocation;
         }
         if (!active(payer)) {
             return Optional.of(new ParticipantNotFound(id, payer));
@@ -160,7 +160,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             Money amount,
             ShareAllocation allocation) {
         if (currency == null) {
-            return Result.failure(new MissingExchangeRate(id, expenseId));
+            throw new IllegalStateException("Settlement opening missing");
         }
         var valued = ValuationEngine.standard().value(amount, currency, incurredOn.atStartOfDay(), List.of());
         Money valuation = valued.money();
