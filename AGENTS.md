@@ -14,7 +14,6 @@
 - Make specs read as natural language, following behavioral feature names, `given`/`when`/`then`
   flow, domain-named helpers, and semantic `where` labels and values. Reserve `expect` for single-phase expressions.
 - Use Spock conditions and `thrown(...)`; keep context in names or block labels instead of comments.
-- Ask before AssertJ; avoid JUnit assertions.
 
 ## Quality checks
 
