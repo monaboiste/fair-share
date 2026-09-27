@@ -48,9 +48,7 @@ public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) i
 
     @Override
     public List<Share> resolve(Money amount) {
-        if (amounts.isEmpty()
-                || amounts.values().stream()
-                        .anyMatch(share -> !share.currencyUnit().equals(amount.currencyUnit()))) {
+        if (amounts.isEmpty()) {
             throw new IllegalStateException("Cannot resolve invalid Share Allocation");
         }
         int scale = amounts.values().stream()
@@ -61,7 +59,7 @@ public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) i
         amounts.forEach((recipient, share) -> proportions.put(
                 recipient,
                 share.value().setScale(scale, RoundingMode.UNNECESSARY).unscaledValue()));
-        return ShareApportionment.resolve(proportions, amount);
+        return LargestRemainderApportionment.apportion(proportions, amount);
     }
 
     @Override

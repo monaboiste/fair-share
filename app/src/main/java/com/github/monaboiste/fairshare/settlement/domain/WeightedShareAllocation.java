@@ -39,7 +39,7 @@ public record WeightedShareAllocation(SequencedMap<ParticipantId, Integer> weigh
     public List<Share> resolve(Money amount) {
         SequencedMap<ParticipantId, BigInteger> proportions = new LinkedHashMap<>();
         weights.forEach((recipient, weight) -> proportions.put(recipient, BigInteger.valueOf(weight)));
-        return ShareApportionment.resolve(proportions, amount);
+        return LargestRemainderApportionment.apportion(proportions, amount);
     }
 
     @Override

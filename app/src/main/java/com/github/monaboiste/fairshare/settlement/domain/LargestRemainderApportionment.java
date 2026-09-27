@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
 
-final class ShareApportionment {
-    private ShareApportionment() {}
+final class LargestRemainderApportionment {
+    private LargestRemainderApportionment() {}
 
-    static List<Share> resolve(SequencedMap<ParticipantId, BigInteger> weights, Money amount) {
-        if (weights.isEmpty() || weights.values().stream().anyMatch(weight -> weight.signum() <= 0)) {
+    static List<Share> apportion(SequencedMap<ParticipantId, BigInteger> proportions, Money amount) {
+        if (proportions.isEmpty() || proportions.values().stream().anyMatch(proportion -> proportion.signum() <= 0)) {
             throw new IllegalStateException("Cannot resolve invalid Share Allocation");
         }
         BigInteger units = amount.value()
@@ -24,17 +24,17 @@ final class ShareApportionment {
         if (units.signum() < 0) {
             throw new IllegalStateException("Cannot resolve negative Valuation");
         }
-        BigInteger total = weights.values().stream().reduce(BigInteger.ZERO, BigInteger::add);
+        BigInteger total = proportions.values().stream().reduce(BigInteger.ZERO, BigInteger::add);
         Map<ParticipantId, BigInteger> floors = new HashMap<>();
         Map<ParticipantId, BigInteger> remainders = new HashMap<>();
         BigInteger assigned = BigInteger.ZERO;
-        for (var entry : weights.entrySet()) {
+        for (var entry : proportions.entrySet()) {
             BigInteger[] quotient = units.multiply(entry.getValue()).divideAndRemainder(total);
             floors.put(entry.getKey(), quotient[0]);
             remainders.put(entry.getKey(), quotient[1]);
             assigned = assigned.add(quotient[0]);
         }
-        List<ParticipantId> priority = weights.keySet().stream()
+        List<ParticipantId> priority = proportions.keySet().stream()
                 .sorted(Comparator.<ParticipantId, BigInteger>comparing(remainders::get)
                         .reversed()
                         .thenComparing(ParticipantId::value))
@@ -45,7 +45,7 @@ final class ShareApportionment {
             floors.put(recipient, floors.get(recipient).add(BigInteger.ONE));
         }
         List<Share> shares = new ArrayList<>();
-        for (ParticipantId recipient : weights.keySet()) {
+        for (ParticipantId recipient : proportions.keySet()) {
             BigInteger count = floors.get(recipient);
             if (count.signum() != 0) {
                 shares.add(new Share(

@@ -57,6 +57,21 @@ class ExactShareAllocationSpec extends Specification {
         shares == [new Share(CAL, Money.of(5, "EUR")), new Share(BOB, Money.of(5.01, "EUR"))]
     }
 
+    def "exact amounts in one currency apportion a Valuation in another"() {
+        given:
+        def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
+            (CAL): Money.of(3, "USD"), (BOB): Money.of(7, "USD")
+        ]))
+
+        when:
+        def shares = allocation.resolve(Money.of(10, "EUR"))
+
+        then:
+        shares == [new Share(CAL, Money.of(3, "EUR")), new Share(BOB, Money.of(7, "EUR"))]
+        shares*.amount().inject(Money.zero("EUR")) { sum, share -> sum.add(share) }
+            .compareTo(Money.of(10, "EUR")) == 0
+    }
+
     def "exact allocation omits zero Shares and retains ordered recipients"() {
         given:
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([

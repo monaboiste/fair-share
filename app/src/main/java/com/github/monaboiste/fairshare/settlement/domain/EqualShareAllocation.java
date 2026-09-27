@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
@@ -17,6 +18,7 @@ public record EqualShareAllocation(SequencedSet<ParticipantId> recipients) imple
     }
 
     public EqualShareAllocation {
+        recipients.forEach(Objects::requireNonNull);
         recipients = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(recipients));
     }
 
@@ -28,9 +30,9 @@ public record EqualShareAllocation(SequencedSet<ParticipantId> recipients) imple
 
     @Override
     public List<Share> resolve(Money amount) {
-        SequencedMap<ParticipantId, BigInteger> weights = new LinkedHashMap<>();
-        recipients.forEach(recipient -> weights.put(recipient, BigInteger.ONE));
-        return ShareApportionment.resolve(weights, amount);
+        SequencedMap<ParticipantId, BigInteger> proportions = new LinkedHashMap<>();
+        recipients.forEach(recipient -> proportions.put(recipient, BigInteger.ONE));
+        return LargestRemainderApportionment.apportion(proportions, amount);
     }
 
     @Override

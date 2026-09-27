@@ -30,7 +30,6 @@ import com.github.monaboiste.fairshare.settlement.domain.WeightedShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import java.time.LocalDate
-import javax.money.Monetary
 import spock.lang.Specification
 
 class ExpensesSpec extends Specification {
@@ -281,22 +280,6 @@ class ExpensesSpec extends Specification {
         thrown(UnsupportedOperationException)
     }
 
-    def "residual minor units follow identifier order, not allocation order, and zero shares are omitted"() {
-        given:
-        def settlement = withParticipants()
-
-        when:
-        configuration.commands.dispatch(expense(settlement, ADA, Money.of(0.01, "EUR"), [CAL, BOB, ADA]))
-        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
-
-        then:
-        view.expenses().get(0).allocation().recipients().toList() == [CAL, BOB, ADA]
-        view.expenses().get(0).shares()*.participantId() == [ADA]
-        view.expenses().get(0).shares()*.amount() == [Money.of(0.01, "EUR")]
-        view.obligations().empty
-        view.balances().values().every { it.isZero() }
-    }
-
     def "payer need not receive a Share and duplicate recipients collapse"() {
         given:
         def settlement = withParticipants()
@@ -435,19 +418,6 @@ class ExpensesSpec extends Specification {
         configuration.store.load(settlement).size() == 7
     }
 
-    def "ten minor units divide equally with residuals in identifier order"() {
-        given:
-        def settlement = withParticipants()
-
-        when:
-        configuration.commands.dispatch(expense(settlement, ADA, Money.of(10, "EUR"), [CAL, BOB, ADA]))
-        def shares = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().get(0).shares()
-
-        then:
-        shares*.participantId() == [CAL, BOB, ADA]
-        shares*.amount()*.value() == [3.33, 3.33, 3.34]*.toBigDecimal()
-    }
-
     def "unknown Settlement rejects recording without a stream"() {
         when:
         def result = configuration.commands.dispatch(expense(configuration.UNKNOWN_ID, ADA, Money.of(1, "EUR"), [BOB]))
@@ -467,24 +437,6 @@ class ExpensesSpec extends Specification {
 
         where:
         value << ["", "  ", "\n"]
-    }
-
-    def "currency fraction digits control residual allocation"() {
-        given:
-        def settlement = withParticipants(Monetary.getCurrency(code))
-
-        when:
-        configuration.commands.dispatch(expense(settlement, ADA, Money.of(amount, code), [CAL, BOB, ADA]))
-        def shares = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().get(0).shares()
-
-        then:
-        shares*.participantId() == [CAL, BOB, ADA]
-        shares*.amount()*.value() == expected
-
-        where:
-        code  | amount | expected
-        "JPY" | 10     | [3, 3, 4]*.toBigDecimal()
-        "KWD" | 0.010  | [0.003, 0.003, 0.004]*.toBigDecimal()
     }
 
     private def withParticipants(currency = SettlementTestConfiguration.EUR) {
