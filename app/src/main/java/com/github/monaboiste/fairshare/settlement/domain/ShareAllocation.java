@@ -4,7 +4,7 @@ import com.github.monaboiste.fairshare.quantity.money.Money;
 import java.util.List;
 import java.util.SequencedSet;
 
-public sealed interface ShareAllocation permits EqualShareAllocation {
+public sealed interface ShareAllocation permits EqualShareAllocation, ExactShareAllocation, WeightedShareAllocation {
     SequencedSet<ParticipantId> recipients();
 
     List<Share> resolve(Money amount);

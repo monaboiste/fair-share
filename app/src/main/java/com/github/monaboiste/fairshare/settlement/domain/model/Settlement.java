@@ -5,11 +5,16 @@ import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation;
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareAllocation;
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareCurrencyMismatch;
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareSumMismatch;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate;
+import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExactShare;
 import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExpenseAmount;
+import com.github.monaboiste.fairshare.settlement.domain.NonPositiveShareWeight;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName;
@@ -19,6 +24,7 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
 import com.github.monaboiste.fairshare.settlement.domain.ShareAllocation;
+import com.github.monaboiste.fairshare.settlement.domain.WeightedShareAllocation;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
@@ -27,6 +33,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -123,6 +130,28 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         }
         if (allocation.recipients().isEmpty()) {
             return Result.failure(new EmptyShareAllocation(id, expenseId));
+        }
+        if (allocation instanceof ExactShareAllocation exact) {
+            BigDecimal sum = BigDecimal.ZERO;
+            for (var entry : exact.amounts().entrySet()) {
+                Money share = entry.getValue();
+                if (!share.currencyUnit().equals(amount.currencyUnit())) {
+                    return Result.failure(new ExactShareCurrencyMismatch(id, expenseId, entry.getKey()));
+                }
+                if (share.isZero() || share.isNegative()) {
+                    return Result.failure(new NonPositiveExactShare(id, expenseId, entry.getKey()));
+                }
+                sum = sum.add(share.value());
+            }
+            if (sum.compareTo(amount.value()) != 0) {
+                return Result.failure(new ExactShareSumMismatch(id, expenseId));
+            }
+        } else if (allocation instanceof WeightedShareAllocation weighted) {
+            for (var entry : weighted.weights().entrySet()) {
+                if (entry.getValue() <= 0) {
+                    return Result.failure(new NonPositiveShareWeight(id, expenseId, entry.getKey()));
+                }
+            }
         }
         if (!active(payer)) {
             return Result.failure(new ParticipantNotFound(id, payer));

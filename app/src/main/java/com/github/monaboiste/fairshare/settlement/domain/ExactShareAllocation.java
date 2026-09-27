@@ -1,0 +1,75 @@
+package com.github.monaboiste.fairshare.settlement.domain;
+
+import com.github.monaboiste.fairshare.quantity.money.Money;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
+
+public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) implements ShareAllocation {
+    public ExactShareAllocation {
+        amounts = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(amounts));
+        amounts.forEach((recipient, amount) -> {
+            Objects.requireNonNull(recipient);
+            Objects.requireNonNull(amount);
+        });
+    }
+
+    @Override
+    public SequencedSet<ParticipantId> recipients() {
+        return amounts.sequencedKeySet();
+    }
+
+    @Override
+    public List<Share> resolve(Money amount) {
+        if (amounts.isEmpty()
+                || amounts.values().stream()
+                        .anyMatch(share -> !share.currencyUnit().equals(amount.currencyUnit()))) {
+            throw new IllegalStateException("Cannot resolve invalid Share Allocation");
+        }
+        int scale = amounts.values().stream()
+                .mapToInt(share -> share.value().scale())
+                .max()
+                .orElseThrow();
+        SequencedMap<ParticipantId, BigInteger> proportions = new LinkedHashMap<>();
+        amounts.forEach((recipient, share) -> proportions.put(
+                recipient,
+                share.value().setScale(scale, RoundingMode.UNNECESSARY).unscaledValue()));
+        return ShareApportionment.resolve(proportions, amount);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof ExactShareAllocation(SequencedMap<ParticipantId, Money> otherAmounts))
+                || amounts.size() != otherAmounts.size()) {
+            return false;
+        }
+        var left = amounts.entrySet().iterator();
+        var right = otherAmounts.entrySet().iterator();
+        while (left.hasNext()) {
+            var first = left.next();
+            var second = right.next();
+            if (!first.getKey().equals(second.getKey())
+                    || !first.getValue().currencyUnit().equals(second.getValue().currencyUnit())
+                    || first.getValue().value().compareTo(second.getValue().value()) != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        for (var entry : amounts.entrySet()) {
+            BigDecimal canonical = entry.getValue().value().stripTrailingZeros();
+            hash = 31 * hash + Objects.hash(entry.getKey(), entry.getValue().currency(), canonical);
+        }
+        return hash;
+    }
+}
