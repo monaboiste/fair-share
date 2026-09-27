@@ -1,0 +1,56 @@
+package com.github.monaboiste.fairshare.settlement.domain;
+
+import com.github.monaboiste.fairshare.quantity.money.Money;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
+
+/** Divides an Expense by positive whole-number weights in presentation order. */
+public record WeightedShareAllocation(SequencedMap<ParticipantId, Integer> weights) implements ShareAllocation {
+    public WeightedShareAllocation {
+        weights = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(weights));
+        weights.forEach((recipient, weight) -> {
+            Objects.requireNonNull(recipient);
+            Objects.requireNonNull(weight);
+        });
+    }
+
+    @Override
+    public SequencedSet<ParticipantId> recipients() {
+        return weights.sequencedKeySet();
+    }
+
+    @Override
+    public Optional<SettlementRejection> validate(
+            SettlementId settlementId, ExpenseId expenseId, Money originalAmount) {
+        for (var entry : weights.entrySet()) {
+            if (entry.getValue() <= 0) {
+                return Optional.of(new NonPositiveShareWeight(settlementId, expenseId, entry.getKey()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public List<Share> resolve(Money amount) {
+        SequencedMap<ParticipantId, BigInteger> proportions = new LinkedHashMap<>();
+        weights.forEach((recipient, weight) -> proportions.put(recipient, BigInteger.valueOf(weight)));
+        return LargestRemainderApportionment.apportion(proportions, amount);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof WeightedShareAllocation(SequencedMap<ParticipantId, Integer> otherWeights)
+                && List.copyOf(weights.entrySet()).equals(List.copyOf(otherWeights.entrySet()));
+    }
+
+    @Override
+    public int hashCode() {
+        return List.copyOf(weights.entrySet()).hashCode();
+    }
+}

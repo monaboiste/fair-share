@@ -32,6 +32,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
@@ -118,24 +119,49 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                     && existing.originalAmount().compareTo(amount) == 0;
             return identical ? Result.success(expenseId) : Result.failure(new ExpenseIdentifierConflict(id, expenseId));
         }
+        Optional<SettlementRejection> rejection = validateNewExpense(expenseId, payer, amount, allocation);
+        if (rejection.isPresent()) {
+            return Result.failure(rejection.get());
+        }
+        registerExpense(expenseId, description, incurredOn, payer, amount, allocation);
+        return Result.success(expenseId);
+    }
+
+    private Optional<SettlementRejection> validateNewExpense(
+            ExpenseId expenseId, ParticipantId payer, Money amount, ShareAllocation allocation) {
         if (amount.isZero() || amount.isNegative()) {
-            return Result.failure(new NonPositiveExpenseAmount(id, expenseId));
+            return Optional.of(new NonPositiveExpenseAmount(id, expenseId));
         }
         if (allocation.recipients().isEmpty()) {
-            return Result.failure(new EmptyShareAllocation(id, expenseId));
+            return Optional.of(new EmptyShareAllocation(id, expenseId));
+        }
+        var invalidAllocation = allocation.validate(id, expenseId, amount);
+        if (invalidAllocation.isPresent()) {
+            return invalidAllocation;
         }
         if (!active(payer)) {
-            return Result.failure(new ParticipantNotFound(id, payer));
+            return Optional.of(new ParticipantNotFound(id, payer));
         }
         for (ParticipantId recipient : allocation.recipients()) {
             if (!active(recipient)) {
-                return Result.failure(new ParticipantNotFound(id, recipient));
+                return Optional.of(new ParticipantNotFound(id, recipient));
             }
         }
-        if (!amount.currencyUnit().equals(currency)) {
-            return Result.failure(new MissingExchangeRate(id, expenseId));
+        if (!amount.currencyUnit().equals(settlementCurrency())) {
+            return Optional.of(new MissingExchangeRate(id, expenseId));
         }
-        var valued = ValuationEngine.standard().value(amount, currency, incurredOn.atStartOfDay(), List.of());
+        return Optional.empty();
+    }
+
+    private void registerExpense(
+            ExpenseId expenseId,
+            ExpenseDescription description,
+            LocalDate incurredOn,
+            ParticipantId payer,
+            Money amount,
+            ShareAllocation allocation) {
+        var valued =
+                ValuationEngine.standard().value(amount, settlementCurrency(), incurredOn.atStartOfDay(), List.of());
         Money valuation = valued.money();
         register(new ExpenseRecorded(
                 expenseId,
@@ -148,7 +174,14 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 valued.exchangeRate(),
                 valuation,
                 allocation.resolve(valuation)));
-        return Result.success(expenseId);
+    }
+
+    private CurrencyUnit settlementCurrency() {
+        CurrencyUnit openedCurrency = currency;
+        if (openedCurrency == null) {
+            throw new IllegalStateException("Settlement opening missing");
+        }
+        return openedCurrency;
     }
 
     private boolean active(ParticipantId participantId) {

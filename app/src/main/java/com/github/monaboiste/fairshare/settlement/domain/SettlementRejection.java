@@ -8,4 +8,8 @@ public sealed interface SettlementRejection
                 NonPositiveExpenseAmount,
                 ExpenseIdentifierConflict,
                 ParticipantReferenced,
-                MissingExchangeRate {}
+                MissingExchangeRate,
+                ExactShareCurrencyMismatch,
+                NonPositiveExactShare,
+                ExactShareSumMismatch,
+                NonPositiveShareWeight {}

@@ -10,21 +10,26 @@ import com.github.monaboiste.fairshare.settlement.application.query.GetSettlemen
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareAllocation
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareCurrencyMismatch
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareSumMismatch
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate
+import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExactShare
 import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExpenseAmount
+import com.github.monaboiste.fairshare.settlement.domain.NonPositiveShareWeight
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
 import com.github.monaboiste.fairshare.settlement.domain.Share
+import com.github.monaboiste.fairshare.settlement.domain.WeightedShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import java.time.LocalDate
-import javax.money.Monetary
 import spock.lang.Specification
 
 class ExpensesSpec extends Specification {
@@ -76,6 +81,167 @@ class ExpensesSpec extends Specification {
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess().last().payload() == recorded
     }
 
+    def "exact Expense persists valued Shares in the settlement view"() {
+        given:
+        def settlement = withParticipants()
+        def allocation = exact([(CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")])
+
+        when:
+        def recorded = (ExpenseRecorded) configuration.commands.dispatch(
+            expenseWithAllocation(settlement, ADA, Money.of(10.005, "EUR"), allocation))
+            .getSuccess().events().first().payload()
+        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
+
+        then:
+        recorded.shares() == [new Share(CAL, Money.of(5, "EUR")), new Share(BOB, Money.of(5.01, "EUR"))]
+        view.expenses().first().shares() == recorded.shares()
+    }
+
+    def "weighted Expense retains recipients while persisting non-zero Shares"() {
+        given:
+        def settlement = withParticipants()
+        def allocation = weighted([(CAL): 1, (BOB): 1, (ADA): 2])
+
+        when:
+        def recorded = (ExpenseRecorded) configuration.commands.dispatch(
+            expenseWithAllocation(settlement, ADA, Money.of(0.01, "EUR"), allocation))
+            .getSuccess().events().first().payload()
+        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
+
+        then:
+        recorded.allocation().recipients().toList() == [CAL, BOB, ADA]
+        recorded.shares() == [new Share(ADA, Money.of(0.01, "EUR"))]
+        view.expenses().first().shares() == recorded.shares()
+    }
+
+    def "invalid Share Allocations reject without committing: #caseName"() {
+        given:
+        def settlement = withParticipants()
+        if (removeFirst) configuration.commands.dispatch(new RemoveParticipant(settlement, BOB))
+        def version = configuration.store.load(settlement).size()
+
+        when:
+        def result = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, amount, allocation))
+
+        then:
+        result.getFailure() == rejection.call(settlement)
+        configuration.store.load(settlement).size() == version
+
+        where:
+        caseName | amount | allocation | removeFirst | rejection
+        "exact currency" | Money.of(1, "EUR") | exact([(BOB): Money.of(1, "USD")]) | false |
+            { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
+        "mixed exact currencies" | Money.of(10, "EUR") |
+            exact([(CAL): Money.of(3, "USD"), (BOB): Money.of(7, "EUR")]) | false |
+            { id -> new ExactShareCurrencyMismatch(id, EXPENSE, CAL) }
+        "exact zero" | Money.of(1, "EUR") | exact([(BOB): Money.zero("EUR")]) | false |
+            { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
+        "exact negative" | Money.of(1, "EUR") | exact([(BOB): Money.of(-1, "EUR")]) | false |
+            { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
+        "exact sum" | Money.of(1, "EUR") | exact([(BOB): Money.of(1.001, "EUR")]) | false |
+            { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "weight zero" | Money.of(1, "EUR") | weighted([(BOB): 0]) | false |
+            { id -> new NonPositiveShareWeight(id, EXPENSE, BOB) }
+        "weight negative" | Money.of(1, "EUR") | weighted([(BOB): -1]) | false |
+            { id -> new NonPositiveShareWeight(id, EXPENSE, BOB) }
+        "empty exact" | Money.of(1, "EUR") | exact([:]) | false |
+            { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "empty weighted" | Money.of(1, "EUR") | weighted([:]) | false |
+            { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "unknown exact recipient" | Money.of(1, "EUR") | exact([(UNKNOWN): Money.of(1, "EUR")]) | false |
+            { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "removed weighted recipient" | Money.of(1, "EUR") | weighted([(BOB): 1]) | true |
+            { id -> new ParticipantNotFound(id, BOB) }
+    }
+
+    def "Share Allocation rejection favors #priority"() {
+        given:
+        def settlement = withParticipants()
+        def version = configuration.store.load(settlement).size()
+
+        when:
+        def result = configuration.commands.dispatch(expenseWithAllocation(settlement, payer, amount, allocation))
+
+        then:
+        result.getFailure() == rejection.call(settlement)
+        configuration.store.load(settlement).size() == version
+
+        where:
+        priority | amount | payer | allocation | rejection
+        "amount over empty exact" | Money.zero("EUR") | UNKNOWN | exact([:]) |
+            { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        "amount over invalid weight" | Money.zero("EUR") | UNKNOWN | weighted([(BOB): 0]) |
+            { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        "empty over invalid payer" | Money.of(1, "EUR") | UNKNOWN | weighted([:]) |
+            { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "currency over positivity in same exact entry" | Money.of(1, "EUR") | UNKNOWN |
+            exact([(BOB): Money.zero("USD")]) | { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
+        "entry order over error type" | Money.of(1, "EUR") | UNKNOWN |
+            exact([(CAL): Money.zero("EUR"), (BOB): Money.of(1, "USD")]) |
+            { id -> new NonPositiveExactShare(id, EXPENSE, CAL) }
+        "weight order over payer" | Money.of(1, "EUR") | UNKNOWN |
+            weighted([(CAL): -1, (BOB): 0]) | { id -> new NonPositiveShareWeight(id, EXPENSE, CAL) }
+        "sum over payer" | Money.of(1, "EUR") | UNKNOWN |
+            exact([(BOB): Money.of(2, "EUR")]) | { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "sum over recipient" | Money.of(1, "EUR") | ADA |
+            exact([(UNKNOWN): Money.of(2, "EUR")]) | { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "payer over recipient" | Money.of(1, "EUR") | UNKNOWN |
+            exact([(UNKNOWN): Money.of(1, "EUR")]) | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "recipient over missing exchange rate" | Money.of(1, "USD") | ADA |
+            exact([(UNKNOWN): Money.of(1, "USD")]) | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "sum over missing exchange rate" | Money.of(1, "USD") | ADA |
+            exact([(BOB): Money.of(2, "USD")]) | { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "missing exchange rate after validation" | Money.of(1, "USD") | ADA |
+            weighted([(BOB): 1]) | { id -> new MissingExchangeRate(id, EXPENSE) }
+    }
+
+    def "Share Allocation retries use order type and literal values"() {
+        given:
+        def settlement = withParticipants()
+        def original = weighted([(CAL): 2, (BOB): 2])
+        configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, Money.of(10, "EUR"), original))
+        def version = configuration.store.load(settlement).size()
+
+        when:
+        def identical = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
+            Money.of(new BigDecimal("10.00"), "EUR"), weighted([(CAL): 2, (BOB): 2])))
+        def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
+            Money.of(10, "EUR"), weighted([(BOB): 2, (CAL): 2])))
+        def literalChange = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
+            Money.of(10, "EUR"), weighted([(CAL): 1, (BOB): 1])))
+        def typeChange = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
+            Money.of(10, "EUR"), exact([(CAL): Money.of(5, "EUR"), (BOB): Money.of(5, "EUR")])))
+        def invalidRetry = configuration.commands.dispatch(expenseWithAllocation(settlement, UNKNOWN,
+            Money.zero("EUR"), weighted([:])))
+
+        then:
+        identical.getSuccess().events().empty
+        [reordered, literalChange, typeChange, invalidRetry]*.getFailure() ==
+            [new ExpenseIdentifierConflict(settlement, EXPENSE)] * 4
+        configuration.store.load(settlement).size() == version
+    }
+
+    def "exact retry compares numeric amounts across scales"() {
+        given:
+        def settlement = withParticipants()
+        configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, Money.of(10, "EUR"),
+            exact([(CAL): Money.of(4, "EUR"), (BOB): Money.of(6, "EUR")])))
+        def version = configuration.store.load(settlement).size()
+
+        when:
+        def retry = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
+            Money.of(new BigDecimal("10.00"), "EUR"), exact([
+                (CAL): Money.of(new BigDecimal("4.00"), "EUR"), (BOB): Money.of(new BigDecimal("6.0"), "EUR")
+            ])))
+        def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
+            Money.of(10, "EUR"), exact([(BOB): Money.of(6, "EUR"), (CAL): Money.of(4, "EUR")])))
+
+        then:
+        retry.getSuccess().events().empty
+        reordered.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
+        configuration.store.load(settlement).size() == version
+    }
+
     def "read models freeze collections without losing Balance order"() {
         given:
         def settlement = withParticipants()
@@ -113,22 +279,6 @@ class ExpensesSpec extends Specification {
 
         then:
         thrown(UnsupportedOperationException)
-    }
-
-    def "residual minor units follow identifier order, not allocation order, and zero shares are omitted"() {
-        given:
-        def settlement = withParticipants()
-
-        when:
-        configuration.commands.dispatch(expense(settlement, ADA, Money.of(0.01, "EUR"), [CAL, BOB, ADA]))
-        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
-
-        then:
-        view.expenses().get(0).allocation().recipients().toList() == [CAL, BOB, ADA]
-        view.expenses().get(0).shares()*.participantId() == [ADA]
-        view.expenses().get(0).shares()*.amount() == [Money.of(0.01, "EUR")]
-        view.obligations().empty
-        view.balances().values().every { it.isZero() }
     }
 
     def "payer need not receive a Share and duplicate recipients collapse"() {
@@ -269,19 +419,6 @@ class ExpensesSpec extends Specification {
         configuration.store.load(settlement).size() == 7
     }
 
-    def "ten minor units divide equally with residuals in identifier order"() {
-        given:
-        def settlement = withParticipants()
-
-        when:
-        configuration.commands.dispatch(expense(settlement, ADA, Money.of(10, "EUR"), [CAL, BOB, ADA]))
-        def shares = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().get(0).shares()
-
-        then:
-        shares*.participantId() == [CAL, BOB, ADA]
-        shares*.amount()*.value() == [3.33, 3.33, 3.34]*.toBigDecimal()
-    }
-
     def "unknown Settlement rejects recording without a stream"() {
         when:
         def result = configuration.commands.dispatch(expense(configuration.UNKNOWN_ID, ADA, Money.of(1, "EUR"), [BOB]))
@@ -303,24 +440,6 @@ class ExpensesSpec extends Specification {
         value << ["", "  ", "\n"]
     }
 
-    def "currency fraction digits control residual allocation"() {
-        given:
-        def settlement = withParticipants(Monetary.getCurrency(code))
-
-        when:
-        configuration.commands.dispatch(expense(settlement, ADA, Money.of(amount, code), [CAL, BOB, ADA]))
-        def shares = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().get(0).shares()
-
-        then:
-        shares*.participantId() == [CAL, BOB, ADA]
-        shares*.amount()*.value() == expected
-
-        where:
-        code  | amount | expected
-        "JPY" | 10     | [3, 3, 4]*.toBigDecimal()
-        "KWD" | 0.010  | [0.003, 0.003, 0.004]*.toBigDecimal()
-    }
-
     private def withParticipants(currency = SettlementTestConfiguration.EUR) {
         def settlement = configuration.openSettlement("Holiday", currency)
         [ADA, BOB, CAL].each { id ->
@@ -332,6 +451,18 @@ class ExpensesSpec extends Specification {
     private static RecordExpense expense(settlement, payer, amount, recipients) {
         new RecordExpense(settlement, EXPENSE, new ExpenseDescription("Lunch"), DATE, payer, amount,
             new EqualShareAllocation(recipients))
+    }
+
+    private static ExactShareAllocation exact(Map amounts) {
+        new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>(amounts))
+    }
+
+    private static WeightedShareAllocation weighted(Map weights) {
+        new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>(weights))
+    }
+
+    private static RecordExpense expenseWithAllocation(settlement, payer, amount, allocation) {
+        new RecordExpense(settlement, EXPENSE, new ExpenseDescription("Lunch"), DATE, payer, amount, allocation)
     }
 
     private static ParticipantId participant(int suffix) {
