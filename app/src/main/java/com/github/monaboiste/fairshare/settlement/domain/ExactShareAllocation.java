@@ -12,6 +12,10 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
 
+/**
+ * Divides an Expense by exact amounts in the original Expense currency. Numerically equal amounts in the same currency
+ * compare equal.
+ */
 public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) implements ShareAllocation {
     public ExactShareAllocation {
         amounts = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(amounts));

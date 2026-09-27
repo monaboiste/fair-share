@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
 
+/** Divides an Expense equally among recipients in presentation order. */
 public record EqualShareAllocation(SequencedSet<ParticipantId> recipients) implements ShareAllocation {
     public EqualShareAllocation(Collection<ParticipantId> recipients) {
         this(new LinkedHashSet<>(recipients));

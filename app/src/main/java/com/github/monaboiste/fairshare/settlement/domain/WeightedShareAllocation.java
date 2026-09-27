@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
 
+/** Divides an Expense by positive whole-number weights in presentation order. */
 public record WeightedShareAllocation(SequencedMap<ParticipantId, Integer> weights) implements ShareAllocation {
     public WeightedShareAllocation {
         weights = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(weights));

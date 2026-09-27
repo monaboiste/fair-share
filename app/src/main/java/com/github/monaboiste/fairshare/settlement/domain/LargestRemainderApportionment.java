@@ -14,6 +14,10 @@ import java.util.SequencedMap;
 final class LargestRemainderApportionment {
     private LargestRemainderApportionment() {}
 
+    /**
+     * Apportions a Valuation in minor units by positive integer proportions: floors first, then largest remainders with
+     * Participant identifier ties. Omits zero Shares, retains presentation order, and fails fast on invalid input.
+     */
     static List<Share> apportion(SequencedMap<ParticipantId, BigInteger> proportions, Money amount) {
         if (proportions.isEmpty() || proportions.values().stream().anyMatch(proportion -> proportion.signum() <= 0)) {
             throw new IllegalStateException("Cannot resolve invalid Share Allocation");
