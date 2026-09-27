@@ -76,9 +76,12 @@ class WeightedShareAllocationSpec extends Specification {
         source[ADA] = 1
         def identical = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(CAL): 2, (BOB): 2]))
 
-        expect:
+        when:
+        def sameHash = allocation.hashCode() == identical.hashCode()
+
+        then:
         allocation == identical
-        allocation.hashCode() == identical.hashCode()
+        sameHash
         allocation != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(CAL): 1, (BOB): 1]))
         allocation != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(BOB): 2, (CAL): 2]))
         allocation.recipients().toList() == [CAL, BOB]

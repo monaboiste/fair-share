@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
 
@@ -23,6 +24,26 @@ public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) i
     @Override
     public SequencedSet<ParticipantId> recipients() {
         return amounts.sequencedKeySet();
+    }
+
+    @Override
+    public Optional<SettlementRejection> validate(
+            SettlementId settlementId, ExpenseId expenseId, Money originalAmount) {
+        BigDecimal sum = BigDecimal.ZERO;
+        for (var entry : amounts.entrySet()) {
+            Money share = entry.getValue();
+            if (!share.currencyUnit().equals(originalAmount.currencyUnit())) {
+                return Optional.of(new ExactShareCurrencyMismatch(settlementId, expenseId, entry.getKey()));
+            }
+            if (share.isZero() || share.isNegative()) {
+                return Optional.of(new NonPositiveExactShare(settlementId, expenseId, entry.getKey()));
+            }
+            sum = sum.add(share.value());
+        }
+        if (sum.compareTo(originalAmount.value()) != 0) {
+            return Optional.of(new ExactShareSumMismatch(settlementId, expenseId));
+        }
+        return Optional.empty();
     }
 
     @Override

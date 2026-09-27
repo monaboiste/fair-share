@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
 
@@ -17,6 +18,12 @@ public record EqualShareAllocation(SequencedSet<ParticipantId> recipients) imple
 
     public EqualShareAllocation {
         recipients = Collections.unmodifiableSequencedSet(new LinkedHashSet<>(recipients));
+    }
+
+    @Override
+    public Optional<SettlementRejection> validate(
+            SettlementId settlementId, ExpenseId expenseId, Money originalAmount) {
+        return Optional.empty();
     }
 
     @Override

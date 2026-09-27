@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.SequencedSet;
 
@@ -21,6 +22,17 @@ public record WeightedShareAllocation(SequencedMap<ParticipantId, Integer> weigh
     @Override
     public SequencedSet<ParticipantId> recipients() {
         return weights.sequencedKeySet();
+    }
+
+    @Override
+    public Optional<SettlementRejection> validate(
+            SettlementId settlementId, ExpenseId expenseId, Money originalAmount) {
+        for (var entry : weights.entrySet()) {
+            if (entry.getValue() <= 0) {
+                return Optional.of(new NonPositiveShareWeight(settlementId, expenseId, entry.getKey()));
+            }
+        }
+        return Optional.empty();
     }
 
     @Override

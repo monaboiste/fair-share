@@ -11,7 +11,8 @@ class ExactShareAllocationSpec extends Specification {
     def "sub-unit exact amounts apportion valued #currency without intermediate rounding"() {
         given:
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(first, currency), (BOB): Money.of(second, currency), (ADA): Money.of(third, currency)
+            (CAL): Money.of(calShare, currency), (BOB): Money.of(bobShare, currency),
+            (ADA): Money.of(adaShare, currency)
         ]))
 
         when:
@@ -23,10 +24,10 @@ class ExactShareAllocationSpec extends Specification {
         shares*.amount().inject(Money.zero(currency)) { sum, share -> sum.add(share) }.compareTo(Money.of(valuation, currency)) == 0
 
         where:
-        currency | first   | second  | third   | valuation | expected
-        "JPY"    | 0.25    | 0.5     | 0.25    | 7         | [2, 3, 2]*.toBigDecimal()
-        "EUR"    | 0.0025  | 0.005   | 0.0025  | 0.07      | [0.02, 0.03, 0.02]*.toBigDecimal()
-        "KWD"    | 0.00025 | 0.0005  | 0.00025 | 0.007     | [0.002, 0.003, 0.002]*.toBigDecimal()
+        currency | calShare | bobShare | adaShare | valuation | expected
+        "JPY"    | 0.25     | 0.5      | 0.25     | 7         | [2, 3, 2]*.toBigDecimal()
+        "EUR"    | 0.0025   | 0.005    | 0.0025   | 0.07      | [0.02, 0.03, 0.02]*.toBigDecimal()
+        "KWD"    | 0.00025  | 0.0005   | 0.00025  | 0.007     | [0.002, 0.003, 0.002]*.toBigDecimal()
     }
 
     def "exact largest remainder outranks Participant identifier"() {
@@ -79,9 +80,12 @@ class ExactShareAllocationSpec extends Specification {
             (CAL): Money.of(new BigDecimal("10.00"), "EUR"), (BOB): Money.of(new BigDecimal("2.0"), "EUR")
         ]))
 
-        expect:
+        when:
+        def sameHash = allocation.hashCode() == identical.hashCode()
+
+        then:
         allocation == identical
-        allocation.hashCode() == identical.hashCode()
+        sameHash
         allocation != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
             (BOB): Money.of(2, "EUR"), (CAL): Money.of(10, "EUR")
         ]))
