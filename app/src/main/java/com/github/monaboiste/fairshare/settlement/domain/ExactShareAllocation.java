@@ -51,6 +51,10 @@ public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) i
         if (amounts.isEmpty()) {
             throw new IllegalStateException("Cannot resolve invalid Share Allocation");
         }
+        var sourceCurrency = amounts.firstEntry().getValue().currencyUnit();
+        if (amounts.values().stream().anyMatch(share -> !share.currencyUnit().equals(sourceCurrency))) {
+            throw new IllegalStateException("Cannot resolve invalid Share Allocation");
+        }
         int scale = amounts.values().stream()
                 .mapToInt(share -> share.value().scale())
                 .max()
@@ -86,8 +90,8 @@ public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) i
     public int hashCode() {
         int hash = 1;
         for (var entry : amounts.entrySet()) {
-            BigDecimal canonical = entry.getValue().value().stripTrailingZeros();
-            hash = 31 * hash + Objects.hash(entry.getKey(), entry.getValue().currency(), canonical);
+            BigDecimal amount = entry.getValue().value().stripTrailingZeros();
+            hash = 31 * hash + Objects.hash(entry.getKey(), entry.getValue().currencyUnit(), amount);
         }
         return hash;
     }

@@ -119,11 +119,12 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                     && existing.originalAmount().compareTo(amount) == 0;
             return identical ? Result.success(expenseId) : Result.failure(new ExpenseIdentifierConflict(id, expenseId));
         }
-        var rejection = validateNewExpense(expenseId, payer, amount, allocation);
+        Optional<SettlementRejection> rejection = validateNewExpense(expenseId, payer, amount, allocation);
         if (rejection.isPresent()) {
-            return Result.failure(rejection.orElseThrow());
+            return Result.failure(rejection.get());
         }
-        return recordValuedExpense(expenseId, description, incurredOn, payer, amount, allocation);
+        registerExpense(expenseId, description, incurredOn, payer, amount, allocation);
+        return Result.success(expenseId);
     }
 
     private Optional<SettlementRejection> validateNewExpense(
@@ -152,7 +153,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return Optional.empty();
     }
 
-    private Result<SettlementRejection, ExpenseId> recordValuedExpense(
+    private void registerExpense(
             ExpenseId expenseId,
             ExpenseDescription description,
             LocalDate incurredOn,
@@ -173,7 +174,6 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 valued.exchangeRate(),
                 valuation,
                 allocation.resolve(valuation)));
-        return Result.success(expenseId);
     }
 
     private CurrencyUnit settlementCurrency() {
