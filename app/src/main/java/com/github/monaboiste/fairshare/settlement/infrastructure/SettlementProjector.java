@@ -13,6 +13,7 @@ import com.github.monaboiste.fairshare.settlement.application.query.SettlementVi
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.Share;
+import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
@@ -95,6 +96,23 @@ public final class SettlementProjector
                         retired);
             }
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
+            case ExchangeRateConfigured configured -> {
+                SettlementView view = requireSettlement(previous);
+                List<ExchangeRateConfigured> rates = new ArrayList<>(view.exchangeRates());
+                rates.add(configured);
+                yield new Projection(
+                        new SettlementView(
+                                event.streamId(),
+                                view.name(),
+                                view.currency(),
+                                event.sequence(),
+                                view.participants(),
+                                view.expenses(),
+                                view.obligations(),
+                                view.balances(),
+                                rates),
+                        retired);
+            }
             case SettlementRenamed(var name) -> {
                 SettlementView view = requireSettlement(previous);
                 yield new Projection(
@@ -106,7 +124,8 @@ public final class SettlementProjector
                                 view.participants(),
                                 view.expenses(),
                                 view.obligations(),
-                                view.balances()),
+                                view.balances(),
+                                view.exchangeRates()),
                         retired);
             }
             case ParticipantAdded(var participantId, var name) ->
@@ -190,7 +209,8 @@ public final class SettlementProjector
                 participants,
                 expenses,
                 obligations,
-                ordered);
+                ordered,
+                previous.exchangeRates());
     }
 
     private static Projection recordExpense(

@@ -5,7 +5,10 @@ Settlement owns versioned Exchange Rate configuration, while `ValuationEngine` s
 Valuations.
 
 Exchange Rate versions use the existing component validity model, allow intentional overlaps, and resolve them by the
-latest `validFrom`, followed by stream order.
+latest `validFrom`, followed by stream order. Expense `incurredOn` is a `LocalDate` and is evaluated at
+`incurredOn.atStartOfDay()` against the inclusive `LocalDateTime` validity endpoints. An Exchange Rate
+starting at noon does not apply to an Expense incurred on that same date; no time zone or whole-day
+normalization is implied.
 
 A `Valuation` retains the applied `SimpleComponentVersion`: configured Exchange Rates retain the selected version,
 manual overrides receive a one-off version, and same-currency conversions use a stable implicit version backed by an

@@ -300,6 +300,44 @@ class CurrencyValuationSpec extends Specification {
         thrown(IllegalStateException)
     }
 
+    def "Exchange Rate Validity applies at inclusive midnight boundaries but not before noon on its first day"() {
+        given:
+        def midnight = LocalDateTime.parse("2026-09-27T00:00:00")
+        def noon = LocalDateTime.parse("2026-09-27T12:00:00")
+        def base = exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
+            Validity.until(midnight), midnight.minusDays(1))
+        def newer = exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5",
+            Validity.from(noon), midnight.minusDays(2))
+
+        when:
+        def atStartOfDay = pricing.value(Money.of(10, "EUR"), PLN, midnight.toLocalDate().atStartOfDay(),
+            [base, newer])
+        def atNoon = pricing.value(Money.of(10, "EUR"), PLN, noon, [base, newer])
+
+        then:
+        atStartOfDay.money() == Money.of(40, "PLN")
+        atStartOfDay.componentVersion().id() == base.id()
+        atNoon.money() == Money.of(45, "PLN")
+        atNoon.componentVersion().id() == newer.id()
+    }
+
+    def "Valuation fails in a gap between bounded and future Exchange Rate versions"() {
+        given:
+        def end = LocalDateTime.parse("2026-09-26T23:59:59")
+        def versions = [
+            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
+                Validity.until(end), end.minusDays(1)),
+            exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5",
+                Validity.from(end.plusDays(2)), end.minusDays(1))
+        ]
+
+        when:
+        pricing.value(Money.of(10, "EUR"), PLN, end.plusSeconds(1), versions)
+
+        then:
+        thrown(IllegalStateException)
+    }
+
     private static SimpleComponentVersion exchangeRateVersion(
             String versionId, String rateValue, Validity validity, LocalDateTime definedAt) {
         return ExchangeRate.of(EUR, PLN, rateValue.toBigDecimal())
