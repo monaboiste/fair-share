@@ -4,7 +4,7 @@ import com.github.monaboiste.fairshare.netting.Obligation;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
-import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,7 +20,7 @@ public record SettlementView(
         List<ExpenseView> expenses,
         List<Obligation<ParticipantId>> obligations,
         SequencedMap<ParticipantId, Money> balances,
-        List<ExchangeRateConfigured> exchangeRates) {
+        List<ExchangeRateVersion> exchangeRates) {
     public SettlementView(
             SettlementId id,
             String name,

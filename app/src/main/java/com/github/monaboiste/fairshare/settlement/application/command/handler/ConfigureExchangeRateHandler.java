@@ -41,7 +41,7 @@ public final class ConfigureExchangeRateHandler
             return Result.failure(new SettlementNotFound(command.settlementId()));
         }
         var decision = settlement.configureExchangeRate(
-                command.exchangeRate(), command.validity(), versionIds, LocalDateTime.now(clock));
+                command.exchangeRate(), command.validity(), versionIds.get(), LocalDateTime.now(clock));
         if (decision.failure()) {
             return Result.failure(decision.getFailure());
         }

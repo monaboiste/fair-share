@@ -1,7 +1,9 @@
 package com.github.monaboiste.fairshare.settlement.application
 
+import com.github.monaboiste.fairshare.common.commands.RegisteredCommandDispatcher
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId
 import com.github.monaboiste.fairshare.pricing.component.Validity
+import com.github.monaboiste.fairshare.quantity.money.Money
 import com.github.monaboiste.fairshare.settlement.application.command.ConfigureExchangeRate
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.handler.ConfigureExchangeRateHandler
@@ -14,7 +16,9 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
 import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import com.github.monaboiste.fairshare.valuation.ExchangeRate
+import com.github.monaboiste.fairshare.valuation.ValuationEngine
 import java.time.LocalDateTime
+import javax.money.Monetary
 import spock.lang.Specification
 
 class ExchangeRatesSpec extends Specification {
@@ -41,21 +45,22 @@ class ExchangeRatesSpec extends Specification {
         event instanceof ExchangeRateConfigured
         event.type() == "ExchangeRateConfigured"
         event.schemaVersion() == 1
-        event.exchangeRate() == rate
-        event.version().id() instanceof ComponentVersionId
+        event.version().exchangeRate() == rate
+        event.version().id() == view.exchangeRates().first().id()
         event.version().validity() == validity
         event.version().definedAt() == LocalDateTime.ofInstant(configuration.NOW, configuration.CLOCK.zone)
-        view.exchangeRates() == [event]
+        view.exchangeRates() == [event.version()]
         rebuilt.findById(id).orElseThrow() == view
-        history*.payload() == [history.first().payload(), event]
+        history*.sequence() == [1L, 2L]
+        history.last().payload() == event
     }
 
-    def "an identical numeric retry keeps the stream version and does not allocate an identity"() {
+    def "an identical numeric retry keeps the stream version while later changes append a version"() {
         given:
         def id = configuration.openSettlement("Holiday")
         def firstId = new ComponentVersionId(new UUID(0L, 31L))
-        def secondId = new ComponentVersionId(new UUID(0L, 32L))
-        def ids = [firstId, secondId].iterator()
+        def thirdId = new ComponentVersionId(new UUID(0L, 33L))
+        def ids = [firstId, new ComponentVersionId(new UUID(0L, 32L)), thirdId].iterator()
         def handler = new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() })
         def initial = new ConfigureExchangeRate(id, rate("0.90"), validity)
         handler.handle(initial)
@@ -67,9 +72,9 @@ class ExchangeRatesSpec extends Specification {
         then:
         retry.version() == 2
         retry.events().empty
-        next.events().first().payload().version().id() == secondId
-        configuration.queries.dispatch(new GetSettlement(id)).getSuccess().exchangeRates()*.version()*.id() ==
-            [firstId, secondId]
+        next.events().first().payload().version().id() == thirdId
+        configuration.queries.dispatch(new GetSettlement(id)).getSuccess().exchangeRates()*.id() ==
+            [firstId, thirdId]
     }
 
     def "a correction back to an earlier Exchange Rate appends a new version after interleaved tuples"() {
@@ -96,8 +101,8 @@ class ExchangeRatesSpec extends Specification {
         then:
         commits*.version() == [2L, 3L, 4L, 5L, 6L]
         history*.sequence() == [1L, 2L, 3L, 4L, 5L, 6L]
-        view.exchangeRates()*.version()*.id() == commits*.events()*.first()*.payload()*.version()*.id()
-        view.exchangeRates()*.version()*.validity() == [validity, validity, earlier, Validity.always(), validity]
+        view.exchangeRates()*.id() == commits*.events()*.first()*.payload()*.version()*.id()
+        view.exchangeRates()*.validity() == [validity, validity, earlier, Validity.always(), validity]
         view.exchangeRates()*.exchangeRate()*.value() ==
             ["0.90", "0.95", "0.90", "1.10", "0.90"]*.toBigDecimal()
         rebuilt.findById(id).orElseThrow() == view
@@ -133,13 +138,13 @@ class ExchangeRatesSpec extends Specification {
 
         when:
         def second = configuration.commands.dispatch(new ConfigureExchangeRate(id,
-            ExchangeRate.of(javax.money.Monetary.getCurrency("GBP"), configuration.EUR, BigDecimal.ONE), validity))
+            ExchangeRate.of(Monetary.getCurrency("GBP"), configuration.EUR, BigDecimal.ONE), validity))
             .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
 
         then:
         view.name() == "Journey"
-        view.exchangeRates() == [first, second]
+        view.exchangeRates() == [first.version(), second.version()]
         configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()*.sequence() == [1L, 2L, 3L, 4L]
 
         when:
@@ -147,6 +152,64 @@ class ExchangeRatesSpec extends Specification {
 
         then:
         thrown(UnsupportedOperationException)
+    }
+
+    def "persisted overlapping Exchange Rates select the latest valid-from Valuation"() {
+        given:
+        def id = configuration.openSettlement("Holiday")
+        def februaryVersionId = new ComponentVersionId(new UUID(0L, 41L))
+        def baselineVersionId = new ComponentVersionId(new UUID(0L, 42L))
+        def ids = [februaryVersionId, baselineVersionId].iterator()
+        def commands = RegisteredCommandDispatcher.builder()
+            .register(ConfigureExchangeRate,
+                new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() }))
+            .build()
+        commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity)).getSuccess()
+        commands.dispatch(new ConfigureExchangeRate(id, rate("0.80"), Validity.always())).getSuccess()
+        def rebuilt = new SettlementProjector()
+        rebuilt.rebuild(configuration.store)
+        def versions = rebuilt.findById(id).orElseThrow().exchangeRates()
+
+        when:
+        def before = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
+            from.minusSeconds(1), versions)
+        def during = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
+            from.plusDays(1), versions)
+
+        then:
+        versions*.id() == [februaryVersionId, baselineVersionId]
+        before.money() == Money.of(8, "EUR")
+        before.componentVersion().id() == baselineVersionId
+        during.money() == Money.of(9, "EUR")
+        during.componentVersion().id() == februaryVersionId
+    }
+
+    def "persisted equal-start Exchange Rates select the later stream version after replay"() {
+        given:
+        def id = configuration.openSettlement("Holiday")
+        def firstId = new ComponentVersionId(new UUID(0L, 51L))
+        def laterId = new ComponentVersionId(new UUID(0L, 52L))
+        def ids = [firstId, laterId].iterator()
+        def commands = RegisteredCommandDispatcher.builder()
+            .register(ConfigureExchangeRate,
+                new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() }))
+            .build()
+        commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity)).getSuccess()
+        commands.dispatch(new ConfigureExchangeRate(id, rate("0.95"), validity)).getSuccess()
+        def liveVersions = configuration.queries.dispatch(new GetSettlement(id)).getSuccess().exchangeRates()
+        def rebuilt = new SettlementProjector()
+        rebuilt.rebuild(configuration.store)
+        def replayedVersions = rebuilt.findById(id).orElseThrow().exchangeRates()
+
+        when:
+        def valuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
+            from.plusDays(1), replayedVersions)
+
+        then:
+        liveVersions == replayedVersions
+        replayedVersions*.id() == [firstId, laterId]
+        valuation.money() == Money.of(9.50, "EUR")
+        valuation.componentVersion().id() == laterId
     }
 
     private ExchangeRate rate(String value) {

@@ -4,7 +4,6 @@ import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
-import com.github.monaboiste.fairshare.pricing.component.SimpleComponentVersion;
 import com.github.monaboiste.fairshare.pricing.component.Validity;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation;
@@ -33,6 +32,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import com.github.monaboiste.fairshare.valuation.ExchangeRate;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
@@ -52,7 +51,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private @Nullable CurrencyUnit currency;
     private final Map<ParticipantId, Participant> participants = new HashMap<>();
     private final Map<ExpenseId, ExpenseRecorded> expenses = new HashMap<>();
-    private final List<ExchangeRateConfigured> exchangeRates = new ArrayList<>();
+    private final List<ExchangeRateVersion> exchangeRates = new ArrayList<>();
 
     private Settlement(SettlementId id, Clock clock) {
         super(clock);
@@ -114,10 +113,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, ComponentVersionId> configureExchangeRate(
-            ExchangeRate exchangeRate,
-            Validity validity,
-            Supplier<ComponentVersionId> versionIds,
-            LocalDateTime definedAt) {
+            ExchangeRate exchangeRate, Validity validity, ComponentVersionId versionId, LocalDateTime definedAt) {
         if (!exchangeRate.targetCurrency().equals(settlementCurrency())) {
             return Result.failure(new ExchangeRateTargetMismatch(id, exchangeRate.targetCurrency()));
         }
@@ -125,19 +121,19 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             return Result.failure(new ExplicitIdentityExchangeRate(id));
         }
         for (int index = exchangeRates.size() - 1; index >= 0; index--) {
-            ExchangeRateConfigured previous = exchangeRates.get(index);
+            ExchangeRateVersion previous = exchangeRates.get(index);
             ExchangeRate configured = previous.exchangeRate();
             if (configured.sourceCurrency().equals(exchangeRate.sourceCurrency())
                     && configured.targetCurrency().equals(exchangeRate.targetCurrency())
-                    && previous.version().validity().equals(validity)) {
+                    && previous.validity().equals(validity)) {
                 if (configured.value().compareTo(exchangeRate.value()) == 0) {
-                    return Result.success(previous.version().id());
+                    return Result.success(previous.id());
                 }
                 break;
             }
         }
-        SimpleComponentVersion version = exchangeRate.version(versionIds.get(), validity, definedAt);
-        register(new ExchangeRateConfigured(exchangeRate, version));
+        ExchangeRateVersion version = new ExchangeRateVersion(versionId, exchangeRate, validity, definedAt);
+        register(new ExchangeRateConfigured(version));
         return Result.success(version.id());
     }
 
@@ -253,7 +249,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (currency == null) {
             throw new IllegalStateException("Settlement opening missing");
         }
-        exchangeRates.add(configured);
+        exchangeRates.add(configured.version());
     }
 
     private void applySettlementRenamed(String newName) {

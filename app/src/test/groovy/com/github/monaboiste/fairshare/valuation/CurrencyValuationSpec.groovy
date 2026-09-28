@@ -3,7 +3,6 @@ package com.github.monaboiste.fairshare.valuation
 import com.github.monaboiste.fairshare.pricing.calculation.CalculatorId
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId
-import com.github.monaboiste.fairshare.pricing.component.SimpleComponentVersion
 import com.github.monaboiste.fairshare.pricing.component.Validity
 import com.github.monaboiste.fairshare.quantity.money.Money
 import java.time.LocalDateTime
@@ -184,13 +183,13 @@ class CurrencyValuationSpec extends Specification {
         given:
         ComponentVersionId latestId = componentVersionId("00000000-0000-0000-0000-000000000002")
         ExchangeRate latestRate = ExchangeRate.of(EUR, PLN, 4.5)
-        SimpleComponentVersion base = exchangeRateVersion(
+        ExchangeRateVersion base = exchangeRateVersion(
                 "00000000-0000-0000-0000-000000000001",
                 "4.0",
                 Validity.from(LocalDateTime.parse("2025-01-01T00:00:00")),
                 LocalDateTime.parse("2024-12-01T00:00:00"))
-        SimpleComponentVersion latest = latestRate.version(
-                latestId,
+        ExchangeRateVersion latest = new ExchangeRateVersion(
+                latestId, latestRate,
                 Validity.from(LocalDateTime.parse("2025-02-01T00:00:00")),
                 LocalDateTime.parse("2025-01-01T00:00:00"))
 
@@ -209,17 +208,14 @@ class CurrencyValuationSpec extends Specification {
 
     def "Valuation selects only Exchange Rate versions matching its currency pair"() {
         given:
-        SimpleComponentVersion matching = exchangeRateVersion(
+        ExchangeRateVersion matching = exchangeRateVersion(
                 "00000000-0000-0000-0000-000000000001",
                 "4.0",
                 Validity.from(LocalDateTime.parse("2025-01-01T00:00:00")),
                 LocalDateTime.parse("2024-12-01T00:00:00"))
-        SimpleComponentVersion unrelated = ExchangeRate.of(
-                Monetary.getCurrency("GBP"),
-                PLN,
-                5.0)
-                .version(
+        ExchangeRateVersion unrelated = new ExchangeRateVersion(
                         componentVersionId("00000000-0000-0000-0000-000000000002"),
+                        ExchangeRate.of(Monetary.getCurrency("GBP"), PLN, 5.0),
                         Validity.from(LocalDateTime.parse("2025-02-01T00:00:00")),
                         LocalDateTime.parse("2025-01-01T00:00:00"))
 
@@ -237,12 +233,12 @@ class CurrencyValuationSpec extends Specification {
 
     def "Valuation falls back after a temporary Exchange Rate version expires"() {
         given:
-        SimpleComponentVersion base = exchangeRateVersion(
+        ExchangeRateVersion base = exchangeRateVersion(
                 "00000000-0000-0000-0000-000000000001",
                 "4.0",
                 Validity.from(LocalDateTime.parse("2025-01-01T00:00:00")),
                 LocalDateTime.parse("2024-12-01T00:00:00"))
-        SimpleComponentVersion temporary = exchangeRateVersion(
+        ExchangeRateVersion temporary = exchangeRateVersion(
                 "00000000-0000-0000-0000-000000000002",
                 "4.5",
                 Validity.between(
@@ -265,12 +261,12 @@ class CurrencyValuationSpec extends Specification {
     def "later stream order wins when Exchange Rate versions have the same valid-from"() {
         given:
         Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
-        SimpleComponentVersion first = exchangeRateVersion(
+        ExchangeRateVersion first = exchangeRateVersion(
                 "00000000-0000-0000-0000-000000000001",
                 "4.0",
                 validity,
                 LocalDateTime.parse("2025-02-01T00:00:00"))
-        SimpleComponentVersion later = exchangeRateVersion(
+        ExchangeRateVersion later = exchangeRateVersion(
                 "00000000-0000-0000-0000-000000000002",
                 "4.5",
                 validity,
@@ -338,10 +334,10 @@ class CurrencyValuationSpec extends Specification {
         thrown(IllegalStateException)
     }
 
-    private static SimpleComponentVersion exchangeRateVersion(
+    private static ExchangeRateVersion exchangeRateVersion(
             String versionId, String rateValue, Validity validity, LocalDateTime definedAt) {
-        return ExchangeRate.of(EUR, PLN, rateValue.toBigDecimal())
-                .version(componentVersionId(versionId), validity, definedAt)
+        return new ExchangeRateVersion(componentVersionId(versionId),
+                ExchangeRate.of(EUR, PLN, rateValue.toBigDecimal()), validity, definedAt)
     }
 
     private static ComponentVersionId componentVersionId(String value) {

@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
 
 public interface ValuationEngine {
 
-    Valuation value(Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<SimpleComponentVersion> versions);
+    Valuation value(Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions);
 
     Valuation value(
             Money source,
@@ -35,7 +35,7 @@ final class StandardValuationEngine implements ValuationEngine {
 
     @Override
     public Valuation value(
-            Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<SimpleComponentVersion> versions) {
+            Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions) {
         if (source.currencyUnit().equals(targetCurrency)) {
             ExchangeRate identity = ExchangeRate.of(targetCurrency, targetCurrency, BigDecimal.ONE);
             String identityName = "implicit-exchange-rate:" + targetCurrency.getCurrencyCode();
@@ -44,7 +44,11 @@ final class StandardValuationEngine implements ValuationEngine {
             SimpleComponentVersion identityVersion = identity.version(identityId, Validity.always(), LocalDateTime.MIN);
             return value(source, targetCurrency, identityVersion);
         }
-        return value(source, targetCurrency, versionAt(source.currencyUnit(), targetCurrency, at, versions));
+        ExchangeRateVersion selected = versionAt(source.currencyUnit(), targetCurrency, at, versions);
+        return value(
+                source,
+                targetCurrency,
+                selected.exchangeRate().version(selected.id(), selected.validity(), selected.definedAt()));
     }
 
     @Override
@@ -68,18 +72,17 @@ final class StandardValuationEngine implements ValuationEngine {
         return new Valuation(result, exchangeRate, version);
     }
 
-    private SimpleComponentVersion versionAt(
+    private ExchangeRateVersion versionAt(
             CurrencyUnit sourceCurrency,
             CurrencyUnit targetCurrency,
             LocalDateTime at,
-            List<SimpleComponentVersion> versions) {
-        SimpleComponentVersion selected = null;
+            List<ExchangeRateVersion> versions) {
+        ExchangeRateVersion selected = null;
         Comparator<@Nullable LocalDateTime> validFrom = Comparator.nullsFirst(Comparator.naturalOrder());
-        for (SimpleComponentVersion version : versions) {
+        for (ExchangeRateVersion version : versions) {
             if (version.validity().isValidAt(at)
-                    && version.calculator() instanceof CurrencyConversionCalculator calculator
-                    && calculator.exchangeRate().sourceCurrency().equals(sourceCurrency)
-                    && calculator.exchangeRate().targetCurrency().equals(targetCurrency)
+                    && version.exchangeRate().sourceCurrency().equals(sourceCurrency)
+                    && version.exchangeRate().targetCurrency().equals(targetCurrency)
                     && (selected == null
                             || validFrom.compare(
                                             version.validity().from(),

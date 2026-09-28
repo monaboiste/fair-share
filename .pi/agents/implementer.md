@@ -1,6 +1,6 @@
 ---
-description: Implements an approved bounded change using TDD disciplines.
-model: openai-codex/gpt-6-sol
+description: Implements an approved bounded change using Matt Pocock's implementation and TDD disciplines.
+model: lmstudio/ornith-1.5-35b-a3b-mlx
 thinking: high
 tools: read,grep,find,ls,bash,edit,write
 skills: implement,tdd,codebase-design

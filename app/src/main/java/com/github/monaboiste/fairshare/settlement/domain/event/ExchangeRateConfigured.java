@@ -1,10 +1,8 @@
 package com.github.monaboiste.fairshare.settlement.domain.event;
 
-import com.github.monaboiste.fairshare.pricing.component.SimpleComponentVersion;
-import com.github.monaboiste.fairshare.valuation.ExchangeRate;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
 
-public record ExchangeRateConfigured(ExchangeRate exchangeRate, SimpleComponentVersion version)
-        implements SettlementEvent {
+public record ExchangeRateConfigured(ExchangeRateVersion version) implements SettlementEvent {
     @Override
     public String type() {
         return "ExchangeRateConfigured";

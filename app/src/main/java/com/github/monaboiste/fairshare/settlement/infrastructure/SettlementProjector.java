@@ -21,6 +21,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRename
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -98,8 +99,8 @@ public final class SettlementProjector
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
             case ExchangeRateConfigured configured -> {
                 SettlementView view = requireSettlement(previous);
-                List<ExchangeRateConfigured> rates = new ArrayList<>(view.exchangeRates());
-                rates.add(configured);
+                List<ExchangeRateVersion> rates = new ArrayList<>(view.exchangeRates());
+                rates.add(configured.version());
                 yield new Projection(
                         new SettlementView(
                                 event.streamId(),

@@ -1,8 +1,14 @@
 # Version and freeze Expense Valuations
 
-Settlement owns versioned Exchange Rate configuration, while `ValuationEngine` selects the applicable
-`SimpleComponentVersion` for the Expense date. `CompositeComponentVersion` remains reserved for genuinely composite
-Valuations.
+Settlement owns versioned Exchange Rate configuration as `ExchangeRateVersion`: version identifier, Exchange Rate,
+Validity and `definedAt`. Events and views retain this data without storing Pricing calculators. `ValuationEngine`
+selects the applicable version for the Expense date and converts it to `SimpleComponentVersion` at its own seam.
+`CompositeComponentVersion` remains reserved for genuinely composite Valuations.
+
+`definedAt` is retained Pricing version metadata supplied by the application Clock, not the event envelope's
+`occurredAt`. Likewise, the version identifier identifies the configured version, not its event. These are domain
+payload data; ADR 0007 keeps event identifiers and event occurrence time in the envelope. Neither `definedAt` nor
+version identifiers determine selection order.
 
 Exchange Rate versions use the existing component validity model, allow intentional overlaps, and resolve them by the
 latest `validFrom`, followed by stream order. Expense `incurredOn` is a `LocalDate` and is evaluated at
