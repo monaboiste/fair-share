@@ -1,6 +1,6 @@
 ---
 description: Independently reviews a completed change for repository standards, maintainability, and concrete code-quality problems.
-model: openai-codex/gpt-6-luna
+model: openai-codex/gpt-6-sol
 thinking: high
 tools: read,grep,find,ls,bash
 system-prompt: append
