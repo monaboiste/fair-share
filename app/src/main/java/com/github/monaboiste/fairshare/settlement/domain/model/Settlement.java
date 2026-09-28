@@ -3,11 +3,15 @@ package com.github.monaboiste.fairshare.settlement.domain.model;
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
+import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
+import com.github.monaboiste.fairshare.pricing.component.Validity;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation;
+import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateTargetMismatch;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
+import com.github.monaboiste.fairshare.settlement.domain.ExplicitIdentityExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExpenseAmount;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
@@ -19,6 +23,7 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
 import com.github.monaboiste.fairshare.settlement.domain.ShareAllocation;
+import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
@@ -26,9 +31,13 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRename
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
+import com.github.monaboiste.fairshare.valuation.ExchangeRate;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +51,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private @Nullable CurrencyUnit currency;
     private final Map<ParticipantId, Participant> participants = new HashMap<>();
     private final Map<ExpenseId, ExpenseRecorded> expenses = new HashMap<>();
+    private final List<ExchangeRateVersion> exchangeRates = new ArrayList<>();
 
     private Settlement(SettlementId id, Clock clock) {
         super(clock);
@@ -100,6 +110,31 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         }
         register(new ParticipantRemoved(participantId));
         return Result.success(participantId);
+    }
+
+    public Result<SettlementRejection, ComponentVersionId> configureExchangeRate(
+            ExchangeRate exchangeRate, Validity validity, ComponentVersionId versionId, LocalDateTime definedAt) {
+        if (!exchangeRate.targetCurrency().equals(settlementCurrency())) {
+            return Result.failure(new ExchangeRateTargetMismatch(id, exchangeRate.targetCurrency()));
+        }
+        if (exchangeRate.sourceCurrency().equals(exchangeRate.targetCurrency())) {
+            return Result.failure(new ExplicitIdentityExchangeRate(id));
+        }
+        for (int index = exchangeRates.size() - 1; index >= 0; index--) {
+            ExchangeRateVersion previous = exchangeRates.get(index);
+            ExchangeRate configured = previous.exchangeRate();
+            if (configured.sourceCurrency().equals(exchangeRate.sourceCurrency())
+                    && configured.targetCurrency().equals(exchangeRate.targetCurrency())
+                    && previous.validity().equals(validity)) {
+                if (configured.value().compareTo(exchangeRate.value()) == 0) {
+                    return Result.success(previous.id());
+                }
+                break;
+            }
+        }
+        ExchangeRateVersion version = new ExchangeRateVersion(versionId, exchangeRate, validity, definedAt);
+        register(new ExchangeRateConfigured(version));
+        return Result.success(version.id());
     }
 
     public Result<SettlementRejection, ExpenseId> recordExpense(
@@ -198,6 +233,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     protected void apply(SettlementEvent event) {
         switch (event) {
             case ExpenseRecorded recorded -> applyExpenseRecorded(recorded);
+            case ExchangeRateConfigured configured -> applyExchangeRateConfigured(configured);
             case SettlementOpened(var openedName, var openedCurrency) ->
                 applySettlementOpened(openedName, openedCurrency);
             case ParticipantAdded(var participantId, var participantName) ->
@@ -207,6 +243,13 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             case ParticipantRemoved(var participantId) -> applyParticipantRemoved(participantId);
             case SettlementRenamed(var newName) -> applySettlementRenamed(newName);
         }
+    }
+
+    private void applyExchangeRateConfigured(ExchangeRateConfigured configured) {
+        if (currency == null) {
+            throw new IllegalStateException("Settlement opening missing");
+        }
+        exchangeRates.add(configured.version());
     }
 
     private void applySettlementRenamed(String newName) {

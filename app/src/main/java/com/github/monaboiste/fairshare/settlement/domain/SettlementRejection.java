@@ -12,4 +12,6 @@ public sealed interface SettlementRejection
                 ExactShareCurrencyMismatch,
                 NonPositiveExactShare,
                 ExactShareSumMismatch,
-                NonPositiveShareWeight {}
+                NonPositiveShareWeight,
+                ExchangeRateTargetMismatch,
+                ExplicitIdentityExchangeRate {}

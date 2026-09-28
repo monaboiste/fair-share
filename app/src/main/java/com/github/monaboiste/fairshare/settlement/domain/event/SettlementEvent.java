@@ -8,4 +8,5 @@ public sealed interface SettlementEvent extends Event
                 ParticipantAdded,
                 ParticipantRenamed,
                 ParticipantRemoved,
-                ExpenseRecorded {}
+                ExpenseRecorded,
+                ExchangeRateConfigured {}

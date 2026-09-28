@@ -4,6 +4,7 @@ import com.github.monaboiste.fairshare.common.commands.RegisteredCommandDispatch
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
 import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
+import com.github.monaboiste.fairshare.settlement.application.command.ConfigureExchangeRate
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense
 import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant
@@ -11,6 +12,7 @@ import com.github.monaboiste.fairshare.settlement.application.command.RenamePart
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementCommand
 import com.github.monaboiste.fairshare.settlement.application.command.handler.AddParticipantHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.ConfigureExchangeRateHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RecordExpenseHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RemoveParticipantHandler
@@ -49,6 +51,7 @@ class SettlementTestConfiguration {
     final RenameParticipantHandler renameParticipantHandler = new RenameParticipantHandler(repository)
     final RemoveParticipantHandler removeParticipantHandler = new RemoveParticipantHandler(repository)
     final RecordExpenseHandler recordExpenseHandler = new RecordExpenseHandler(repository)
+    final ConfigureExchangeRateHandler configureExchangeRateHandler = new ConfigureExchangeRateHandler(repository, CLOCK)
     final GetSettlementHandler viewHandler = new GetSettlementHandler(projector)
     final GetSettlementHistoryHandler historyHandler = new GetSettlementHistoryHandler(store)
     final RegisteredCommandDispatcher commands = RegisteredCommandDispatcher.builder()
@@ -58,6 +61,7 @@ class SettlementTestConfiguration {
         .register(RenameParticipant, renameParticipantHandler)
         .register(RemoveParticipant, removeParticipantHandler)
         .register(RecordExpense, recordExpenseHandler)
+        .register(ConfigureExchangeRate, configureExchangeRateHandler)
         .requireHandlersFor(SettlementCommand).build()
     final RegisteredQueryDispatcher queries = RegisteredQueryDispatcher.builder()
         .register(GetSettlement, viewHandler)
