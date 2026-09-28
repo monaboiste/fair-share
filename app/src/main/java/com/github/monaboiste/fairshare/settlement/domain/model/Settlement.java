@@ -120,9 +120,10 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (exchangeRate.sourceCurrency().equals(exchangeRate.targetCurrency())) {
             return Result.failure(new ExplicitIdentityExchangeRate(id));
         }
-        Optional<ComponentVersionId> retry = exchangeRates.latestConfiguredFor(exchangeRate, validity);
-        if (retry.isPresent()) {
-            return Result.success(retry.get());
+        Optional<ExchangeRateVersion> previous =
+                exchangeRates.latestFor(exchangeRate.sourceCurrency(), exchangeRate.targetCurrency(), validity);
+        if (previous.isPresent() && previous.get().exchangeRate().value().compareTo(exchangeRate.value()) == 0) {
+            return Result.success(previous.get().id());
         }
         ExchangeRateVersion version = new ExchangeRateVersion(versionId, exchangeRate, validity, definedAt);
         register(new ExchangeRateConfigured(version));

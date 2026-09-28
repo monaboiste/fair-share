@@ -2,7 +2,6 @@ package com.github.monaboiste.fairshare.valuation
 
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId
 import com.github.monaboiste.fairshare.pricing.component.Validity
-import com.github.monaboiste.fairshare.valuation.ExchangeRateVersions
 import java.time.LocalDateTime
 import javax.money.CurrencyUnit
 import javax.money.Monetary
@@ -13,10 +12,6 @@ class ExchangeRateVersionsSpec extends Specification {
     private static final CurrencyUnit EUR = Monetary.getCurrency("EUR")
     private static final CurrencyUnit JPY = Monetary.getCurrency("JPY")
     private static final CurrencyUnit PLN = Monetary.getCurrency("PLN")
-
-    def applicable(ExchangeRateVersions versions, source, target, LocalDateTime at) {
-        return versions.applicableAt(source, target, at)
-    }
 
     def "selects the latest valid-from version in an overlap"() {
         given:
@@ -174,6 +169,60 @@ class ExchangeRateVersionsSpec extends Specification {
         selected.isEmpty()
     }
 
+    def "latestFor returns the most recent matching tuple regardless of its numeric value"() {
+        given:
+        Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
+        ExchangeRateVersions versions = ExchangeRateVersions.from([
+            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0", validity,
+                LocalDateTime.parse("2024-12-01T00:00:00")),
+            exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5", validity,
+                LocalDateTime.parse("2024-12-01T00:00:00"))
+        ])
+
+        when:
+        def latest = versions.latestFor(EUR, PLN, validity)
+
+        then:
+        latest.isPresent()
+        latest.get().id() == componentVersionId("00000000-0000-0000-0000-000000000002")
+    }
+
+    def "latestFor ignores an interleaved non-matching tuple and returns the last matching one"() {
+        given:
+        Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
+        ExchangeRateVersions versions = ExchangeRateVersions.from([
+            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0", validity,
+                LocalDateTime.parse("2024-12-01T00:00:00")),
+            new ExchangeRateVersion(componentVersionId("00000000-0000-0000-0000-000000000002"),
+                ExchangeRate.of(Monetary.getCurrency("GBP"), PLN, 9.9),
+                Validity.between(LocalDateTime.parse("2025-03-01T00:00:00"),
+                    LocalDateTime.parse("2025-03-15T00:00:00")),
+                LocalDateTime.parse("2024-12-01T00:00:00"))
+        ])
+
+        when:
+        def latest = versions.latestFor(EUR, PLN, validity)
+
+        then:
+        latest.isPresent()
+        latest.get().id() == componentVersionId("00000000-0000-0000-0000-000000000001")
+    }
+
+    def "reports no matching tuple for a different currency pair or validity"() {
+        given:
+        Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
+        ExchangeRateVersions versions = ExchangeRateVersions.from([
+            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
+                Validity.always(), LocalDateTime.parse("2024-12-01T00:00:00"))
+        ])
+
+        when:
+        def latest = versions.latestFor(EUR, PLN, validity)
+
+        then:
+        latest.isEmpty()
+    }
+
     private static ExchangeRateVersion exchangeRateVersion(
             String versionId, String rateValue, Validity validity, LocalDateTime definedAt) {
         return new ExchangeRateVersion(componentVersionId(versionId),
@@ -182,5 +231,12 @@ class ExchangeRateVersionsSpec extends Specification {
 
     private static ComponentVersionId componentVersionId(String value) {
         return new ComponentVersionId(UUID.fromString(value))
+    }
+
+    private static Optional<ExchangeRateVersion> applicable(ExchangeRateVersions versions,
+                                                            CurrencyUnit source,
+                                                            CurrencyUnit target,
+                                                            LocalDateTime at) {
+        return versions.applicableAt(source, target, at)
     }
 }

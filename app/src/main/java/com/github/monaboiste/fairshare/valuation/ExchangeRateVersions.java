@@ -1,6 +1,5 @@
 package com.github.monaboiste.fairshare.valuation;
 
-import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
 import com.github.monaboiste.fairshare.pricing.component.Validity;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -48,17 +47,13 @@ public final class ExchangeRateVersions {
         return Optional.ofNullable(selected);
     }
 
-    public Optional<ComponentVersionId> latestConfiguredFor(ExchangeRate exchangeRate, Validity validity) {
+    public Optional<ExchangeRateVersion> latestFor(CurrencyUnit source, CurrencyUnit target, Validity validity) {
         for (int index = versions.size() - 1; index >= 0; index--) {
             ExchangeRateVersion previous = versions.get(index);
-            ExchangeRate configured = previous.exchangeRate();
-            if (configured.sourceCurrency().equals(exchangeRate.sourceCurrency())
-                    && configured.targetCurrency().equals(exchangeRate.targetCurrency())
+            if (previous.exchangeRate().sourceCurrency().equals(source)
+                    && previous.exchangeRate().targetCurrency().equals(target)
                     && previous.validity().equals(validity)) {
-                if (configured.value().compareTo(exchangeRate.value()) == 0) {
-                    return Optional.of(previous.id());
-                }
-                return Optional.empty();
+                return Optional.of(previous);
             }
         }
         return Optional.empty();
