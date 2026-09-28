@@ -159,12 +159,13 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (rejection.isPresent()) {
             return Result.failure(rejection.get());
         }
-        Optional<Valuation> valued = ValuationEngine.standard()
-                .value(amount, settlementCurrency(), incurredOn.atStartOfDay(), exchangeRates);
-        if (valued.isEmpty()) {
-            return Result.failure(new MissingExchangeRate(id, expenseId));
+        Result<SettlementRejection, Valuation> valued = ValuationEngine.standard()
+                .value(amount, settlementCurrency(), incurredOn.atStartOfDay(), exchangeRates)
+                .mapFailure(_ -> new MissingExchangeRate(id, expenseId));
+        if (valued.failure()) {
+            return Result.failure(valued.getFailure());
         }
-        registerExpense(expenseId, description, incurredOn, payer, amount, allocation, valued.get());
+        registerExpense(expenseId, description, incurredOn, payer, amount, allocation, valued.getSuccess());
         return Result.success(expenseId);
     }
 

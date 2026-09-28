@@ -176,16 +176,18 @@ class ExchangeRatesSpec extends Specification {
 
         when:
         def before = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.minusSeconds(1), versions).orElseThrow()
+            from.minusSeconds(1), versions)
         def during = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.plusDays(1), versions).orElseThrow()
+            from.plusDays(1), versions)
 
         then:
         versions*.id() == [februaryVersionId, baselineVersionId]
-        before.money() == Money.of(8, "EUR")
-        before.componentVersion().id() == baselineVersionId
-        during.money() == Money.of(9, "EUR")
-        during.componentVersion().id() == februaryVersionId
+        before.success()
+        during.success()
+        before.getSuccess().money() == Money.of(8, "EUR")
+        before.getSuccess().componentVersion().id() == baselineVersionId
+        during.getSuccess().money() == Money.of(9, "EUR")
+        during.getSuccess().componentVersion().id() == februaryVersionId
     }
 
     def "persisted equal-start Exchange Rates select the later stream version after replay"() {
@@ -206,14 +208,15 @@ class ExchangeRatesSpec extends Specification {
         def replayedVersions = rebuilt.findById(id).orElseThrow().exchangeRates()
 
         when:
-        def valuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.plusDays(1), replayedVersions).orElseThrow()
+        def result = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
+            from.plusDays(1), replayedVersions)
 
         then:
         liveVersions == replayedVersions
         replayedVersions*.id() == [firstId, laterId]
-        valuation.money() == Money.of(9.50, "EUR")
-        valuation.componentVersion().id() == laterId
+        result.success()
+        result.getSuccess().money() == Money.of(9.50, "EUR")
+        result.getSuccess().componentVersion().id() == laterId
     }
 
     private ExchangeRate rate(String value) {

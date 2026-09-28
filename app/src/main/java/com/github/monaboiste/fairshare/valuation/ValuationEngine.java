@@ -1,5 +1,6 @@
 package com.github.monaboiste.fairshare.valuation;
 
+import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.pricing.calculation.Parameters;
 import com.github.monaboiste.fairshare.pricing.calculation.PricingResult;
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
@@ -18,7 +19,7 @@ import org.jspecify.annotations.Nullable;
 
 public interface ValuationEngine {
 
-    Optional<Valuation> value(
+    Result<NoApplicableExchangeRate, Valuation> value(
             Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions);
 
     Valuation value(
@@ -36,7 +37,7 @@ public interface ValuationEngine {
 final class StandardValuationEngine implements ValuationEngine {
 
     @Override
-    public Optional<Valuation> value(
+    public Result<NoApplicableExchangeRate, Valuation> value(
             Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions) {
         if (source.currencyUnit().equals(targetCurrency)) {
             ExchangeRate identity = ExchangeRate.of(targetCurrency, targetCurrency, BigDecimal.ONE);
@@ -44,13 +45,14 @@ final class StandardValuationEngine implements ValuationEngine {
             ComponentVersionId identityId =
                     new ComponentVersionId(UUID.nameUUIDFromBytes(identityName.getBytes(StandardCharsets.UTF_8)));
             SimpleComponentVersion identityVersion = identity.version(identityId, Validity.always(), LocalDateTime.MIN);
-            return Optional.of(value(source, targetCurrency, identityVersion));
+            return Result.success(value(source, targetCurrency, identityVersion));
         }
         return versionAt(source.currencyUnit(), targetCurrency, at, versions)
-                .map(selected -> value(
+                .<Result<NoApplicableExchangeRate, Valuation>>map(selected -> Result.success(value(
                         source,
                         targetCurrency,
-                        selected.exchangeRate().version(selected.id(), selected.validity(), selected.definedAt())));
+                        selected.exchangeRate().version(selected.id(), selected.validity(), selected.definedAt()))))
+                .orElseGet(() -> Result.failure(new NoApplicableExchangeRate()));
     }
 
     @Override

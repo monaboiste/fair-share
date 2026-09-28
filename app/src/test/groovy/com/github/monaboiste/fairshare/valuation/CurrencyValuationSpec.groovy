@@ -83,13 +83,15 @@ class CurrencyValuationSpec extends Specification {
         Money source = Money.of(123.456, "USD")
 
         when:
-        Valuation first = pricing.value(source, USD, LocalDateTime.parse("2025-01-15T00:00:00"), List.of()).orElseThrow()
-        Valuation second = pricing.value(source, USD, LocalDateTime.parse("2025-02-15T00:00:00"), List.of()).orElseThrow()
+        def first = pricing.value(source, USD, LocalDateTime.parse("2025-01-15T00:00:00"), List.of())
+        def second = pricing.value(source, USD, LocalDateTime.parse("2025-02-15T00:00:00"), List.of())
 
         then:
-        first.money() == Money.of(123.46, "USD")
-        first.exchangeRate() == ExchangeRate.of(USD, USD, BigDecimal.ONE)
-        first.componentVersion().id() == second.componentVersion().id()
+        first.success()
+        second.success()
+        first.getSuccess().money() == Money.of(123.46, "USD")
+        first.getSuccess().exchangeRate() == ExchangeRate.of(USD, USD, BigDecimal.ONE)
+        first.getSuccess().componentVersion().id() == second.getSuccess().componentVersion().id()
     }
 
     def "rejects an Exchange Rate with #description value"() {
@@ -194,16 +196,17 @@ class CurrencyValuationSpec extends Specification {
                 LocalDateTime.parse("2025-01-01T00:00:00"))
 
         when:
-        Valuation valuation = pricing.value(
+        def result = pricing.value(
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-02-15T00:00:00"),
-                [base, latest]).orElseThrow()
+                [base, latest])
 
         then:
-        valuation.money() == Money.of(45, "PLN")
-        valuation.exchangeRate() == latestRate
-        valuation.componentVersion().id() == latestId
+        result.success()
+        result.getSuccess().money() == Money.of(45, "PLN")
+        result.getSuccess().exchangeRate() == latestRate
+        result.getSuccess().componentVersion().id() == latestId
     }
 
     def "Valuation selects only Exchange Rate versions matching its currency pair"() {
@@ -220,15 +223,16 @@ class CurrencyValuationSpec extends Specification {
                         LocalDateTime.parse("2025-01-01T00:00:00"))
 
         when:
-        Valuation valuation = pricing.value(
+        def result = pricing.value(
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-03-01T00:00:00"),
-                [matching, unrelated]).orElseThrow()
+                [matching, unrelated])
 
         then:
-        valuation.money() == Money.of(40, "PLN")
-        valuation.componentVersion().id() == matching.id()
+        result.success()
+        result.getSuccess().money() == Money.of(40, "PLN")
+        result.getSuccess().componentVersion().id() == matching.id()
     }
 
     def "Valuation falls back after a temporary Exchange Rate version expires"() {
@@ -247,15 +251,16 @@ class CurrencyValuationSpec extends Specification {
                 LocalDateTime.parse("2025-01-01T00:00:00"))
 
         when:
-        Valuation valuation = pricing.value(
+        def result = pricing.value(
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-03-01T00:00:00"),
-                [base, temporary]).orElseThrow()
+                [base, temporary])
 
         then:
-        valuation.money() == Money.of(40, "PLN")
-        valuation.componentVersion().id() == base.id()
+        result.success()
+        result.getSuccess().money() == Money.of(40, "PLN")
+        result.getSuccess().componentVersion().id() == base.id()
     }
 
     def "later stream order wins when Exchange Rate versions have the same valid-from"() {
@@ -273,20 +278,26 @@ class CurrencyValuationSpec extends Specification {
                 LocalDateTime.parse("2025-01-01T00:00:00"))
 
         when:
-        Valuation valuation = pricing.value(
+        def result = pricing.value(
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-03-01T00:00:00"),
-                [first, later]).orElseThrow()
+                [first, later])
 
         then:
-        valuation.money() == Money.of(45, "PLN")
-        valuation.componentVersion().id() == later.id()
+        result.success()
+        result.getSuccess().money() == Money.of(45, "PLN")
+        result.getSuccess().componentVersion().id() == later.id()
     }
 
-    def "foreign-currency Valuation is absent when no Exchange Rate version applies"() {
-        expect:
-        pricing.value(Money.of(10, "EUR"), PLN, LocalDateTime.parse("2025-01-01T00:00:00"), List.of()).empty
+    def "foreign-currency Valuation reports no applicable Exchange Rate version"() {
+        when:
+        def result = pricing.value(Money.of(10, "EUR"), PLN,
+            LocalDateTime.parse("2025-01-01T00:00:00"), List.of())
+
+        then:
+        result.failure()
+        result.getFailure() == new NoApplicableExchangeRate()
     }
 
     def "Exchange Rate Validity applies at inclusive midnight boundaries but not before noon on its first day"() {
@@ -300,17 +311,19 @@ class CurrencyValuationSpec extends Specification {
 
         when:
         def atStartOfDay = pricing.value(Money.of(10, "EUR"), PLN, midnight.toLocalDate().atStartOfDay(),
-            [base, newer]).orElseThrow()
-        def atNoon = pricing.value(Money.of(10, "EUR"), PLN, noon, [base, newer]).orElseThrow()
+            [base, newer])
+        def atNoon = pricing.value(Money.of(10, "EUR"), PLN, noon, [base, newer])
 
         then:
-        atStartOfDay.money() == Money.of(40, "PLN")
-        atStartOfDay.componentVersion().id() == base.id()
-        atNoon.money() == Money.of(45, "PLN")
-        atNoon.componentVersion().id() == newer.id()
+        atStartOfDay.success()
+        atNoon.success()
+        atStartOfDay.getSuccess().money() == Money.of(40, "PLN")
+        atStartOfDay.getSuccess().componentVersion().id() == base.id()
+        atNoon.getSuccess().money() == Money.of(45, "PLN")
+        atNoon.getSuccess().componentVersion().id() == newer.id()
     }
 
-    def "Valuation is absent in a gap between bounded and future Exchange Rate versions"() {
+    def "Valuation reports no applicable Exchange Rate in a gap between versions"() {
         given:
         def end = LocalDateTime.parse("2026-09-26T23:59:59")
         def versions = [
@@ -320,8 +333,12 @@ class CurrencyValuationSpec extends Specification {
                 Validity.from(end.plusDays(2)), end.minusDays(1))
         ]
 
-        expect:
-        pricing.value(Money.of(10, "EUR"), PLN, end.plusSeconds(1), versions).empty
+        when:
+        def result = pricing.value(Money.of(10, "EUR"), PLN, end.plusSeconds(1), versions)
+
+        then:
+        result.failure()
+        result.getFailure() == new NoApplicableExchangeRate()
     }
 
     private static ExchangeRateVersion exchangeRateVersion(
