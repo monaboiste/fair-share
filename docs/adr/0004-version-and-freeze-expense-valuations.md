@@ -18,7 +18,9 @@ normalization is implied.
 
 A `Valuation` retains the applied `SimpleComponentVersion`: configured Exchange Rates retain the selected version,
 manual overrides receive a one-off version, and same-currency conversions use a stable implicit version backed by an
-Exchange Rate of one.
+Exchange Rate of one. For configured Exchange Rates, the selected `ComponentVersionId` is stable across Valuations;
+calculator instances and their identifiers created during valuation are transient. Full `SimpleComponentVersion`
+equality across independent Valuations is not promised.
 
 `ExpenseRecorded` stores the applied `ComponentVersionId`, Exchange Rate, converted amount, and resolved Shares.
 Consequently, later Exchange Rate configuration or Valuation logic changes cannot alter replayed history.

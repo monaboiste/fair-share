@@ -58,23 +58,27 @@ class ExchangeRatesSpec extends Specification {
     def "an identical numeric retry keeps the stream version while later changes append a version"() {
         given:
         def id = configuration.openSettlement("Holiday")
-        def firstId = new ComponentVersionId(new UUID(0L, 31L))
-        def thirdId = new ComponentVersionId(new UUID(0L, 33L))
-        def ids = [firstId, new ComponentVersionId(new UUID(0L, 32L)), thirdId].iterator()
-        def handler = new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() })
-        def initial = new ConfigureExchangeRate(id, rate("0.90"), validity)
-        handler.handle(initial)
+        def first = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity))
+            .getSuccess().events().first().payload().version()
 
         when:
-        def retry = handler.handle(new ConfigureExchangeRate(id, rate("0.900"), validity)).getSuccess()
-        def next = handler.handle(new ConfigureExchangeRate(id, rate("0.95"), validity)).getSuccess()
+        def retry = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.900"), validity))
+            .getSuccess()
+        def next = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.95"), validity))
+            .getSuccess()
+        def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
+        def history = configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()
 
         then:
         retry.version() == 2
         retry.events().empty
-        next.events().first().payload().version().id() == thirdId
-        configuration.queries.dispatch(new GetSettlement(id)).getSuccess().exchangeRates()*.id() ==
-            [firstId, thirdId]
+        next.version() == 3
+        next.events().size() == 1
+        next.events().first().payload().version().id() != first.id()
+        view.exchangeRates().first() == first
+        view.exchangeRates()*.exchangeRate()*.value() == ["0.90", "0.95"]*.toBigDecimal()
+        view.exchangeRates().last() == next.events().first().payload().version()
+        history*.sequence() == [1L, 2L, 3L]
     }
 
     def "a correction back to an earlier Exchange Rate appends a new version after interleaved tuples"() {
