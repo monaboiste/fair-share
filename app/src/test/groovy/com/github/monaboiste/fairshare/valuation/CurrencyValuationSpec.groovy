@@ -83,8 +83,8 @@ class CurrencyValuationSpec extends Specification {
         Money source = Money.of(123.456, "USD")
 
         when:
-        Valuation first = pricing.value(source, USD, LocalDateTime.parse("2025-01-15T00:00:00"), List.of())
-        Valuation second = pricing.value(source, USD, LocalDateTime.parse("2025-02-15T00:00:00"), List.of())
+        Valuation first = pricing.value(source, USD, LocalDateTime.parse("2025-01-15T00:00:00"), List.of()).orElseThrow()
+        Valuation second = pricing.value(source, USD, LocalDateTime.parse("2025-02-15T00:00:00"), List.of()).orElseThrow()
 
         then:
         first.money() == Money.of(123.46, "USD")
@@ -198,7 +198,7 @@ class CurrencyValuationSpec extends Specification {
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-02-15T00:00:00"),
-                [base, latest])
+                [base, latest]).orElseThrow()
 
         then:
         valuation.money() == Money.of(45, "PLN")
@@ -224,7 +224,7 @@ class CurrencyValuationSpec extends Specification {
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-03-01T00:00:00"),
-                [matching, unrelated])
+                [matching, unrelated]).orElseThrow()
 
         then:
         valuation.money() == Money.of(40, "PLN")
@@ -251,7 +251,7 @@ class CurrencyValuationSpec extends Specification {
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-03-01T00:00:00"),
-                [base, temporary])
+                [base, temporary]).orElseThrow()
 
         then:
         valuation.money() == Money.of(40, "PLN")
@@ -277,23 +277,16 @@ class CurrencyValuationSpec extends Specification {
                 Money.of(10, "EUR"),
                 PLN,
                 LocalDateTime.parse("2025-03-01T00:00:00"),
-                [first, later])
+                [first, later]).orElseThrow()
 
         then:
         valuation.money() == Money.of(45, "PLN")
         valuation.componentVersion().id() == later.id()
     }
 
-    def "foreign-currency Valuation fails when no Exchange Rate version applies"() {
-        when:
-        pricing.value(
-                Money.of(10, "EUR"),
-                PLN,
-                LocalDateTime.parse("2025-01-01T00:00:00"),
-                List.of())
-
-        then:
-        thrown(IllegalStateException)
+    def "foreign-currency Valuation is absent when no Exchange Rate version applies"() {
+        expect:
+        pricing.value(Money.of(10, "EUR"), PLN, LocalDateTime.parse("2025-01-01T00:00:00"), List.of()).empty
     }
 
     def "Exchange Rate Validity applies at inclusive midnight boundaries but not before noon on its first day"() {
@@ -307,8 +300,8 @@ class CurrencyValuationSpec extends Specification {
 
         when:
         def atStartOfDay = pricing.value(Money.of(10, "EUR"), PLN, midnight.toLocalDate().atStartOfDay(),
-            [base, newer])
-        def atNoon = pricing.value(Money.of(10, "EUR"), PLN, noon, [base, newer])
+            [base, newer]).orElseThrow()
+        def atNoon = pricing.value(Money.of(10, "EUR"), PLN, noon, [base, newer]).orElseThrow()
 
         then:
         atStartOfDay.money() == Money.of(40, "PLN")
@@ -317,7 +310,7 @@ class CurrencyValuationSpec extends Specification {
         atNoon.componentVersion().id() == newer.id()
     }
 
-    def "Valuation fails in a gap between bounded and future Exchange Rate versions"() {
+    def "Valuation is absent in a gap between bounded and future Exchange Rate versions"() {
         given:
         def end = LocalDateTime.parse("2026-09-26T23:59:59")
         def versions = [
@@ -327,11 +320,8 @@ class CurrencyValuationSpec extends Specification {
                 Validity.from(end.plusDays(2)), end.minusDays(1))
         ]
 
-        when:
-        pricing.value(Money.of(10, "EUR"), PLN, end.plusSeconds(1), versions)
-
-        then:
-        thrown(IllegalStateException)
+        expect:
+        pricing.value(Money.of(10, "EUR"), PLN, end.plusSeconds(1), versions).empty
     }
 
     private static ExchangeRateVersion exchangeRateVersion(

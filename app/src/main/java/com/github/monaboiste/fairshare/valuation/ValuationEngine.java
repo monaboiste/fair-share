@@ -11,13 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
 public interface ValuationEngine {
 
-    Valuation value(Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions);
+    Optional<Valuation> value(
+            Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions);
 
     Valuation value(
             Money source,
@@ -34,7 +36,7 @@ public interface ValuationEngine {
 final class StandardValuationEngine implements ValuationEngine {
 
     @Override
-    public Valuation value(
+    public Optional<Valuation> value(
             Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions) {
         if (source.currencyUnit().equals(targetCurrency)) {
             ExchangeRate identity = ExchangeRate.of(targetCurrency, targetCurrency, BigDecimal.ONE);
@@ -42,13 +44,13 @@ final class StandardValuationEngine implements ValuationEngine {
             ComponentVersionId identityId =
                     new ComponentVersionId(UUID.nameUUIDFromBytes(identityName.getBytes(StandardCharsets.UTF_8)));
             SimpleComponentVersion identityVersion = identity.version(identityId, Validity.always(), LocalDateTime.MIN);
-            return value(source, targetCurrency, identityVersion);
+            return Optional.of(value(source, targetCurrency, identityVersion));
         }
-        ExchangeRateVersion selected = versionAt(source.currencyUnit(), targetCurrency, at, versions);
-        return value(
-                source,
-                targetCurrency,
-                selected.exchangeRate().version(selected.id(), selected.validity(), selected.definedAt()));
+        return versionAt(source.currencyUnit(), targetCurrency, at, versions)
+                .map(selected -> value(
+                        source,
+                        targetCurrency,
+                        selected.exchangeRate().version(selected.id(), selected.validity(), selected.definedAt())));
     }
 
     @Override
@@ -72,7 +74,7 @@ final class StandardValuationEngine implements ValuationEngine {
         return new Valuation(result, exchangeRate, version);
     }
 
-    private ExchangeRateVersion versionAt(
+    private Optional<ExchangeRateVersion> versionAt(
             CurrencyUnit sourceCurrency,
             CurrencyUnit targetCurrency,
             LocalDateTime at,
@@ -91,9 +93,6 @@ final class StandardValuationEngine implements ValuationEngine {
                 selected = version;
             }
         }
-        if (selected == null) {
-            throw new IllegalStateException("No Exchange Rate version applies at " + at);
-        }
-        return selected;
+        return Optional.ofNullable(selected);
     }
 }

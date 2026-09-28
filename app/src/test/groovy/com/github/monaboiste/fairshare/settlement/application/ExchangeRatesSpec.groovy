@@ -176,9 +176,9 @@ class ExchangeRatesSpec extends Specification {
 
         when:
         def before = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.minusSeconds(1), versions)
+            from.minusSeconds(1), versions).orElseThrow()
         def during = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.plusDays(1), versions)
+            from.plusDays(1), versions).orElseThrow()
 
         then:
         versions*.id() == [februaryVersionId, baselineVersionId]
@@ -207,7 +207,7 @@ class ExchangeRatesSpec extends Specification {
 
         when:
         def valuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.plusDays(1), replayedVersions)
+            from.plusDays(1), replayedVersions).orElseThrow()
 
         then:
         liveVersions == replayedVersions

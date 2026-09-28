@@ -150,7 +150,7 @@ class SettlementProjectorSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def payer = new ParticipantId(new UUID(0L, 11L))
         def valuation = ValuationEngine.standard().value(Money.of(3, "EUR"), EUR,
-            LocalDate.of(2026, 1, 2).atStartOfDay(), [])
+            LocalDate.of(2026, 1, 2).atStartOfDay(), []).orElseThrow()
         def expense = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), new ExpenseDescription("Lunch"),
             LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]),
             valuation.componentVersion().id(), valuation.exchangeRate(), Money.of(3, "EUR"),
@@ -197,7 +197,7 @@ class SettlementProjectorSpec extends Specification {
         def payer = new ParticipantId(new UUID(0L, 11L))
         def missing = new ParticipantId(new UUID(0L, 12L))
         def valued = ValuationEngine.standard().value(Money.of(1, "EUR"), EUR,
-            LocalDate.of(2026, 1, 2).atStartOfDay(), [])
+            LocalDate.of(2026, 1, 2).atStartOfDay(), []).orElseThrow()
         projector.accept([opened(ID), event(ID, 2, new ParticipantAdded(payer, "Payer")),
             event(ID, 3, new ParticipantAdded(PARTICIPANT, "Recipient"))])
         def recorded = { whoPaid, recipient -> new ExpenseRecorded(new ExpenseId(new UUID(0L, 21L)),

@@ -33,6 +33,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import com.github.monaboiste.fairshare.valuation.ExchangeRate;
 import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
+import com.github.monaboiste.fairshare.valuation.Valuation;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -158,7 +159,12 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (rejection.isPresent()) {
             return Result.failure(rejection.get());
         }
-        registerExpense(expenseId, description, incurredOn, payer, amount, allocation);
+        Optional<Valuation> valued = ValuationEngine.standard()
+                .value(amount, settlementCurrency(), incurredOn.atStartOfDay(), exchangeRates);
+        if (valued.isEmpty()) {
+            return Result.failure(new MissingExchangeRate(id, expenseId));
+        }
+        registerExpense(expenseId, description, incurredOn, payer, amount, allocation, valued.get());
         return Result.success(expenseId);
     }
 
@@ -182,9 +188,6 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 return Optional.of(new ParticipantNotFound(id, recipient));
             }
         }
-        if (!amount.currencyUnit().equals(settlementCurrency())) {
-            return Optional.of(new MissingExchangeRate(id, expenseId));
-        }
         return Optional.empty();
     }
 
@@ -194,9 +197,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             LocalDate incurredOn,
             ParticipantId payer,
             Money amount,
-            ShareAllocation allocation) {
-        var valued =
-                ValuationEngine.standard().value(amount, settlementCurrency(), incurredOn.atStartOfDay(), List.of());
+            ShareAllocation allocation,
+            Valuation valued) {
         Money valuation = valued.money();
         register(new ExpenseRecorded(
                 expenseId,
