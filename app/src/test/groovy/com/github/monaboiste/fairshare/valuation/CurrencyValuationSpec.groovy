@@ -110,17 +110,22 @@ class CurrencyValuationSpec extends Specification {
         valuation.componentVersion().id() == latestId
     }
 
-    def "converting a selected version rejects a currency pair that does not match the valuation"() {
+    def "converting a selected version rejects a currency that does not match the valuation"() {
         given:
         ComponentVersionId versionId = componentVersionId("00000000-0000-0000-0000-000000000003")
-        ExchangeRateVersion wrongDirection = new ExchangeRateVersion(
-                versionId, ExchangeRate.of(JPY, USD, BigDecimal.ONE), Validity.always(), LocalDateTime.MIN)
 
         when:
-        pricing.value(Money.of(100, "USD"), JPY, wrongDirection)
+        pricing.value(Money.of(100, "USD"), JPY, new ExchangeRateVersion(
+                versionId, ExchangeRate.of(sourceCurrency, targetCurrency, BigDecimal.ONE),
+                Validity.always(), LocalDateTime.MIN))
 
         then:
         thrown(IllegalArgumentException)
+
+        where:
+        label                | sourceCurrency | targetCurrency
+        "source only mismatch" | EUR        | JPY
+        "target only mismatch" | USD        | EUR
     }
 
     def "rejects an Exchange Rate with #description value"() {
@@ -208,12 +213,6 @@ class CurrencyValuationSpec extends Specification {
 
         then:
         thrown(IllegalArgumentException)
-    }
-
-    private static ExchangeRateVersion exchangeRateVersion(
-            String versionId, String rateValue, Validity validity, LocalDateTime definedAt) {
-        return new ExchangeRateVersion(componentVersionId(versionId),
-                ExchangeRate.of(EUR, PLN, rateValue.toBigDecimal()), validity, definedAt)
     }
 
     private static ComponentVersionId componentVersionId(String value) {

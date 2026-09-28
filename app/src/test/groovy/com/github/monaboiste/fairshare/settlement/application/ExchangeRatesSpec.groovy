@@ -184,10 +184,12 @@ class ExchangeRatesSpec extends Specification {
         versionList*.id() == [februaryVersionId, baselineVersionId]
         before.isPresent()
         during.isPresent()
-        ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, before.get()).money() == Money.of(8, "EUR")
-        ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, before.get()).componentVersion().id() == baselineVersionId
-        ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, during.get()).money() == Money.of(9, "EUR")
-        ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, during.get()).componentVersion().id() == februaryVersionId
+        def beforeValuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, before.get())
+        def duringValuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, during.get())
+        beforeValuation.money() == Money.of(8, "EUR")
+        beforeValuation.componentVersion().id() == baselineVersionId
+        duringValuation.money() == Money.of(9, "EUR")
+        duringValuation.componentVersion().id() == februaryVersionId
     }
 
     def "persisted equal-start Exchange Rates select the later stream version after replay"() {
@@ -216,8 +218,9 @@ class ExchangeRatesSpec extends Specification {
         replayedVersions*.id() == [firstId, laterId]
         selected.isPresent()
         selected.get().id() == laterId
-        ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, selected.get()).money() == Money.of(9.50, "EUR")
-        ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, selected.get()).componentVersion().id() == laterId
+        def valuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, selected.get())
+        valuation.money() == Money.of(9.50, "EUR")
+        valuation.componentVersion().id() == laterId
     }
 
     private ExchangeRate rate(String value) {

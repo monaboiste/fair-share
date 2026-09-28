@@ -153,15 +153,13 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         Valuation valuation;
         if (amount.currencyUnit().equals(settlementCurrency())) {
             valuation = ValuationEngine.standard().identity(amount);
-        } else if (exchangeRates
-                .applicableAt(amount.currencyUnit(), settlementCurrency(), incurredOn.atStartOfDay())
-                .isEmpty()) {
-            return Result.failure(new MissingExchangeRate(id, expenseId));
         } else {
-            ExchangeRateVersion selected = exchangeRates
-                    .applicableAt(amount.currencyUnit(), settlementCurrency(), incurredOn.atStartOfDay())
-                    .orElseThrow();
-            valuation = ValuationEngine.standard().value(amount, settlementCurrency(), selected);
+            Optional<ExchangeRateVersion> selected =
+                    exchangeRates.applicableAt(amount.currencyUnit(), settlementCurrency(), incurredOn.atStartOfDay());
+            if (selected.isEmpty()) {
+                return Result.failure(new MissingExchangeRate(id, expenseId));
+            }
+            valuation = ValuationEngine.standard().value(amount, settlementCurrency(), selected.get());
         }
         registerExpense(expenseId, description, incurredOn, payer, amount, allocation, valuation);
         return Result.success(expenseId);

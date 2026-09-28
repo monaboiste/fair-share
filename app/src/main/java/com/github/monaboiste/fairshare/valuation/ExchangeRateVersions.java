@@ -10,7 +10,6 @@ import java.util.Optional;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
-/** Ordered set of configured Exchange Rate versions owning all selection rules. */
 public final class ExchangeRateVersions {
 
     private final List<ExchangeRateVersion> versions;
@@ -27,13 +26,8 @@ public final class ExchangeRateVersions {
         return new ExchangeRateVersions(new ArrayList<>());
     }
 
-    public ExchangeRateVersions append(ExchangeRateVersion version) {
+    public void append(ExchangeRateVersion version) {
         versions.add(version);
-        return this;
-    }
-
-    public List<ExchangeRateVersion> versions() {
-        return versions;
     }
 
     public Optional<ExchangeRateVersion> applicableAt(CurrencyUnit source, CurrencyUnit target, LocalDateTime at) {
