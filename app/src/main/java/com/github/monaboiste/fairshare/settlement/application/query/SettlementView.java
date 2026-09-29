@@ -18,6 +18,7 @@ public record SettlementView(
         long version,
         List<ParticipantView> participants,
         List<ExpenseView> expenses,
+        List<RepaymentView> repayments,
         List<Obligation<ParticipantId>> obligations,
         SequencedMap<ParticipantId, Money> balances,
         List<ExchangeRateVersion> exchangeRates) {
@@ -30,12 +31,26 @@ public record SettlementView(
             List<ExpenseView> expenses,
             List<Obligation<ParticipantId>> obligations,
             SequencedMap<ParticipantId, Money> balances) {
-        this(id, name, currency, version, participants, expenses, obligations, balances, List.of());
+        this(id, name, currency, version, participants, expenses, List.of(), obligations, balances, List.of());
+    }
+
+    public SettlementView(
+            SettlementId id,
+            String name,
+            CurrencyUnit currency,
+            long version,
+            List<ParticipantView> participants,
+            List<ExpenseView> expenses,
+            List<Obligation<ParticipantId>> obligations,
+            SequencedMap<ParticipantId, Money> balances,
+            List<ExchangeRateVersion> exchangeRates) {
+        this(id, name, currency, version, participants, expenses, List.of(), obligations, balances, exchangeRates);
     }
 
     public SettlementView {
         participants = List.copyOf(participants);
         expenses = List.copyOf(expenses);
+        repayments = List.copyOf(repayments);
         obligations = List.copyOf(obligations);
         exchangeRates = List.copyOf(exchangeRates);
         balances = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(balances));
