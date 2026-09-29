@@ -4,6 +4,7 @@ import com.github.monaboiste.fairshare.quantity.money.Money;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -92,11 +93,11 @@ public record ExactShareAllocation(SequencedMap<ParticipantId, Money> amounts) i
 
     @Override
     public int hashCode() {
-        int hash = 1;
+        List<Integer> hashes = new ArrayList<>();
         for (var entry : amounts.entrySet()) {
             BigDecimal amount = entry.getValue().value().stripTrailingZeros();
-            hash = 31 * hash + Objects.hash(entry.getKey(), entry.getValue().currencyUnit(), amount);
+            hashes.add(Objects.hash(entry.getKey(), entry.getValue().currencyUnit(), amount));
         }
-        return hash;
+        return hashes.hashCode();
     }
 }

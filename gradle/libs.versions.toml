@@ -26,6 +26,7 @@ errorprone-core = "2.50.0"
 qodana = "2026.2.1"
 jacoco = "0.8.15"
 pitest = "1.19.0"
+pitest-engine = "1.30.0"
 pitest-junit = "1.0.0"
 dependency-analysis = "3.18.0"
 
