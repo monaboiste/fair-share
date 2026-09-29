@@ -33,13 +33,13 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import com.github.monaboiste.fairshare.valuation.ExchangeRate;
 import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersions;
+import com.github.monaboiste.fairshare.valuation.Valuation;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.money.CurrencyUnit;
@@ -51,7 +51,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private @Nullable CurrencyUnit currency;
     private final Map<ParticipantId, Participant> participants = new HashMap<>();
     private final Map<ExpenseId, ExpenseRecorded> expenses = new HashMap<>();
-    private final List<ExchangeRateVersion> exchangeRates = new ArrayList<>();
+    private final ExchangeRateVersions exchangeRates = ExchangeRateVersions.empty();
 
     private Settlement(SettlementId id, Clock clock) {
         super(clock);
@@ -120,17 +120,10 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (exchangeRate.sourceCurrency().equals(exchangeRate.targetCurrency())) {
             return Result.failure(new ExplicitIdentityExchangeRate(id));
         }
-        for (int index = exchangeRates.size() - 1; index >= 0; index--) {
-            ExchangeRateVersion previous = exchangeRates.get(index);
-            ExchangeRate configured = previous.exchangeRate();
-            if (configured.sourceCurrency().equals(exchangeRate.sourceCurrency())
-                    && configured.targetCurrency().equals(exchangeRate.targetCurrency())
-                    && previous.validity().equals(validity)) {
-                if (configured.value().compareTo(exchangeRate.value()) == 0) {
-                    return Result.success(previous.id());
-                }
-                break;
-            }
+        Optional<ExchangeRateVersion> previous =
+                exchangeRates.latestFor(exchangeRate.sourceCurrency(), exchangeRate.targetCurrency(), validity);
+        if (previous.isPresent() && previous.get().exchangeRate().value().compareTo(exchangeRate.value()) == 0) {
+            return Result.success(previous.get().id());
         }
         ExchangeRateVersion version = new ExchangeRateVersion(versionId, exchangeRate, validity, definedAt);
         register(new ExchangeRateConfigured(version));
@@ -158,7 +151,18 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (rejection.isPresent()) {
             return Result.failure(rejection.get());
         }
-        registerExpense(expenseId, description, incurredOn, payer, amount, allocation);
+        Valuation valuation;
+        if (amount.currencyUnit().equals(settlementCurrency())) {
+            valuation = ValuationEngine.standard().identity(amount);
+        } else {
+            Optional<ExchangeRateVersion> selected =
+                    exchangeRates.applicableAt(amount.currencyUnit(), settlementCurrency(), incurredOn.atStartOfDay());
+            if (selected.isEmpty()) {
+                return Result.failure(new MissingExchangeRate(id, expenseId));
+            }
+            valuation = ValuationEngine.standard().value(amount, settlementCurrency(), selected.get());
+        }
+        registerExpense(expenseId, description, incurredOn, payer, amount, allocation, valuation);
         return Result.success(expenseId);
     }
 
@@ -182,9 +186,6 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 return Optional.of(new ParticipantNotFound(id, recipient));
             }
         }
-        if (!amount.currencyUnit().equals(settlementCurrency())) {
-            return Optional.of(new MissingExchangeRate(id, expenseId));
-        }
         return Optional.empty();
     }
 
@@ -194,9 +195,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             LocalDate incurredOn,
             ParticipantId payer,
             Money amount,
-            ShareAllocation allocation) {
-        var valued =
-                ValuationEngine.standard().value(amount, settlementCurrency(), incurredOn.atStartOfDay(), List.of());
+            ShareAllocation allocation,
+            Valuation valued) {
         Money valuation = valued.money();
         register(new ExpenseRecorded(
                 expenseId,
@@ -249,7 +249,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (currency == null) {
             throw new IllegalStateException("Settlement opening missing");
         }
-        exchangeRates.add(configured.version());
+        exchangeRates.append(configured.version());
     }
 
     private void applySettlementRenamed(String newName) {

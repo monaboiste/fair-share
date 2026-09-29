@@ -4,6 +4,7 @@ import com.github.monaboiste.fairshare.common.events.EventEnvelope
 import com.github.monaboiste.fairshare.common.events.EventId
 import com.github.monaboiste.fairshare.common.events.PendingEvent
 import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
+import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId
 import com.github.monaboiste.fairshare.quantity.money.Money
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView
 import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
@@ -19,7 +20,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRename
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
-import com.github.monaboiste.fairshare.valuation.ValuationEngine
+import com.github.monaboiste.fairshare.valuation.ExchangeRate
 import java.time.Instant
 import java.time.LocalDate
 import javax.money.Monetary
@@ -32,6 +33,8 @@ class SettlementProjectorSpec extends Specification {
         new ParticipantId(UUID.fromString("00000000-0000-0000-0000-000000000010"))
     private static final Instant NOW = Instant.parse("2026-01-01T12:00:00Z")
     private static final EUR = Monetary.getCurrency("EUR")
+    private static final ComponentVersionId VERSION_ID = new ComponentVersionId(new UUID(0L, 61L))
+    private static final ExchangeRate IDENTITY_RATE = ExchangeRate.of(EUR, EUR, BigDecimal.ONE)
     def projector = new SettlementProjector()
 
     def "duplicate deliveries are ignored and renames preserve the opening currency"() {
@@ -149,11 +152,9 @@ class SettlementProjectorSpec extends Specification {
         given:
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def payer = new ParticipantId(new UUID(0L, 11L))
-        def valuation = ValuationEngine.standard().value(Money.of(3, "EUR"), EUR,
-            LocalDate.of(2026, 1, 2).atStartOfDay(), [])
         def expense = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), new ExpenseDescription("Lunch"),
             LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]),
-            valuation.componentVersion().id(), valuation.exchangeRate(), Money.of(3, "EUR"),
+            VERSION_ID, IDENTITY_RATE, Money.of(3, "EUR"),
             [new Share(PARTICIPANT, Money.of(3, "EUR"))])
         def history = [pending(new SettlementOpened("Holiday", EUR)), pending(new ParticipantAdded(payer, "Payer")),
             pending(new ParticipantAdded(PARTICIPANT, "Recipient")), pending(expense)]
@@ -196,13 +197,11 @@ class SettlementProjectorSpec extends Specification {
         given:
         def payer = new ParticipantId(new UUID(0L, 11L))
         def missing = new ParticipantId(new UUID(0L, 12L))
-        def valued = ValuationEngine.standard().value(Money.of(1, "EUR"), EUR,
-            LocalDate.of(2026, 1, 2).atStartOfDay(), [])
         projector.accept([opened(ID), event(ID, 2, new ParticipantAdded(payer, "Payer")),
             event(ID, 3, new ParticipantAdded(PARTICIPANT, "Recipient"))])
         def recorded = { whoPaid, recipient -> new ExpenseRecorded(new ExpenseId(new UUID(0L, 21L)),
             new ExpenseDescription("Dinner"), LocalDate.of(2026, 1, 2), whoPaid, Money.of(1, "EUR"),
-            new EqualShareAllocation([recipient]), valued.componentVersion().id(), valued.exchangeRate(),
+            new EqualShareAllocation([recipient]), VERSION_ID, IDENTITY_RATE,
             Money.of(1, "EUR"), [new Share(recipient, Money.of(1, "EUR"))]) }
 
         when:

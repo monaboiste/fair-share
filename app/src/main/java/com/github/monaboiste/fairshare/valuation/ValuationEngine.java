@@ -9,15 +9,14 @@ import com.github.monaboiste.fairshare.quantity.money.Money;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 import javax.money.CurrencyUnit;
-import org.jspecify.annotations.Nullable;
 
 public interface ValuationEngine {
 
-    Valuation value(Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions);
+    Valuation identity(Money source);
+
+    Valuation value(Money source, CurrencyUnit target, ExchangeRateVersion selected);
 
     Valuation value(
             Money source,
@@ -34,17 +33,17 @@ public interface ValuationEngine {
 final class StandardValuationEngine implements ValuationEngine {
 
     @Override
-    public Valuation value(
-            Money source, CurrencyUnit targetCurrency, LocalDateTime at, List<ExchangeRateVersion> versions) {
-        if (source.currencyUnit().equals(targetCurrency)) {
-            ExchangeRate identity = ExchangeRate.of(targetCurrency, targetCurrency, BigDecimal.ONE);
-            String identityName = "implicit-exchange-rate:" + targetCurrency.getCurrencyCode();
-            ComponentVersionId identityId =
-                    new ComponentVersionId(UUID.nameUUIDFromBytes(identityName.getBytes(StandardCharsets.UTF_8)));
-            SimpleComponentVersion identityVersion = identity.version(identityId, Validity.always(), LocalDateTime.MIN);
-            return value(source, targetCurrency, identityVersion);
-        }
-        ExchangeRateVersion selected = versionAt(source.currencyUnit(), targetCurrency, at, versions);
+    public Valuation identity(Money source) {
+        CurrencyUnit targetCurrency = source.currencyUnit();
+        ExchangeRate identity = ExchangeRate.of(targetCurrency, targetCurrency, BigDecimal.ONE);
+        String identityName = "implicit-exchange-rate:" + targetCurrency.getCurrencyCode();
+        ComponentVersionId identityId =
+                new ComponentVersionId(UUID.nameUUIDFromBytes(identityName.getBytes(StandardCharsets.UTF_8)));
+        return value(source, targetCurrency, identity.version(identityId, Validity.always(), LocalDateTime.MIN));
+    }
+
+    @Override
+    public Valuation value(Money source, CurrencyUnit targetCurrency, ExchangeRateVersion selected) {
         return value(
                 source,
                 targetCurrency,
@@ -70,30 +69,5 @@ final class StandardValuationEngine implements ValuationEngine {
         }
         PricingResult result = calculator.calculate(Parameters.of("source", source));
         return new Valuation(result, exchangeRate, version);
-    }
-
-    private ExchangeRateVersion versionAt(
-            CurrencyUnit sourceCurrency,
-            CurrencyUnit targetCurrency,
-            LocalDateTime at,
-            List<ExchangeRateVersion> versions) {
-        ExchangeRateVersion selected = null;
-        Comparator<@Nullable LocalDateTime> validFrom = Comparator.nullsFirst(Comparator.naturalOrder());
-        for (ExchangeRateVersion version : versions) {
-            if (version.validity().isValidAt(at)
-                    && version.exchangeRate().sourceCurrency().equals(sourceCurrency)
-                    && version.exchangeRate().targetCurrency().equals(targetCurrency)
-                    && (selected == null
-                            || validFrom.compare(
-                                            version.validity().from(),
-                                            selected.validity().from())
-                                    >= 0)) {
-                selected = version;
-            }
-        }
-        if (selected == null) {
-            throw new IllegalStateException("No Exchange Rate version applies at " + at);
-        }
-        return selected;
     }
 }
