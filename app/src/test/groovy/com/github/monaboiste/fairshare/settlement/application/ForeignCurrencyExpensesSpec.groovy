@@ -26,6 +26,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfi
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
+import com.github.monaboiste.fairshare.valuation.DoublingValuationEngine
 import com.github.monaboiste.fairshare.valuation.ExchangeRate
 import com.github.monaboiste.fairshare.valuation.ValuationEngine
 import java.time.LocalDate
@@ -346,7 +347,11 @@ class ForeignCurrencyExpensesSpec extends Specification {
 
         and:
         configure(settlement, "0.50", Validity.from(DATE.atStartOfDay()))
-        def changedValuationEngine = Mock(ValuationEngine)
+        def doubledPricing = new DoublingValuationEngine()
+        def changedValuationEngine = Mock(ValuationEngine) {
+            identity(_) >> { Money source -> doubledPricing.identity(source) }
+            value(*_) >> { arguments -> doubledPricing.value(*arguments) }
+        }
         def reloadingHandler = new RecordExpenseHandler(
                 new EventSourcedSettlementRepository(configuration.store, SettlementTestConfiguration.CLOCK),
                 SettlementTestConfiguration.CLOCK, changedValuationEngine, ComponentVersionId::generate)

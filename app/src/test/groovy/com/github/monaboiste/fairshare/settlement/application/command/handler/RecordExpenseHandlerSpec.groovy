@@ -28,6 +28,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.model.Settlement
 import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository
+import com.github.monaboiste.fairshare.valuation.DoublingValuationEngine
 import com.github.monaboiste.fairshare.valuation.ExchangeRate
 import com.github.monaboiste.fairshare.valuation.ExchangeRateOverride
 import com.github.monaboiste.fairshare.valuation.ValuationEngine
@@ -40,6 +41,7 @@ class RecordExpenseHandlerSpec extends Specification {
     private static final ExpenseId EXPENSE = new ExpenseId(new UUID(0L, 21L))
     private static final LocalDate DATE = LocalDate.of(2026, 2, 3)
     private static final ComponentVersionId OVERRIDE_VERSION = new ComponentVersionId(new UUID(0L, 31L))
+    private static final ValuationEngine CHANGED_PRICING = new DoublingValuationEngine()
     def configuration = new SettlementTestConfiguration()
 
     def "recording an Expense commits its valuation and ordered envelope"() {
@@ -125,10 +127,11 @@ class RecordExpenseHandlerSpec extends Specification {
         configuration.projector.findById(id).orElseThrow().expenses().first().originalAmount() == Money.of(10, "EUR")
     }
 
-    def "injected ValuationEngine values a new same-currency Expense"() {
+    def "changed Pricing values a new same-currency Expense with the implicit Exchange Rate"() {
         given:
         SettlementId id = withParticipant()
         def command = expense(id, Money.of(10, "EUR"))
+        def implicit = ValuationEngine.standard().identity(command.amount())
         def engine = Mock(ValuationEngine)
         def handler = new RecordExpenseHandler(configuration.repository, CLOCK, engine, { OVERRIDE_VERSION })
 
@@ -136,13 +139,15 @@ class RecordExpenseHandlerSpec extends Specification {
         def payload = (ExpenseRecorded) handler.handle(command).getSuccess().events().first().payload()
 
         then:
-        1 * engine.identity(command.amount()) >> replacementValuation(command.amount(), EUR, "2")
+        1 * engine.identity(command.amount()) >> CHANGED_PRICING.identity(command.amount())
         0 * engine._
+        payload.componentVersionId() == implicit.componentVersion().id()
+        payload.exchangeRate() == implicit.exchangeRate()
         payload.valuation() == Money.of(20, "EUR")
         payload.shares() == [new Share(ADA, Money.of(20, "EUR"))]
     }
 
-    def "injected ValuationEngine values a new foreign Expense with the selected Exchange Rate"() {
+    def "changed Pricing values a new foreign Expense with the selected Exchange Rate"() {
         given:
         SettlementId id = withParticipant()
         def selected = configuration.configureExchangeRateHandler.handle(new ConfigureExchangeRate(id,
@@ -156,15 +161,16 @@ class RecordExpenseHandlerSpec extends Specification {
         def payload = (ExpenseRecorded) handler.handle(command).getSuccess().events().first().payload()
 
         then:
-        1 * engine.value(command.amount(), EUR, selected) >> replacementValuation(command.amount(), EUR, "2")
+        1 * engine.value(command.amount(), EUR, selected) >> CHANGED_PRICING.value(command.amount(), EUR, selected)
         0 * engine._
         payload.exchangeRateOverride() == null
-        payload.valuation() == Money.of(20, "EUR")
-        payload.exchangeRate().value() == 2
-        payload.shares() == [new Share(ADA, Money.of(20, "EUR"))]
+        payload.componentVersionId() == selected.id()
+        payload.exchangeRate() == selected.exchangeRate()
+        payload.valuation() == Money.of(18, "EUR")
+        payload.shares() == [new Share(ADA, Money.of(18, "EUR"))]
     }
 
-    def "injected ValuationEngine receives the prepared Exchange Rate Override"() {
+    def "changed Pricing values a new foreign Expense with the prepared Exchange Rate Override"() {
         given:
         SettlementId id = withParticipant()
         def manual = ExchangeRate.of(USD, EUR, new BigDecimal("0.97"))
@@ -178,25 +184,19 @@ class RecordExpenseHandlerSpec extends Specification {
         def payload = (ExpenseRecorded) handler.handle(command).getSuccess().events().first().payload()
 
         then:
-        1 * engine.value(command.amount(), EUR, prepared) >> ValuationEngine.standard().value(command.amount(), EUR,
-                prepared)
+        1 * engine.value(command.amount(), EUR, prepared) >> CHANGED_PRICING.value(command.amount(), EUR, prepared)
         0 * engine._
         payload.exchangeRateOverride() == manual
         payload.componentVersionId() == OVERRIDE_VERSION
         payload.exchangeRate() == manual
-        payload.valuation() == Money.of(9.70, "EUR")
-        payload.shares() == [new Share(ADA, Money.of(9.70, "EUR"))]
+        payload.valuation() == Money.of(19.40, "EUR")
+        payload.shares() == [new Share(ADA, Money.of(19.40, "EUR"))]
     }
 
     private SettlementId withParticipant() {
         SettlementId id = configuration.openSettlement("Holiday")
         configuration.addHandler.handle(new AddParticipant(id, ADA, new ParticipantName("Ada")))
         id
-    }
-
-    private static replacementValuation(Money source, target, String rate) {
-        ValuationEngine.standard().value(source, target, new ExchangeRateOverride(
-                ExchangeRate.of(source.currencyUnit(), target, new BigDecimal(rate)), OVERRIDE_VERSION, LocalDateTime.MIN))
     }
 
     private static RecordExpense expense(SettlementId id, Money amount) {

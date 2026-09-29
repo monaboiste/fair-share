@@ -7,6 +7,7 @@ import com.github.monaboiste.fairshare.common.events.VersionConflictException;
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
 import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseInput;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
@@ -57,15 +58,14 @@ public final class RecordExpenseHandler
         ExchangeRateOverride override = command.exchangeRateOverride() == null
                 ? null
                 : new ExchangeRateOverride(command.exchangeRateOverride(), versionIds.get(), LocalDateTime.now(clock));
-        var decision = settlement.recordExpense(
+        var expense = new ExpenseInput(
                 command.expenseId(),
                 command.description(),
                 command.incurredOn(),
                 command.payer(),
                 command.amount(),
-                command.allocation(),
-                override,
-                engine);
+                command.allocation());
+        var decision = settlement.recordExpense(expense, override, engine);
         if (decision.failure()) {
             return Result.failure(decision.getFailure());
         }
