@@ -228,7 +228,7 @@ class SettlementProjectorSpec extends Specification {
     }
 
     private static SettlementView emptySettlementView(SettlementId id, String name, long version) {
-        new SettlementView(id, name, EUR, version, [], [], [], [:])
+        new SettlementView(id, name, EUR, version, [], [], [], [], [:], [])
     }
 
     private static PendingEvent<SettlementEvent> pending(SettlementEvent payload) {

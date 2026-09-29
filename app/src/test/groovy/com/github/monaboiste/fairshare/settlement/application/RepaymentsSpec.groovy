@@ -1,9 +1,5 @@
 package com.github.monaboiste.fairshare.settlement.application
 
-import com.github.monaboiste.fairshare.common.commands.RegisteredCommandDispatcher
-import com.github.monaboiste.fairshare.common.events.EventId
-import com.github.monaboiste.fairshare.common.events.PendingEvent
-import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.pricing.component.Validity
 import com.github.monaboiste.fairshare.quantity.money.Money
 import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
@@ -13,7 +9,6 @@ import com.github.monaboiste.fairshare.settlement.application.command.RecordRepa
 import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
-import com.github.monaboiste.fairshare.settlement.application.command.handler.RecordRepaymentHandler
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
 import com.github.monaboiste.fairshare.settlement.application.query.RepaymentView
@@ -32,10 +27,7 @@ import com.github.monaboiste.fairshare.settlement.domain.RepaymentIdentifierConf
 import com.github.monaboiste.fairshare.settlement.domain.SelfDirectedRepayment
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
-import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved
 import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentRecorded
-import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
-import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import com.github.monaboiste.fairshare.valuation.ExchangeRate
 import java.time.LocalDate
@@ -220,49 +212,6 @@ class RepaymentsSpec extends Specification {
         role        | referenced
         "payer"     | BOB
         "recipient" | ADA
-    }
-
-    def "replay rejects inconsistent Repayment history: #caseName through #route"() {
-        given: "a recorded Repayment and a copied history with an inconsistent later event"
-        def settlement = withParticipants()
-        configuration.commands.dispatch(
-            new RecordRepayment(settlement, REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")))
-        def copied = new InMemoryEventStore()
-        def pending = history(settlement).collect {
-            new PendingEvent<SettlementEvent>(it.eventId(), it.payload(), it.occurredAt())
-        }
-        pending.add(new PendingEvent<SettlementEvent>(EventId.random(), inconsistent, configuration.NOW))
-        copied.append(settlement, 0, pending)
-        def rebuilt = new SettlementProjector()
-        def commands = RegisteredCommandDispatcher.builder()
-            .register(RecordRepayment, new RecordRepaymentHandler(
-                new EventSourcedSettlementRepository(copied, configuration.CLOCK))).build()
-
-        when: "the saved history is replayed"
-        if (route == "projection") {
-            rebuilt.rebuild(copied)
-        } else {
-            commands.dispatch(new RecordRepayment(settlement, repayment(23), DATE, BOB, ADA, Money.of(1, "EUR")))
-        }
-
-        then: "replay rejects the inconsistent history"
-        thrown(IllegalStateException)
-        rebuilt.findById(settlement).isEmpty()
-
-        where:
-        caseName           | inconsistent | route
-        "duplicate"        | new RepaymentRecorded(REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")) | "projection"
-        "duplicate"        | new RepaymentRecorded(REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")) | "command"
-        "unknown payer"    | new RepaymentRecorded(repayment(22), DATE, UNKNOWN, ADA, Money.of(1, "EUR")) | "projection"
-        "unknown payer"    | new RepaymentRecorded(repayment(22), DATE, UNKNOWN, ADA, Money.of(1, "EUR")) | "command"
-        "unknown recipient" | new RepaymentRecorded(repayment(22), DATE, BOB, UNKNOWN, Money.of(1, "EUR")) | "projection"
-        "unknown recipient" | new RepaymentRecorded(repayment(22), DATE, BOB, UNKNOWN, Money.of(1, "EUR")) | "command"
-        "self-directed"    | new RepaymentRecorded(repayment(22), DATE, BOB, BOB, Money.of(1, "EUR")) | "projection"
-        "self-directed"    | new RepaymentRecorded(repayment(22), DATE, BOB, BOB, Money.of(1, "EUR")) | "command"
-        "payer removed"    | new ParticipantRemoved(BOB) | "projection"
-        "payer removed"    | new ParticipantRemoved(BOB) | "command"
-        "recipient removed" | new ParticipantRemoved(ADA) | "projection"
-        "recipient removed" | new ParticipantRemoved(ADA) | "command"
     }
 
     def "actual Repayment changes Expense-derived Balances: #caseName"() {

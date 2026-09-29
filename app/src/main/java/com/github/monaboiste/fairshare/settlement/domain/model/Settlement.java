@@ -15,14 +15,11 @@ import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConfli
 import com.github.monaboiste.fairshare.settlement.domain.ExplicitIdentityExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExpenseAmount;
-import com.github.monaboiste.fairshare.settlement.domain.NonPositiveRepaymentAmount;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced;
-import com.github.monaboiste.fairshare.settlement.domain.RepaymentAmountPrecisionExceeded;
-import com.github.monaboiste.fairshare.settlement.domain.RepaymentCurrencyMismatch;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentDetails;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentId;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentIdentifierConflict;
@@ -170,15 +167,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (repayments.containsKey(repayment.repaymentId())) {
             return Result.failure(new RepaymentIdentifierConflict(id, repayment.repaymentId()));
         }
-        if (repayment.amount().isZero() || repayment.amount().isNegative()) {
-            return Result.failure(new NonPositiveRepaymentAmount(id, repayment.repaymentId()));
-        }
-        if (!repayment.amount().currencyUnit().equals(settlementCurrency())) {
-            return Result.failure(new RepaymentCurrencyMismatch(id, repayment.repaymentId()));
-        }
-        if (repayment.amount().value().stripTrailingZeros().scale()
-                > settlementCurrency().getDefaultFractionDigits()) {
-            return Result.failure(new RepaymentAmountPrecisionExceeded(id, repayment.repaymentId()));
+        Optional<SettlementRejection> invalidAmount = repayment.validateAmount(id, settlementCurrency());
+        if (invalidAmount.isPresent()) {
+            return Result.failure(invalidAmount.get());
         }
         if (repayment.payer().equals(repayment.recipient())) {
             return Result.failure(new SelfDirectedRepayment(id, repayment.repaymentId()));
@@ -388,6 +379,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 || !active(recorded.payer())
                 || !active(recorded.recipient())) {
             throw new IllegalStateException("Invalid Repayment recording");
+        }
+        if (recorded.details().validateAmount(id, settlementCurrency()).isPresent()) {
+            throw new IllegalStateException("Invalid Repayment amount");
         }
         repayments.put(recorded.repaymentId(), recorded);
     }

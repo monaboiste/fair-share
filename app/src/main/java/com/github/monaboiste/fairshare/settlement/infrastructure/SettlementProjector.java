@@ -95,7 +95,9 @@ public final class SettlementProjector
                                 List.of(),
                                 List.of(),
                                 List.of(),
-                                new LinkedHashMap<>()),
+                                List.of(),
+                                new LinkedHashMap<>(),
+                                List.of()),
                         retired);
             }
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
@@ -274,6 +276,11 @@ public final class SettlementProjector
             Set<ParticipantId> retired,
             EventEnvelope<SettlementId, SettlementEvent> event,
             RepaymentRecorded recorded) {
+        if (recorded.details()
+                .validateAmount(previous.id(), previous.currency())
+                .isPresent()) {
+            throw new IllegalStateException("Invalid Repayment amount");
+        }
         if (previous.repayments().stream().anyMatch(repayment -> repayment.id().equals(recorded.repaymentId()))
                 || recorded.payer().equals(recorded.recipient())) {
             throw new IllegalStateException("Duplicate or self-directed Repayment");

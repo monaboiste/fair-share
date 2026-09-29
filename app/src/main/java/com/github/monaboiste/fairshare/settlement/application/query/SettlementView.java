@@ -22,31 +22,6 @@ public record SettlementView(
         List<Obligation<ParticipantId>> obligations,
         SequencedMap<ParticipantId, Money> balances,
         List<ExchangeRateVersion> exchangeRates) {
-    public SettlementView(
-            SettlementId id,
-            String name,
-            CurrencyUnit currency,
-            long version,
-            List<ParticipantView> participants,
-            List<ExpenseView> expenses,
-            List<Obligation<ParticipantId>> obligations,
-            SequencedMap<ParticipantId, Money> balances) {
-        this(id, name, currency, version, participants, expenses, List.of(), obligations, balances, List.of());
-    }
-
-    public SettlementView(
-            SettlementId id,
-            String name,
-            CurrencyUnit currency,
-            long version,
-            List<ParticipantView> participants,
-            List<ExpenseView> expenses,
-            List<Obligation<ParticipantId>> obligations,
-            SequencedMap<ParticipantId, Money> balances,
-            List<ExchangeRateVersion> exchangeRates) {
-        this(id, name, currency, version, participants, expenses, List.of(), obligations, balances, exchangeRates);
-    }
-
     public SettlementView {
         participants = List.copyOf(participants);
         expenses = List.copyOf(expenses);
