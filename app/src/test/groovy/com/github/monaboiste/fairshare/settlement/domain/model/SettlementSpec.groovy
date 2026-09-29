@@ -23,6 +23,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
+import com.github.monaboiste.fairshare.valuation.ValuationEngine
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -230,15 +231,15 @@ class SettlementSpec extends Specification {
         def allocation = new EqualShareAllocation([PARTICIPANT])
         settlement.addParticipant(PARTICIPANT, new ParticipantName("Ada"))
         settlement.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
-            Money.of(10.0, "EUR"), allocation)
+            Money.of(10.0, "EUR"), allocation, null, ValuationEngine.standard())
         repository.save(settlement)
 
         when: "the Settlement is loaded and the same Expense is recorded again, once unchanged and once as Lunch"
         def replayed = repository.findById(settlement.id()).orElseThrow()
         def retry = replayed.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
-            Money.of(10.00, "EUR"), allocation)
+            Money.of(10.00, "EUR"), allocation, null, ValuationEngine.standard())
         def conflict = replayed.recordExpense(expenseId, new ExpenseDescription("Lunch"), date, PARTICIPANT,
-            Money.of(10, "EUR"), allocation)
+            Money.of(10, "EUR"), allocation, null, ValuationEngine.standard())
 
         then: "the repeat is accepted, the change is refused, and the Participant cannot be removed while in use"
         retry.success()

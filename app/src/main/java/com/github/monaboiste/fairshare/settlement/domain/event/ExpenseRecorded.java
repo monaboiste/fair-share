@@ -10,6 +10,7 @@ import com.github.monaboiste.fairshare.settlement.domain.ShareAllocation;
 import com.github.monaboiste.fairshare.valuation.ExchangeRate;
 import java.time.LocalDate;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public record ExpenseRecorded(
         ExpenseId expenseId,
@@ -18,6 +19,7 @@ public record ExpenseRecorded(
         ParticipantId payer,
         Money originalAmount,
         ShareAllocation allocation,
+        @Nullable ExchangeRate exchangeRateOverride,
         ComponentVersionId componentVersionId,
         ExchangeRate exchangeRate,
         Money valuation,

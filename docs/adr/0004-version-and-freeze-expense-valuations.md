@@ -31,3 +31,10 @@ equality across independent Valuations is not promised.
 
 `ExpenseRecorded` stores the applied `ComponentVersionId`, Exchange Rate, converted amount, and resolved Shares.
 Consequently, later Exchange Rate configuration or Valuation logic changes cannot alter replayed history.
+
+An Exchange Rate Override reaches `Settlement.recordExpense` as an `ExchangeRateOverride` carrying the manual Exchange
+Rate, a generated one-off `ComponentVersionId`, and `definedAt` from the application Clock. It must convert the
+Expense currency into a different Settlement Currency; otherwise the Expense rejects with
+`ExchangeRateOverrideMismatch`. `ExpenseRecorded` also retains the raw override, and an identical retry requires the
+same override pair and numerically equal rate. `RecordExpenseHandler` injects the `ValuationEngine` and passes it to
+`Settlement.recordExpense`; replay applies only the frozen event data and never invokes the engine.

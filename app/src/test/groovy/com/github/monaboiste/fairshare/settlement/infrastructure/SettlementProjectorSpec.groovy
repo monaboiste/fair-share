@@ -153,7 +153,7 @@ class SettlementProjectorSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def payer = new ParticipantId(new UUID(0L, 11L))
         def expense = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), new ExpenseDescription("Lunch"),
-            LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]),
+            LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]), null,
             VERSION_ID, IDENTITY_RATE, Money.of(3, "EUR"),
             [new Share(PARTICIPANT, Money.of(3, "EUR"))])
         def history = [pending(new SettlementOpened("Holiday", EUR)), pending(new ParticipantAdded(payer, "Payer")),
@@ -176,7 +176,7 @@ class SettlementProjectorSpec extends Specification {
 
         when:
         def second = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), expense.description(), expense.incurredOn(),
-            payer, expense.originalAmount(), expense.allocation(), expense.componentVersionId(),
+            payer, expense.originalAmount(), expense.allocation(), null, expense.componentVersionId(),
             expense.exchangeRate(), expense.valuation(), expense.shares())
         projector.accept([event(ID, 5, second)])
         def withTwoExpenses = projector.findById(ID).orElseThrow()
@@ -201,7 +201,7 @@ class SettlementProjectorSpec extends Specification {
             event(ID, 3, new ParticipantAdded(PARTICIPANT, "Recipient"))])
         def recorded = { whoPaid, recipient -> new ExpenseRecorded(new ExpenseId(new UUID(0L, 21L)),
             new ExpenseDescription("Dinner"), LocalDate.of(2026, 1, 2), whoPaid, Money.of(1, "EUR"),
-            new EqualShareAllocation([recipient]), VERSION_ID, IDENTITY_RATE,
+            new EqualShareAllocation([recipient]), null, VERSION_ID, IDENTITY_RATE,
             Money.of(1, "EUR"), [new Share(recipient, Money.of(1, "EUR"))]) }
 
         when:

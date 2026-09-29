@@ -157,14 +157,14 @@ class CurrencyValuationSpec extends Specification {
         Valuation valuation = pricing.value(
                 Money.of(100.5, "USD"),
                 JPY,
-                LocalDateTime.parse("2025-01-15T00:00:00"),
-                override,
-                versionId)
+                new ExchangeRateOverride(override, versionId, LocalDateTime.parse("2025-01-15T00:00:00")))
 
         then:
         valuation.money() == Money.of(101, "JPY")
         valuation.exchangeRate() == override
         valuation.componentVersion().id() == versionId
+        valuation.componentVersion().validity() == Validity.always()
+        valuation.componentVersion().definedAt() == LocalDateTime.parse("2025-01-15T00:00:00")
     }
 
     def "Valuation rounds only after applying the Exchange Rate"() {
@@ -172,12 +172,7 @@ class CurrencyValuationSpec extends Specification {
         ExchangeRate override = ExchangeRate.of(EUR, USD, new BigDecimal("10000000000"))
 
         when:
-        Valuation valuation = pricing.value(
-                Money.of(0.00000000006, "EUR"),
-                USD,
-                LocalDateTime.parse("2025-01-15T00:00:00"),
-                override,
-                componentVersionId("00000000-0000-0000-0000-000000000003"))
+        Valuation valuation = pricing.value(Money.of(0.00000000006, "EUR"), USD, manual(override))
 
         then:
         valuation.money() == Money.of(0.60, "USD")
@@ -188,12 +183,7 @@ class CurrencyValuationSpec extends Specification {
         ExchangeRate override = ExchangeRate.of(USD, KWD, 0.3075)
 
         when:
-        Valuation valuation = pricing.value(
-                Money.of(1, "USD"),
-                KWD,
-                LocalDateTime.parse("2025-01-15T00:00:00"),
-                override,
-                componentVersionId("00000000-0000-0000-0000-000000000003"))
+        Valuation valuation = pricing.value(Money.of(1, "USD"), KWD, manual(override))
 
         then:
         valuation.money() == Money.of(0.308, "KWD")
@@ -204,15 +194,15 @@ class CurrencyValuationSpec extends Specification {
         ExchangeRate wrongDirection = ExchangeRate.of(JPY, USD, BigDecimal.ONE)
 
         when:
-        pricing.value(
-                Money.of(100, "USD"),
-                JPY,
-                LocalDateTime.parse("2025-01-15T00:00:00"),
-                wrongDirection,
-                componentVersionId("00000000-0000-0000-0000-000000000003"))
+        pricing.value(Money.of(100, "USD"), JPY, manual(wrongDirection))
 
         then:
         thrown(IllegalArgumentException)
+    }
+
+    private static ExchangeRateOverride manual(ExchangeRate rate) {
+        return new ExchangeRateOverride(rate, componentVersionId("00000000-0000-0000-0000-000000000003"),
+                LocalDateTime.parse("2025-01-15T00:00:00"))
     }
 
     private static ComponentVersionId componentVersionId(String value) {

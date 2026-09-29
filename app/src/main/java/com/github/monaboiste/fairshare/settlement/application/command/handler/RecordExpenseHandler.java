@@ -4,6 +4,7 @@ import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.commands.CommandHandler;
 import com.github.monaboiste.fairshare.common.events.CommitResult;
 import com.github.monaboiste.fairshare.common.events.VersionConflictException;
+import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
 import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
@@ -12,6 +13,11 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.model.Settlement;
 import com.github.monaboiste.fairshare.settlement.domain.model.SettlementRepository;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateOverride;
+import com.github.monaboiste.fairshare.valuation.ValuationEngine;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.function.Supplier;
 
 /**
  * Records a valued Expense in an existing Settlement.
@@ -23,9 +29,23 @@ import com.github.monaboiste.fairshare.settlement.domain.model.SettlementReposit
 public final class RecordExpenseHandler
         implements CommandHandler<RecordExpense, SettlementRejection, CommitResult<SettlementId, SettlementEvent>> {
     private final SettlementRepository repository;
+    private final Clock clock;
+    private final ValuationEngine engine;
+    private final Supplier<ComponentVersionId> versionIds;
 
-    public RecordExpenseHandler(SettlementRepository repository) {
+    public RecordExpenseHandler(SettlementRepository repository, Clock clock) {
+        this(repository, clock, ValuationEngine.standard(), ComponentVersionId::generate);
+    }
+
+    public RecordExpenseHandler(
+            SettlementRepository repository,
+            Clock clock,
+            ValuationEngine engine,
+            Supplier<ComponentVersionId> versionIds) {
         this.repository = repository;
+        this.clock = clock;
+        this.engine = engine;
+        this.versionIds = versionIds;
     }
 
     @Override
@@ -34,13 +54,18 @@ public final class RecordExpenseHandler
         if (settlement == null) {
             return Result.failure(new SettlementNotFound(command.settlementId()));
         }
+        ExchangeRateOverride override = command.exchangeRateOverride() == null
+                ? null
+                : new ExchangeRateOverride(command.exchangeRateOverride(), versionIds.get(), LocalDateTime.now(clock));
         var decision = settlement.recordExpense(
                 command.expenseId(),
                 command.description(),
                 command.incurredOn(),
                 command.payer(),
                 command.amount(),
-                command.allocation());
+                command.allocation(),
+                override,
+                engine);
         if (decision.failure()) {
             return Result.failure(decision.getFailure());
         }
