@@ -8,6 +8,7 @@ import com.github.monaboiste.fairshare.netting.Obligations;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.application.query.ExpenseView;
 import com.github.monaboiste.fairshare.settlement.application.query.ParticipantView;
+import com.github.monaboiste.fairshare.settlement.application.query.RepaymentView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementViews;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
@@ -18,6 +19,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
@@ -93,10 +95,13 @@ public final class SettlementProjector
                                 List.of(),
                                 List.of(),
                                 List.of(),
-                                new LinkedHashMap<>()),
+                                List.of(),
+                                new LinkedHashMap<>(),
+                                List.of()),
                         retired);
             }
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
+            case RepaymentRecorded recorded -> recordRepayment(requireSettlement(previous), retired, event, recorded);
             case ExchangeRateConfigured configured -> {
                 SettlementView view = requireSettlement(previous);
                 List<ExchangeRateVersion> rates = new ArrayList<>(view.exchangeRates());
@@ -109,6 +114,7 @@ public final class SettlementProjector
                                 event.sequence(),
                                 view.participants(),
                                 view.expenses(),
+                                view.repayments(),
                                 view.obligations(),
                                 view.balances(),
                                 rates),
@@ -124,6 +130,7 @@ public final class SettlementProjector
                                 event.sequence(),
                                 view.participants(),
                                 view.expenses(),
+                                view.repayments(),
                                 view.obligations(),
                                 view.balances(),
                                 view.exchangeRates()),
@@ -171,9 +178,12 @@ public final class SettlementProjector
             ParticipantId participantId) {
         requireParticipant(previous, participantId, "Participant missing for removal");
         if (previous.expenses().stream()
-                .anyMatch(expense -> expense.payer().equals(participantId)
-                        || expense.allocation().recipients().contains(participantId))) {
-            throw new IllegalStateException("Participant referenced by Expense");
+                        .anyMatch(expense -> expense.payer().equals(participantId)
+                                || expense.allocation().recipients().contains(participantId))
+                || previous.repayments().stream()
+                        .anyMatch(repayment -> repayment.payer().equals(participantId)
+                                || repayment.recipient().equals(participantId))) {
+            throw new IllegalStateException("Participant referenced by Expense or Repayment");
         }
         List<ParticipantView> participants = previous.participants().stream()
                 .filter(participant -> !participant.id().equals(participantId))
@@ -196,6 +206,16 @@ public final class SettlementProjector
             List<ParticipantView> participants,
             List<ExpenseView> expenses,
             List<Obligation<ParticipantId>> obligations) {
+        return updated(previous, event, participants, expenses, previous.repayments(), obligations);
+    }
+
+    private static SettlementView updated(
+            SettlementView previous,
+            EventEnvelope<SettlementId, SettlementEvent> event,
+            List<ParticipantView> participants,
+            List<ExpenseView> expenses,
+            List<RepaymentView> repayments,
+            List<Obligation<ParticipantId>> obligations) {
         Set<ParticipantId> roster = new HashSet<>();
         participants.forEach(participant -> roster.add(participant.id()));
         Map<ParticipantId, Money> computed =
@@ -209,6 +229,7 @@ public final class SettlementProjector
                 event.sequence(),
                 participants,
                 expenses,
+                repayments,
                 obligations,
                 ordered,
                 previous.exchangeRates());
@@ -247,6 +268,37 @@ public final class SettlementProjector
         }
         return new Projection(
                 updated(previous, event, previous.participants(), List.copyOf(expenses), List.copyOf(obligations)),
+                retired);
+    }
+
+    private static Projection recordRepayment(
+            SettlementView previous,
+            Set<ParticipantId> retired,
+            EventEnvelope<SettlementId, SettlementEvent> event,
+            RepaymentRecorded recorded) {
+        if (recorded.details()
+                .validateAmount(previous.id(), previous.currency())
+                .isPresent()) {
+            throw new IllegalStateException("Invalid Repayment amount");
+        }
+        if (previous.repayments().stream().anyMatch(repayment -> repayment.id().equals(recorded.repaymentId()))
+                || recorded.payer().equals(recorded.recipient())) {
+            throw new IllegalStateException("Duplicate or self-directed Repayment");
+        }
+        requireParticipant(previous, recorded.payer(), "Repayment payer missing");
+        requireParticipant(previous, recorded.recipient(), "Repayment recipient missing");
+        List<RepaymentView> repayments = new ArrayList<>(previous.repayments());
+        repayments.add(new RepaymentView(
+                recorded.repaymentId(),
+                recorded.paidOn(),
+                recorded.payer(),
+                recorded.recipient(),
+                recorded.amount(),
+                RepaymentView.Status.ACTIVE));
+        List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
+        obligations.add(new Obligation<>(recorded.recipient(), recorded.payer(), recorded.amount()));
+        return new Projection(
+                updated(previous, event, previous.participants(), previous.expenses(), repayments, obligations),
                 retired);
     }
 

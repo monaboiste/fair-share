@@ -8,6 +8,22 @@ class WeightedShareAllocationSpec extends Specification {
     private static final ParticipantId BOB = new ParticipantId(new UUID(0L, 12L))
     private static final ParticipantId CAL = new ParticipantId(new UUID(0L, 13L))
 
+    def "weighted Share Allocation refuses a #missingValue"() {
+        given: "an allocation missing a recipient or its weight"
+        def weights = new LinkedHashMap<ParticipantId, Integer>(incomplete)
+
+        when: "the Share Allocation is created"
+        new WeightedShareAllocation(weights)
+
+        then: "the incomplete allocation is refused"
+        thrown(NullPointerException)
+
+        where:
+        missingValue | incomplete
+        "missing recipient" | [(null): 1]
+        "missing weight"    | [(ADA): null]
+    }
+
     def "weighted Shares rank exact remainders and identifier ties in #currency"() {
         given: "a weighted Share Allocation of one, two and one"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([

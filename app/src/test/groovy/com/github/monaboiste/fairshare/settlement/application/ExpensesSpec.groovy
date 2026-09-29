@@ -259,7 +259,7 @@ class ExpensesSpec extends Specification {
             frozen.originalAmount(), frozen.allocation(), frozen.componentVersionId(), frozen.exchangeRate(),
             frozen.valuation(), shares, frozen.status())
         def copiedSettlement = new SettlementView(original.id(), original.name(), original.currency(),
-            original.version(), participants, expenses, obligations, balances)
+            original.version(), participants, expenses, original.repayments(), obligations, balances, original.exchangeRates())
         shares.clear()
         participants.clear()
         expenses.clear()

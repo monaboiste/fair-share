@@ -7,6 +7,7 @@ import com.github.monaboiste.fairshare.settlement.application.command.AddPartici
 import com.github.monaboiste.fairshare.settlement.application.command.ConfigureExchangeRate
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense
+import com.github.monaboiste.fairshare.settlement.application.command.RecordRepayment
 import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
@@ -15,6 +16,7 @@ import com.github.monaboiste.fairshare.settlement.application.command.handler.Ad
 import com.github.monaboiste.fairshare.settlement.application.command.handler.ConfigureExchangeRateHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RecordExpenseHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.RecordRepaymentHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RemoveParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
@@ -61,6 +63,7 @@ class SettlementTestConfiguration {
         .register(RenameParticipant, renameParticipantHandler)
         .register(RemoveParticipant, removeParticipantHandler)
         .register(RecordExpense, recordExpenseHandler)
+        .register(RecordRepayment, new RecordRepaymentHandler(repository))
         .register(ConfigureExchangeRate, configureExchangeRateHandler)
         .requireHandlersFor(SettlementCommand).build()
     final RegisteredQueryDispatcher queries = RegisteredQueryDispatcher.builder()

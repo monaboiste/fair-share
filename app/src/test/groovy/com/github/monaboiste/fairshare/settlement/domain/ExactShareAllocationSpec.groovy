@@ -8,6 +8,22 @@ class ExactShareAllocationSpec extends Specification {
     private static final ParticipantId BOB = new ParticipantId(new UUID(0L, 12L))
     private static final ParticipantId CAL = new ParticipantId(new UUID(0L, 13L))
 
+    def "exact Share Allocation refuses a #missingValue"() {
+        given: "an allocation missing a recipient or its amount"
+        def amounts = new LinkedHashMap<ParticipantId, Money>(incomplete)
+
+        when: "the Share Allocation is created"
+        new ExactShareAllocation(amounts)
+
+        then: "the incomplete allocation is refused"
+        thrown(NullPointerException)
+
+        where:
+        missingValue | incomplete
+        "missing recipient" | [(null): Money.of(1, "EUR")]
+        "missing amount"    | [(ADA): null]
+    }
+
     def "sub-unit exact amounts apportion valued #currency without intermediate rounding"() {
         given: "an exact Share Allocation with amounts smaller than the currency's smallest unit"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([

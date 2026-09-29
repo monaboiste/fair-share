@@ -8,6 +8,17 @@ class EqualShareAllocationSpec extends Specification {
     private static final ParticipantId BOB = new ParticipantId(new UUID(0L, 12L))
     private static final ParticipantId CAL = new ParticipantId(new UUID(0L, 13L))
 
+    def "equal Share Allocation requires every recipient to be identified"() {
+        given: "an allocation containing an unidentified recipient"
+        def recipients = [ADA, null]
+
+        when: "the Share Allocation is created"
+        new EqualShareAllocation(recipients)
+
+        then: "the incomplete allocation is refused"
+        thrown(NullPointerException)
+    }
+
     def "residual units follow Participant identifiers regardless of presentation order"() {
         given: "an equal Share Allocation among three Participants listed in varying order"
         def allocation = new EqualShareAllocation(presentation)

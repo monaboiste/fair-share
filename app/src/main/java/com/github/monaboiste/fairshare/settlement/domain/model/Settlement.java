@@ -20,6 +20,10 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierCo
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced;
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentDetails;
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentId;
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentIdentifierConflict;
+import com.github.monaboiste.fairshare.settlement.domain.SelfDirectedRepayment;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
@@ -29,6 +33,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
@@ -52,6 +57,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private @Nullable CurrencyUnit currency;
     private final Map<ParticipantId, Participant> participants = new HashMap<>();
     private final Map<ExpenseId, ExpenseRecorded> expenses = new HashMap<>();
+    private final Map<RepaymentId, RepaymentRecorded> repayments = new HashMap<>();
     private final ExchangeRateVersions exchangeRates = ExchangeRateVersions.empty();
 
     private Settlement(SettlementId id, Clock clock) {
@@ -104,13 +110,20 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (participant == null || !participant.isActive()) {
             return Result.failure(new ParticipantNotFound(id, participantId));
         }
-        if (expenses.values().stream()
-                .anyMatch(expense -> expense.payer().equals(participantId)
-                        || expense.allocation().recipients().contains(participantId))) {
+        if (isReferenced(participantId)) {
             return Result.failure(new ParticipantReferenced(id, participantId));
         }
         register(new ParticipantRemoved(participantId));
         return Result.success(participantId);
+    }
+
+    private boolean isReferenced(ParticipantId participantId) {
+        return expenses.values().stream()
+                        .anyMatch(expense -> expense.payer().equals(participantId)
+                                || expense.allocation().recipients().contains(participantId))
+                || repayments.values().stream()
+                        .anyMatch(repayment -> repayment.payer().equals(participantId)
+                                || repayment.recipient().equals(participantId));
     }
 
     public Result<SettlementRejection, ComponentVersionId> configureExchangeRate(
@@ -148,6 +161,32 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         }
         registerExpense(expense, overrideRate, valued.getSuccess());
         return Result.success(expense.expenseId());
+    }
+
+    public Result<SettlementRejection, RepaymentId> recordRepayment(RepaymentDetails repayment) {
+        if (repayments.containsKey(repayment.repaymentId())) {
+            return Result.failure(new RepaymentIdentifierConflict(id, repayment.repaymentId()));
+        }
+        Optional<SettlementRejection> invalidAmount = repayment.validateAmount(id, settlementCurrency());
+        if (invalidAmount.isPresent()) {
+            return Result.failure(invalidAmount.get());
+        }
+        if (repayment.payer().equals(repayment.recipient())) {
+            return Result.failure(new SelfDirectedRepayment(id, repayment.repaymentId()));
+        }
+        if (!active(repayment.payer())) {
+            return Result.failure(new ParticipantNotFound(id, repayment.payer()));
+        }
+        if (!active(repayment.recipient())) {
+            return Result.failure(new ParticipantNotFound(id, repayment.recipient()));
+        }
+        register(new RepaymentRecorded(
+                repayment.repaymentId(),
+                repayment.paidOn(),
+                repayment.payer(),
+                repayment.recipient(),
+                repayment.amount()));
+        return Result.success(repayment.repaymentId());
     }
 
     private Result<SettlementRejection, ExpenseId> retry(
@@ -267,6 +306,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     protected void apply(SettlementEvent event) {
         switch (event) {
             case ExpenseRecorded recorded -> applyExpenseRecorded(recorded);
+            case RepaymentRecorded recorded -> applyRepaymentRecorded(recorded);
             case ExchangeRateConfigured configured -> applyExchangeRateConfigured(configured);
             case SettlementOpened(var openedName, var openedCurrency) ->
                 applySettlementOpened(openedName, openedCurrency);
@@ -294,11 +334,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     private void applyParticipantRemoved(ParticipantId participantId) {
-        if (currency == null
-                || !active(participantId)
-                || expenses.values().stream()
-                        .anyMatch(expense -> expense.payer().equals(participantId)
-                                || expense.allocation().recipients().contains(participantId))) {
+        if (currency == null || !active(participantId) || isReferenced(participantId)) {
             throw new IllegalStateException("Participant missing or referenced for removal");
         }
         participants.get(participantId).remove();
@@ -334,6 +370,20 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             throw new IllegalStateException("Invalid Expense recording");
         }
         expenses.put(recorded.expenseId(), recorded);
+    }
+
+    private void applyRepaymentRecorded(RepaymentRecorded recorded) {
+        if (currency == null
+                || repayments.containsKey(recorded.repaymentId())
+                || recorded.payer().equals(recorded.recipient())
+                || !active(recorded.payer())
+                || !active(recorded.recipient())) {
+            throw new IllegalStateException("Invalid Repayment recording");
+        }
+        if (recorded.details().validateAmount(id, settlementCurrency()).isPresent()) {
+            throw new IllegalStateException("Invalid Repayment amount");
+        }
+        repayments.put(recorded.repaymentId(), recorded);
     }
 
     private boolean anyRecipientInactive(ExpenseRecorded recorded) {

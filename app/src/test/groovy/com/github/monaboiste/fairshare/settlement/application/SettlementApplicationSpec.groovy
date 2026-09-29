@@ -24,7 +24,7 @@ class SettlementApplicationSpec extends Specification {
         then: "each change advances the version, and the view and history show the renamed Settlement in order"
         opened.getSuccess().version() == 1
         renamed.getSuccess().version() == 2
-        view.getSuccess() == new SettlementView(id, "Mountains", configuration.EUR, 2, [], [], [], [:])
+        view.getSuccess() == new SettlementView(id, "Mountains", configuration.EUR, 2, [], [], [], [], [:], [])
         history.getSuccess()*.sequence() == [1L, 2L]
     }
 
