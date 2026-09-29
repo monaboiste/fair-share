@@ -13,19 +13,19 @@ class NettingPropertiesSpec extends Specification {
     private final Netting netting = Netting.greedy()
 
     def "every random obligation set nets deterministically to a valid proposal"() {
-        given:
+        given: "a repeatable source of random Obligations"
         Random random = new Random(42)
 
-        when:
+        when: "five hundred random sets of Obligations are netted"
         List<Map<String, Boolean>> trials = (1..500).collect { netOneRandomGraph(random) }
 
-        then:
+        then: "every Participant's Balance is preserved"
         trials.every { it.balancePreserved }
 
-        and:
+        and: "no Proposed Repayments form a cycle"
         trials.every { it.acyclic }
 
-        and:
+        and: "each proposal needs fewer repayments than there are unbalanced Participants"
         trials.every { it.withinEdgeBound }
     }
 

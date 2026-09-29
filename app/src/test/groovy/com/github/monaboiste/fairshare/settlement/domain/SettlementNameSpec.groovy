@@ -4,10 +4,10 @@ import spock.lang.Specification
 
 class SettlementNameSpec extends Specification {
     def "blank Settlement names are rejected"() {
-        when:
+        when: "a Settlement name is made from spaces and a tab"
         new SettlementName(" \t")
 
-        then:
+        then: "it is rejected"
         thrown(IllegalArgumentException)
     }
 

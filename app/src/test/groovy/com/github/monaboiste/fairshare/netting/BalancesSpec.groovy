@@ -11,7 +11,7 @@ class BalancesSpec extends Specification {
     private static final CurrencyUnit USD = Monetary.getCurrency("USD")
 
     def "nets parallel, opposite, loop and zero contributions into signed balances that sum to zero"() {
-        given:
+        given: "Obligations with parallel, opposite, self-owed and zero amounts among three Participants"
         Obligations<String> obligations = Obligations.of(
                 ["ada", "bob", "cid"] as Set,
                 [new Obligation<>("ada", "bob", Money.of(10, "PLN")),
@@ -21,10 +21,10 @@ class BalancesSpec extends Specification {
                  new Obligation<>("cid", "ada", Money.zero("PLN"))],
                 PLN)
 
-        when:
+        when: "Balances are derived"
         Balances<String> balances = Balances.of(obligations)
 
-        then:
+        then: "each Participant has a signed Balance, debtors and creditors are identified, and all Balances sum to zero"
         balances.amounts() == ["ada": Money.of(-8, "PLN"), "bob": Money.of(8, "PLN"), "cid": Money.zero("PLN")]
         balances.debtors() == ["ada": Money.of(8, "PLN")]
         balances.creditors() == ["bob": Money.of(8, "PLN")]
@@ -32,16 +32,16 @@ class BalancesSpec extends Specification {
     }
 
     def "every participant appears, including uninvolved ones in the settlement currency"() {
-        given:
+        given: "a single Obligation in US dollars among three Participants"
         Obligations<String> obligations = Obligations.of(
                 ["ada", "bob", "cal"] as Set,
                 [new Obligation<>("ada", "bob", Money.of(10, "USD"))],
                 USD)
 
-        when:
+        when: "Balances are derived"
         Balances<String> balances = Balances.of(obligations)
 
-        then:
+        then: "every Participant has a Balance in US dollars, including the one not involved"
         balances.amounts() == ["ada": Money.of(-10, "USD"), "bob": Money.of(10, "USD"), "cal": Money.zero("USD")]
     }
 }

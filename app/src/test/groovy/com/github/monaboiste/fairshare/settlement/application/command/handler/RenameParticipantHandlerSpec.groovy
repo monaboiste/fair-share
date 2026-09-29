@@ -24,14 +24,14 @@ class RenameParticipantHandlerSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "renaming a Participant commits an ordered envelope"() {
-        given:
+        given: "Ada is a Participant in an open Settlement"
         SettlementId id = withParticipant()
 
-        when:
+        when: "Ada is renamed to Alex"
         def commit = configuration.renameParticipantHandler.handle(
             new RenameParticipant(id, ADA, new ParticipantName("Alex"))).getSuccess()
 
-        then:
+        then: "the commit carries one Participant rename at the next version, stamped with the current time"
         commit.streamId() == id
         commit.version() == 3
         commit.events().size() == 1
@@ -42,15 +42,15 @@ class RenameParticipantHandlerSpec extends Specification {
     }
 
     def "renaming to the current name succeeds without committing"() {
-        given:
+        given: "Ada has already been renamed to Alex"
         SettlementId id = withParticipant()
         def command = new RenameParticipant(id, ADA, new ParticipantName("Alex"))
         configuration.renameParticipantHandler.handle(command)
 
-        when:
+        when: "the same rename is sent again"
         def retry = configuration.renameParticipantHandler.handle(command).getSuccess()
 
-        then:
+        then: "it succeeds at the same version and nothing new is saved"
         retry.streamId() == id
         retry.version() == 3
         retry.events().empty
@@ -58,29 +58,29 @@ class RenameParticipantHandlerSpec extends Specification {
     }
 
     def "renaming an unknown Participant rejects without committing"() {
-        given:
+        given: "an open Settlement without any Participants"
         SettlementId id = configuration.openSettlement("Holiday")
 
-        when:
+        when: "a Participant is renamed to Alex"
         def result = configuration.renameParticipantHandler.handle(new RenameParticipant(id, ADA, new ParticipantName("Alex")))
 
-        then:
+        then: "the rename is rejected as not found and nothing new is saved"
         result.getFailure() == new ParticipantNotFound(id, ADA)
         configuration.store.load(id).size() == 1
     }
 
     def "renaming in an unknown Settlement rejects without creating a stream"() {
-        when:
+        when: "a Participant is renamed in a Settlement that does not exist"
         def result = configuration.renameParticipantHandler.handle(
             new RenameParticipant(UNKNOWN_ID, ADA, new ParticipantName("Alex")))
 
-        then:
+        then: "it is rejected as not found and no stream is created"
         result.getFailure() == new SettlementNotFound(UNKNOWN_ID)
         !configuration.store.exists(UNKNOWN_ID)
     }
 
     def "stale Participant rename fails optimistic concurrency and preserves the winner"() {
-        given:
+        given: "a handler holds an outdated copy of a Settlement after the Participant was renamed to Winner"
         SettlementId id = withParticipant()
         def stale = configuration.repository.findById(id).orElseThrow()
         configuration.renameParticipantHandler.handle(new RenameParticipant(id, ADA, new ParticipantName("Winner")))
@@ -89,10 +89,10 @@ class RenameParticipantHandlerSpec extends Specification {
             CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { configuration.repository.save(settlement) }
         }
 
-        when:
+        when: "the outdated handler renames the Participant to Loser"
         new RenameParticipantHandler(outdated).handle(new RenameParticipant(id, ADA, new ParticipantName("Loser")))
 
-        then:
+        then: "the save fails on a version conflict and the Participant keeps the winning name"
         thrown(VersionConflictException)
         configuration.projector.findById(id).orElseThrow().participants().first().name() == "Winner"
     }

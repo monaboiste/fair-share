@@ -15,33 +15,33 @@ class GetSettlementHandlerSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "querying a Settlement returns its projected view"() {
-        given:
+        given: "a Settlement called Holiday is opened in euros"
         SettlementId id = configuration.openSettlement("Holiday")
 
-        when:
+        when: "the Settlement is queried"
         def result = configuration.viewHandler.handle(new GetSettlement(id))
 
-        then:
+        then: "its view shows the name, currency and version, with no Participants, Expenses, Obligations or Balances"
         result.getSuccess() == new SettlementView(id, "Holiday", EUR, 1, [], [], [], [:])
     }
 
     def "querying an unknown Settlement rejects with not found"() {
-        when:
+        when: "a Settlement that does not exist is queried"
         def result = configuration.viewHandler.handle(new GetSettlement(UNKNOWN_ID))
 
-        then:
+        then: "it is rejected as not found"
         result.getFailure() == new SettlementNotFound(UNKNOWN_ID)
     }
 
     def "querying a committed Settlement absent from a lagging view rejects with not found"() {
-        given:
+        given: "a Settlement is opened but a lagging projection has not seen it yet"
         SettlementId id = configuration.openSettlement("Holiday")
         def lagging = new GetSettlementHandler(new SettlementProjector())
 
-        when:
+        when: "the Settlement is queried through the lagging projection"
         def result = lagging.handle(new GetSettlement(id))
 
-        then:
+        then: "it is rejected as not found even though the Settlement is saved"
         configuration.store.exists(id)
         result.getFailure() == new SettlementNotFound(id)
     }

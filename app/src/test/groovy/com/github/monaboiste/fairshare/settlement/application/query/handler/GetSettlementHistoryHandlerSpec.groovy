@@ -20,15 +20,15 @@ class GetSettlementHistoryHandlerSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "history returns ordered committed opening and rename envelopes with metadata"() {
-        given:
+        given: "a Settlement called Holiday is opened and renamed to Mountains"
         SettlementId id = configuration.openSettlement("Holiday")
         configuration.renameHandler.handle(new RenameSettlement(id, new SettlementName("Mountains")))
 
-        when:
+        when: "its history is requested"
         List<EventEnvelope<SettlementId, SettlementEvent>> history = configuration.historyHandler
             .handle(new GetSettlementHistory(id)).getSuccess()
 
-        then:
+        then: "the opening and the rename come back in order with distinct identities, types and timestamps"
         history*.streamId() == [id, id]
         history*.sequence() == [1L, 2L]
         history*.position() == [1L, 2L]
@@ -41,10 +41,10 @@ class GetSettlementHistoryHandlerSpec extends Specification {
     }
 
     def "history of an unknown Settlement rejects with not found"() {
-        when:
+        when: "the history of a Settlement that does not exist is requested"
         def result = configuration.historyHandler.handle(new GetSettlementHistory(UNKNOWN_ID))
 
-        then:
+        then: "it is rejected as not found"
         result.getFailure() == new SettlementNotFound(UNKNOWN_ID)
     }
 }

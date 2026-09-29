@@ -48,16 +48,16 @@ class ForeignCurrencyExpensesSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "Expense selects the latest applicable Exchange Rate at incurred-date midnight"() {
-        given:
+        given: "a Settlement with a baseline Exchange Rate, one valid from the Expense date, and one from the next day"
         def settlement = withParticipants()
         def february = configure(settlement, "0.90", Validity.from(DATE.atStartOfDay()))
         configure(settlement, "0.80", Validity.always())
         def later = configure(settlement, "0.95", Validity.from(DATE.atStartOfDay().plusDays(1)))
 
-        when:
+        when: "a 10 US dollar Expense is recorded on that date"
         def recorded = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]))
 
-        then:
+        then: "the Exchange Rate valid from that date's midnight gives the Valuation"
         recorded.componentVersionId() == february.id()
         recorded.exchangeRate() == february.exchangeRate()
         recorded.valuation() == Money.of(9, "EUR")
@@ -65,33 +65,33 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "later stream order wins when applicable Exchange Rates share a valid-from date"() {
-        given:
+        given: "a Settlement with two Exchange Rates valid from the Expense date, the second being a correction"
         def settlement = withParticipants()
         configure(settlement, "0.90", Validity.from(DATE.atStartOfDay()))
         def corrected = configure(settlement, "0.95", Validity.from(DATE.atStartOfDay()))
 
-        when:
+        when: "a 10 US dollar Expense is recorded on that date"
         def recorded = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]))
 
-        then:
+        then: "the later configured Exchange Rate gives the Valuation"
         recorded.componentVersionId() == corrected.id()
         recorded.exchangeRate() == corrected.exchangeRate()
         recorded.valuation() == Money.of(9.50, "EUR")
     }
 
     def "foreign Expense without an applicable directional Exchange Rate rejects without an event: #scenario"() {
-        given:
+        given: "a Settlement without an Exchange Rate from US dollars to euros applicable on the Expense date"
         def settlement = withParticipants()
         if (configuredRate != null) {
             configuration.commands.dispatch(new ConfigureExchangeRate(settlement, configuredRate, validity))
         }
         def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
 
-        when:
+        when: "a US dollar Expense is recorded"
         def result = configuration.commands.dispatch(expense(settlement, DATE,
                 Money.of(1, "USD"), new EqualShareAllocation([BOB])))
 
-        then:
+        then: "the Expense is rejected as missing an Exchange Rate and nothing is recorded"
         result.getFailure() == new MissingExchangeRate(settlement, EXPENSE)
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
         configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().empty
@@ -108,15 +108,15 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "foreign #allocationName allocation resolves Shares in Settlement Currency"() {
-        given:
+        given: "a Settlement with an always-valid Exchange Rate from US dollars to euros"
         def settlement = withParticipants()
         configure(settlement, rate, Validity.always())
 
-        when:
+        when: "a foreign Expense is recorded with the given Share Allocation"
         def recorded = record(settlement, DATE, original, allocation)
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "the Shares are expressed in the Settlement Currency and add up to the Valuation"
         recorded.allocation() == allocation
         recorded.valuation() == valuation
         recorded.shares() == shares
@@ -140,13 +140,13 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "recorded foreign Expense freezes original Money, selected Valuation and balances across replay"() {
-        given:
+        given: "a Settlement with an Exchange Rate of 0.95 and a 10 US dollar Expense shared by Bob and Cal"
         def settlement = withParticipants()
         def version = configure(settlement, "0.95", Validity.from(DATE.atStartOfDay()))
         def allocation = new EqualShareAllocation([BOB, CAL])
         def command = expense(settlement, DATE, Money.of(10, "USD"), allocation)
 
-        when:
+        when: "the Expense is recorded and the view is rebuilt from history"
         def commit = configuration.commands.dispatch(command).getSuccess()
         def recorded = (ExpenseRecorded) commit.events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
@@ -154,7 +154,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
         def replay = new SettlementProjector()
         replay.rebuild(configuration.store)
 
-        then:
+        then: "the original amount, Exchange Rate, Valuation and Shares are frozen, and Balances net to zero"
         recorded.type() == "ExpenseRecorded"
         recorded.schemaVersion() == 1
         recorded.originalAmount() == Money.of(10, "USD")
@@ -179,7 +179,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "identical retry after a newer rate does not revalue and changed input conflicts"() {
-        given:
+        given: "a Settlement with a recorded US dollar Expense, after which a newer Exchange Rate was configured"
         def settlement = withParticipants()
         configure(settlement, "0.90", Validity.always())
         def original = expense(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]))
@@ -188,7 +188,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
         configure(settlement, "0.95", Validity.from(DATE.atStartOfDay()))
         def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
 
-        when:
+        when: "the Expense is retried identically, with a changed amount, and in another currency"
         def retry = configuration.commands.dispatch(expense(settlement, DATE,
                 Money.of(new BigDecimal("10.00"), "USD"), new EqualShareAllocation([BOB])))
         def changedAmount = configuration.commands.dispatch(expense(settlement, DATE,
@@ -197,7 +197,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
                 Money.of(10, "EUR"), new EqualShareAllocation([BOB])))
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "the identical retry keeps the frozen Valuation, while the changed ones conflict and nothing is recorded"
         retry.getSuccess().events().empty
         changedAmount.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         changedCurrency.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
@@ -206,19 +206,19 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "Exchange Rate Override values one foreign Expense without changing configured rates: #scenario"() {
-        given:
+        given: "a Settlement with or without a configured Exchange Rate"
         def settlement = withParticipants()
         if (configuredRate != null) {
             configure(settlement, configuredRate, Validity.always())
         }
         def configuredBefore = configuredVersions(settlement)
 
-        when:
+        when: "a 10 US dollar Expense is recorded with an Exchange Rate Override of 0.97"
         def recorded = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB, CAL]),
                 manual("0.97"))
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "the override gives the Valuation and Shares, and configured Exchange Rates stay unchanged"
         recorded.exchangeRateOverride() == manual("0.97")
         recorded.exchangeRate() == manual("0.97")
         recorded.valuation() == Money.of(9.70, "EUR")
@@ -236,16 +236,16 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "Exchange Rate Override affects only its Expense"() {
-        given:
+        given: "a Settlement with a configured Exchange Rate and an Expense recorded with an Exchange Rate Override"
         def settlement = withParticipants()
         def configured = configure(settlement, "0.90", Validity.always())
         record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]), manual("0.97"))
 
-        when:
+        when: "another Expense is recorded without an override"
         def sibling = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]), null,
                 OTHER_EXPENSE)
 
-        then:
+        then: "the other Expense is valued with the configured Exchange Rate"
         sibling.exchangeRateOverride() == null
         sibling.componentVersionId() == configured.id()
         sibling.exchangeRate() == configured.exchangeRate()
@@ -253,16 +253,16 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "Exchange Rate Override for another direction rejects without an event: #scenario"() {
-        given:
+        given: "a Settlement with a configured Exchange Rate from US dollars to euros"
         def settlement = withParticipants()
         configure(settlement, "0.90", Validity.always())
         def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
 
-        when:
+        when: "an Expense is recorded with an Exchange Rate Override for another currency direction"
         def result = configuration.commands.dispatch(expense(settlement, DATE, original,
                 new EqualShareAllocation([BOB]), override))
 
-        then:
+        then: "the Expense is rejected as an override mismatch and nothing is recorded"
         result.getFailure() == new ExchangeRateOverrideMismatch(settlement, EXPENSE)
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
         configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().empty
@@ -276,14 +276,14 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "Exchange Rate Override mismatch yields to #priority"() {
-        given:
+        given: "a Settlement with Participants"
         def settlement = withParticipants()
 
-        when:
+        when: "an Expense with a mismatched Exchange Rate Override and another problem is recorded"
         def result = configuration.commands.dispatch(expense(settlement, DATE, original,
                 new EqualShareAllocation([recipient]), ExchangeRate.of(GBP, SettlementTestConfiguration.EUR, BigDecimal.ONE)))
 
-        then:
+        then: "the Expense is rejected with the higher-priority reason"
         result.getFailure() == rejection.call(settlement)
 
         where:
@@ -293,34 +293,34 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "retry with the same Exchange Rate Override at another scale records nothing"() {
-        given:
+        given: "a Settlement with an Expense recorded with an Exchange Rate Override of 0.95"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, DATE, Money.of(10, "USD"),
                 new EqualShareAllocation([BOB]), manual("0.95"))).getSuccess()
         def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
 
-        when:
+        when: "the Expense is retried with the same override written as 0.950"
         def retry = configuration.commands.dispatch(expense(settlement, DATE, Money.of(10, "USD"),
                 new EqualShareAllocation([BOB]), manual("0.950")))
 
-        then:
+        then: "the retry records nothing"
         retry.getSuccess().events().empty
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
     }
 
     def "retry with another Exchange Rate Override conflicts: #scenario"() {
-        given:
+        given: "a Settlement with an Expense recorded with or without an Exchange Rate Override"
         def settlement = withParticipants()
         configure(settlement, "0.95", Validity.always())
         configuration.commands.dispatch(expense(settlement, DATE, Money.of(10, "USD"),
                 new EqualShareAllocation([BOB]), originalOverride)).getSuccess()
         def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
 
-        when:
+        when: "the Expense is retried with a different override, or none"
         def retry = configuration.commands.dispatch(expense(settlement, DATE, Money.of(10, "USD"),
                 new EqualShareAllocation([BOB]), retryOverride))
 
-        then:
+        then: "the retry conflicts and nothing is recorded"
         retry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
 
@@ -336,7 +336,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
     }
 
     def "recorded Valuations and Shares survive changed Exchange Rates and Pricing on replay"() {
-        given:
+        given: "a Settlement with one Expense valued by an Exchange Rate Override and another by a configured one"
         def settlement = withParticipants()
         configure(settlement, "0.90", Validity.from(DATE.atStartOfDay()))
         def overridden = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB, CAL]),
@@ -345,7 +345,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
                 new WeightedShareAllocation(new LinkedHashMap([(BOB): 1, (CAL): 2])), null, OTHER_EXPENSE)
         def frozen = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        and:
+        and: "a lower Exchange Rate is configured and Valuation now doubles every amount"
         configure(settlement, "0.50", Validity.from(DATE.atStartOfDay()))
         def doubledPricing = new DoublingValuationEngine()
         def changedValuationEngine = Mock(ValuationEngine) {
@@ -356,7 +356,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
                 new EventSourcedSettlementRepository(configuration.store, SettlementTestConfiguration.CLOCK),
                 SettlementTestConfiguration.CLOCK, changedValuationEngine, ComponentVersionId::generate)
 
-        when:
+        when: "both Expenses are retried under the changed Valuation, the view is rebuilt, and a new Expense is recorded"
         def overriddenRetry = reloadingHandler.handle(expense(settlement, DATE, Money.of(10, "USD"),
                 new EqualShareAllocation([BOB, CAL]), manual("0.97")))
         def configuredRetry = reloadingHandler.handle(expense(settlement, DATE, Money.of(10, "USD"),
@@ -366,7 +366,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
         def replayed = rebuilt.findById(settlement).orElseThrow()
         def fresh = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]), null, FRESH_EXPENSE)
 
-        then:
+        then: "retries are not revalued, replay keeps frozen Valuations, and a new Expense uses the lower Exchange Rate"
         0 * changedValuationEngine._
         overriddenRetry.getSuccess().events().empty
         configuredRetry.getSuccess().events().empty
