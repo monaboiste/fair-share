@@ -1,0 +1,216 @@
+package com.github.monaboiste.fairshare.settlement.application
+
+import com.github.monaboiste.fairshare.pricing.component.Validity
+import com.github.monaboiste.fairshare.quantity.money.Money
+import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
+import com.github.monaboiste.fairshare.settlement.application.command.ConfigureExchangeRate
+import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense
+import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
+import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
+import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
+import com.github.monaboiste.fairshare.settlement.domain.ExactShareAllocation
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict
+import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate
+import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
+import com.github.monaboiste.fairshare.settlement.domain.ParticipantName
+import com.github.monaboiste.fairshare.settlement.domain.Share
+import com.github.monaboiste.fairshare.settlement.domain.WeightedShareAllocation
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
+import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
+import com.github.monaboiste.fairshare.valuation.ExchangeRate
+import java.time.LocalDate
+import java.time.LocalDateTime
+import javax.money.Monetary
+import spock.lang.Specification
+
+class ForeignCurrencyExpensesSpec extends Specification {
+    private static final ParticipantId ADA = new ParticipantId(new UUID(0L, 11L))
+    private static final ParticipantId BOB = new ParticipantId(new UUID(0L, 12L))
+    private static final ParticipantId CAL = new ParticipantId(new UUID(0L, 13L))
+    private static final ExpenseId EXPENSE = new ExpenseId(new UUID(0L, 21L))
+    private static final LocalDate DATE = LocalDate.of(2026, 2, 3)
+    def configuration = new SettlementTestConfiguration()
+
+    def "Expense selects the latest applicable Exchange Rate at incurred-date midnight"() {
+        given:
+        def settlement = withParticipants()
+        def february = configure(settlement, "0.90", Validity.from(DATE.atStartOfDay()))
+        configure(settlement, "0.80", Validity.always())
+        def later = configure(settlement, "0.95", Validity.from(DATE.atStartOfDay().plusDays(1)))
+
+        when:
+        def recorded = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]))
+
+        then:
+        recorded.componentVersionId() == february.id()
+        recorded.exchangeRate() == february.exchangeRate()
+        recorded.valuation() == Money.of(9, "EUR")
+        recorded.componentVersionId() != later.id()
+    }
+
+    def "later stream order wins when applicable Exchange Rates share a valid-from date"() {
+        given:
+        def settlement = withParticipants()
+        configure(settlement, "0.90", Validity.from(DATE.atStartOfDay()))
+        def corrected = configure(settlement, "0.95", Validity.from(DATE.atStartOfDay()))
+
+        when:
+        def recorded = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]))
+
+        then:
+        recorded.componentVersionId() == corrected.id()
+        recorded.exchangeRate() == corrected.exchangeRate()
+        recorded.valuation() == Money.of(9.50, "EUR")
+    }
+
+    def "foreign Expense without an applicable directional Exchange Rate rejects without an event: #scenario"() {
+        given:
+        def settlement = withParticipants()
+        if (configuredRate != null) {
+            configuration.commands.dispatch(new ConfigureExchangeRate(settlement, configuredRate, validity))
+        }
+        def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
+
+        when:
+        def result = configuration.commands.dispatch(expense(settlement, DATE,
+            Money.of(1, "USD"), new EqualShareAllocation([BOB])))
+
+        then:
+        result.getFailure() == new MissingExchangeRate(settlement, EXPENSE)
+        configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
+        configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().empty
+
+        where:
+        scenario | configuredRate | validity
+        "unconfigured" | null | null
+        "other source currency" | ExchangeRate.of(Monetary.getCurrency("GBP"),
+            SettlementTestConfiguration.EUR, BigDecimal.ONE) | Validity.always()
+        "before valid-from midnight" | ExchangeRate.of(SettlementTestConfiguration.USD,
+            SettlementTestConfiguration.EUR, BigDecimal.ONE) | Validity.from(DATE.atStartOfDay().plusSeconds(1))
+        "after valid-until" | ExchangeRate.of(SettlementTestConfiguration.USD,
+            SettlementTestConfiguration.EUR, BigDecimal.ONE) | Validity.until(DATE.minusDays(1).atStartOfDay())
+    }
+
+    def "foreign #allocationName allocation resolves Shares in Settlement Currency"() {
+        given:
+        def settlement = withParticipants()
+        configure(settlement, rate, Validity.always())
+
+        when:
+        def recorded = record(settlement, DATE, original, allocation)
+        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
+
+        then:
+        recorded.allocation() == allocation
+        recorded.valuation() == valuation
+        recorded.shares() == shares
+        recorded.shares()*.amount()*.currencyUnit() == [SettlementTestConfiguration.EUR] * shares.size()
+        recorded.shares()*.amount().inject(Money.zero("EUR")) { sum, share -> sum.add(share) } == valuation
+        view.expenses().first().shares() == shares
+
+        where:
+        allocationName | rate | original | allocation | valuation | shares
+        "equal" | "0.95" | Money.of(10, "USD") | new EqualShareAllocation([CAL, BOB, ADA]) |
+            Money.of(9.50, "EUR") | [new Share(CAL, Money.of(3.16, "EUR")),
+                new Share(BOB, Money.of(3.17, "EUR")), new Share(ADA, Money.of(3.17, "EUR"))]
+        "weighted" | "0.95" | Money.of(10, "USD") |
+            new WeightedShareAllocation(new LinkedHashMap([(CAL): 1, (BOB): 1, (ADA): 2])) |
+            Money.of(9.50, "EUR") | [new Share(CAL, Money.of(2.37, "EUR")),
+                new Share(BOB, Money.of(2.38, "EUR")), new Share(ADA, Money.of(4.75, "EUR"))]
+        "exact in USD" | "0.01" | Money.of(1, "USD") |
+            new ExactShareAllocation(new LinkedHashMap([(CAL): Money.of(0.50, "USD"),
+                (BOB): Money.of(0.50, "USD")])) |
+            Money.of(0.01, "EUR") | [new Share(BOB, Money.of(0.01, "EUR"))]
+    }
+
+    def "recorded foreign Expense freezes original Money, selected Valuation and balances across replay"() {
+        given:
+        def settlement = withParticipants()
+        def version = configure(settlement, "0.95", Validity.from(DATE.atStartOfDay()))
+        def allocation = new EqualShareAllocation([BOB, CAL])
+        def command = expense(settlement, DATE, Money.of(10, "USD"), allocation)
+
+        when:
+        def commit = configuration.commands.dispatch(command).getSuccess()
+        def recorded = (ExpenseRecorded) commit.events().first().payload()
+        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
+        def history = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
+        def replay = new SettlementProjector()
+        replay.rebuild(configuration.store)
+
+        then:
+        recorded.type() == "ExpenseRecorded"
+        recorded.schemaVersion() == 1
+        recorded.originalAmount() == Money.of(10, "USD")
+        recorded.componentVersionId() == version.id()
+        recorded.exchangeRate() == version.exchangeRate()
+        recorded.valuation() == Money.of(9.50, "EUR")
+        recorded.allocation() == allocation
+        recorded.shares() == [new Share(BOB, Money.of(4.75, "EUR")),
+            new Share(CAL, Money.of(4.75, "EUR"))]
+        view.expenses().first().originalAmount() == recorded.originalAmount()
+        view.expenses().first().componentVersionId() == recorded.componentVersionId()
+        view.expenses().first().exchangeRate() == recorded.exchangeRate()
+        view.expenses().first().valuation() == recorded.valuation()
+        view.expenses().first().allocation() == recorded.allocation()
+        view.expenses().first().shares() == recorded.shares()
+        history.last().payload() == recorded
+        replay.findById(settlement).orElseThrow() == view
+        view.balances()[ADA] == Money.of(9.50, "EUR")
+        view.balances()[BOB] == Money.of(-4.75, "EUR")
+        view.balances()[CAL] == Money.of(-4.75, "EUR")
+        view.balances().values().inject(Money.zero("EUR")) { sum, balance -> sum.add(balance) }.isZero()
+    }
+
+    def "identical retry after a newer rate does not revalue and changed input conflicts"() {
+        given:
+        def settlement = withParticipants()
+        configure(settlement, "0.90", Validity.always())
+        def original = expense(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]))
+        configuration.commands.dispatch(original).getSuccess()
+        def frozen = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().first()
+        configure(settlement, "0.95", Validity.from(DATE.atStartOfDay()))
+        def before = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess()
+
+        when:
+        def retry = configuration.commands.dispatch(expense(settlement, DATE,
+            Money.of(new BigDecimal("10.00"), "USD"), new EqualShareAllocation([BOB])))
+        def changedAmount = configuration.commands.dispatch(expense(settlement, DATE,
+            Money.of(11, "USD"), new EqualShareAllocation([BOB])))
+        def changedCurrency = configuration.commands.dispatch(expense(settlement, DATE,
+            Money.of(10, "EUR"), new EqualShareAllocation([BOB])))
+        def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
+
+        then:
+        retry.getSuccess().events().empty
+        changedAmount.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
+        changedCurrency.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
+        configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
+        view.expenses().first() == frozen
+    }
+
+    private def withParticipants() {
+        def settlement = configuration.openSettlement("Holiday")
+        [ADA, BOB, CAL].each { id ->
+            configuration.commands.dispatch(new AddParticipant(settlement, id, new ParticipantName(id.toString())))
+        }
+        settlement
+    }
+
+    private def configure(settlement, String rate, Validity validity) {
+        configuration.commands.dispatch(new ConfigureExchangeRate(settlement,
+            ExchangeRate.of(configuration.USD, configuration.EUR, new BigDecimal(rate)), validity))
+            .getSuccess().events().first().payload().version()
+    }
+
+    private def record(settlement, LocalDate date, Money original, allocation) {
+        (ExpenseRecorded) configuration.commands.dispatch(expense(settlement, date, original, allocation))
+            .getSuccess().events().first().payload()
+    }
+
+    private static RecordExpense expense(settlement, LocalDate date, Money original, allocation) {
+        new RecordExpense(settlement, EXPENSE, new ExpenseDescription("Lunch"), date, ADA, original, allocation)
+    }
+}

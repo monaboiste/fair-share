@@ -16,6 +16,7 @@ import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
 import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import com.github.monaboiste.fairshare.valuation.ExchangeRate
+import com.github.monaboiste.fairshare.valuation.ExchangeRateVersions
 import com.github.monaboiste.fairshare.valuation.ValuationEngine
 import java.time.LocalDateTime
 import javax.money.Monetary
@@ -172,20 +173,23 @@ class ExchangeRatesSpec extends Specification {
         commands.dispatch(new ConfigureExchangeRate(id, rate("0.80"), Validity.always())).getSuccess()
         def rebuilt = new SettlementProjector()
         rebuilt.rebuild(configuration.store)
-        def versions = rebuilt.findById(id).orElseThrow().exchangeRates()
+        def versionList = rebuilt.findById(id).orElseThrow().exchangeRates()
+        ExchangeRateVersions versions = ExchangeRateVersions.from(versionList)
 
         when:
-        def before = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.minusSeconds(1), versions)
-        def during = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.plusDays(1), versions)
+        def before = versions.applicableAt(configuration.USD, configuration.EUR, from.minusSeconds(1))
+        def during = versions.applicableAt(configuration.USD, configuration.EUR, from.plusDays(1))
 
         then:
-        versions*.id() == [februaryVersionId, baselineVersionId]
-        before.money() == Money.of(8, "EUR")
-        before.componentVersion().id() == baselineVersionId
-        during.money() == Money.of(9, "EUR")
-        during.componentVersion().id() == februaryVersionId
+        versionList*.id() == [februaryVersionId, baselineVersionId]
+        before.isPresent()
+        during.isPresent()
+        def beforeValuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, before.get())
+        def duringValuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, during.get())
+        beforeValuation.money() == Money.of(8, "EUR")
+        beforeValuation.componentVersion().id() == baselineVersionId
+        duringValuation.money() == Money.of(9, "EUR")
+        duringValuation.componentVersion().id() == februaryVersionId
     }
 
     def "persisted equal-start Exchange Rates select the later stream version after replay"() {
@@ -204,14 +208,17 @@ class ExchangeRatesSpec extends Specification {
         def rebuilt = new SettlementProjector()
         rebuilt.rebuild(configuration.store)
         def replayedVersions = rebuilt.findById(id).orElseThrow().exchangeRates()
+        ExchangeRateVersions versions = ExchangeRateVersions.from(replayedVersions)
 
         when:
-        def valuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR,
-            from.plusDays(1), replayedVersions)
+        def selected = versions.applicableAt(configuration.USD, configuration.EUR, from.plusDays(1))
 
         then:
         liveVersions == replayedVersions
         replayedVersions*.id() == [firstId, laterId]
+        selected.isPresent()
+        selected.get().id() == laterId
+        def valuation = ValuationEngine.standard().value(Money.of(10, "USD"), configuration.EUR, selected.get())
         valuation.money() == Money.of(9.50, "EUR")
         valuation.componentVersion().id() == laterId
     }
