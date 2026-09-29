@@ -9,9 +9,9 @@ import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation;
 import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateOverrideMismatch;
 import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateTargetMismatch;
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseDetails;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
-import com.github.monaboiste.fairshare.settlement.domain.ExpenseInput;
 import com.github.monaboiste.fairshare.settlement.domain.ExplicitIdentityExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExpenseAmount;
@@ -132,7 +132,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, ExpenseId> recordExpense(
-            ExpenseInput expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
+            ExpenseDetails expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
         ExchangeRate overrideRate = override == null ? null : override.rate();
         ExpenseRecorded existing = expenses.get(expense.expenseId());
         if (existing != null) {
@@ -151,7 +151,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     private Result<SettlementRejection, ExpenseId> retry(
-            ExpenseRecorded existing, ExpenseInput expense, @Nullable ExchangeRate overrideRate) {
+            ExpenseRecorded existing, ExpenseDetails expense, @Nullable ExchangeRate overrideRate) {
         boolean identical = existing.description().equals(expense.description())
                 && existing.incurredOn().equals(expense.incurredOn())
                 && existing.payer().equals(expense.payer())
@@ -176,7 +176,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     private Optional<SettlementRejection> validateNewExpense(
-            ExpenseInput expense, @Nullable ExchangeRate overrideRate) {
+            ExpenseDetails expense, @Nullable ExchangeRate overrideRate) {
         ExpenseId expenseId = expense.expenseId();
         Money amount = expense.amount();
         ShareAllocation allocation = expense.allocation();
@@ -211,7 +211,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     private Result<SettlementRejection, Valuation> value(
-            ExpenseInput expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
+            ExpenseDetails expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
         Money amount = expense.amount();
         if (override != null) {
             return Result.success(engine.value(amount, settlementCurrency(), override));
@@ -229,7 +229,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return Result.success(engine.value(amount, settlementCurrency(), selected.get()));
     }
 
-    private void registerExpense(ExpenseInput expense, @Nullable ExchangeRate override, Valuation valued) {
+    private void registerExpense(ExpenseDetails expense, @Nullable ExchangeRate override, Valuation valued) {
         Money valuation = valued.money();
         register(new ExpenseRecorded(
                 expense.expenseId(),

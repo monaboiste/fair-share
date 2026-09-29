@@ -6,9 +6,9 @@ import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.quantity.money.Money
 import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseDetails
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict
-import com.github.monaboiste.fairshare.settlement.domain.ExpenseInput
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName
@@ -231,7 +231,7 @@ class SettlementSpec extends Specification {
         def date = LocalDate.of(2026, 1, 2)
         def allocation = new EqualShareAllocation([PARTICIPANT])
         def expense = { String description, Money amount ->
-            new ExpenseInput(expenseId, new ExpenseDescription(description), date, PARTICIPANT, amount, allocation)
+            new ExpenseDetails(expenseId, new ExpenseDescription(description), date, PARTICIPANT, amount, allocation)
         }
         settlement.addParticipant(PARTICIPANT, new ParticipantName("Ada"))
         def recorded = settlement.recordExpense(expense("Dinner", Money.of(10.0, "EUR")), null,
