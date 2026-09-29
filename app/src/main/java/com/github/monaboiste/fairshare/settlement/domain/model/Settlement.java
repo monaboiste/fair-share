@@ -142,7 +142,12 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (rejection.isPresent()) {
             return Result.failure(rejection.get());
         }
-        return value(expense, override, engine).map(valuation -> registerExpense(expense, overrideRate, valuation));
+        Result<SettlementRejection, Valuation> valued = value(expense, override, engine);
+        if (valued.failure()) {
+            return Result.failure(valued.getFailure());
+        }
+        registerExpense(expense, overrideRate, valued.getSuccess());
+        return Result.success(expense.expenseId());
     }
 
     private Result<SettlementRejection, ExpenseId> retry(
@@ -224,7 +229,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return Result.success(engine.value(amount, settlementCurrency(), selected.get()));
     }
 
-    private ExpenseId registerExpense(ExpenseInput expense, @Nullable ExchangeRate override, Valuation valued) {
+    private void registerExpense(ExpenseInput expense, @Nullable ExchangeRate override, Valuation valued) {
         Money valuation = valued.money();
         register(new ExpenseRecorded(
                 expense.expenseId(),
@@ -238,7 +243,6 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 valued.exchangeRate(),
                 valuation,
                 expense.allocation().resolve(valuation)));
-        return expense.expenseId();
     }
 
     private CurrencyUnit settlementCurrency() {
