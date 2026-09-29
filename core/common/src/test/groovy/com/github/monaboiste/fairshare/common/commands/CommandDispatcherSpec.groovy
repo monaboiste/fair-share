@@ -57,7 +57,8 @@ class CommandDispatcherSpec extends Specification {
         given:
         List<String> visited = []
         def first = new CommandInterceptor() {
-            def <F, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
+            @Override
+            Result intercept(Command command, CommandInterceptor.Proceed next) {
                 visited.add("first before")
                 def result = next.handle(command)
                 visited.add("first after")
@@ -65,7 +66,8 @@ class CommandDispatcherSpec extends Specification {
             }
         }
         def second = new CommandInterceptor() {
-            def <F, S> Result<F, S> intercept(Command<F, S> command, CommandInterceptor.Proceed next) {
+            @Override
+            Result intercept(Command command, CommandInterceptor.Proceed next) {
                 visited.add("second before")
                 def result = next.handle(command)
                 visited.add("second after")
