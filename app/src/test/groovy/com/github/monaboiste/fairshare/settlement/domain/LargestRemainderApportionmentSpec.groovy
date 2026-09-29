@@ -7,18 +7,18 @@ class LargestRemainderApportionmentSpec extends Specification {
     private static final ParticipantId ADA = new ParticipantId(new UUID(0L, 11L))
 
     def "zero proportion cannot receive a Share"() {
-        given:
+        given: "a single Participant with a proportion of zero"
         def proportions = new LinkedHashMap<ParticipantId, BigInteger>([(ADA): BigInteger.ZERO])
 
-        when:
+        when: "one euro is apportioned"
         LargestRemainderApportionment.apportion(proportions, Money.of(1, "EUR"))
 
-        then:
+        then: "the apportionment is refused"
         thrown(IllegalStateException)
     }
 
     def "zero Valuation resolves to no Shares"() {
-        given:
+        given: "a weighted Share Allocation for a single Participant"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(ADA): 1]))
 
         expect:
@@ -26,13 +26,13 @@ class LargestRemainderApportionmentSpec extends Specification {
     }
 
     def "negative Valuation cannot resolve Shares"() {
-        given:
+        given: "a weighted Share Allocation for a single Participant"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(ADA): 1]))
 
-        when:
+        when: "a negative Valuation is divided into Shares"
         allocation.resolve(Money.of(-0.01, "EUR"))
 
-        then:
+        then: "the division is refused"
         thrown(IllegalStateException)
     }
 }

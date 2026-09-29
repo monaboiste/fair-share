@@ -23,13 +23,13 @@ class AddParticipantHandlerSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "adding a Participant commits an ordered envelope"() {
-        given:
+        given: "a Settlement called Holiday is opened"
         SettlementId id = configuration.openSettlement("Holiday")
 
-        when:
+        when: "Ada is added as a Participant"
         def commit = configuration.addHandler.handle(new AddParticipant(id, ADA, new ParticipantName("Ada"))).getSuccess()
 
-        then:
+        then: "the commit carries one Participant addition at the next version, stamped with the current time"
         commit.streamId() == id
         commit.version() == 2
         commit.events().size() == 1
@@ -40,15 +40,15 @@ class AddParticipantHandlerSpec extends Specification {
     }
 
     def "identical Participant retry succeeds without committing"() {
-        given:
+        given: "Ada has already been added to an open Settlement"
         SettlementId id = configuration.openSettlement("Holiday")
         def command = new AddParticipant(id, ADA, new ParticipantName("Ada"))
         configuration.addHandler.handle(command)
 
-        when:
+        when: "the same addition is sent again"
         def retry = configuration.addHandler.handle(command).getSuccess()
 
-        then:
+        then: "it succeeds at the same version and nothing new is saved"
         retry.streamId() == id
         retry.version() == 2
         retry.events().empty
@@ -56,29 +56,29 @@ class AddParticipantHandlerSpec extends Specification {
     }
 
     def "reusing a Participant identifier with different add data rejects"() {
-        given:
+        given: "Ada has already been added to an open Settlement"
         SettlementId id = configuration.openSettlement("Holiday")
         configuration.addHandler.handle(new AddParticipant(id, ADA, new ParticipantName("Ada")))
 
-        when:
+        when: "the same Participant identifier is added again under the name Alex"
         def result = configuration.addHandler.handle(new AddParticipant(id, ADA, new ParticipantName("Alex")))
 
-        then:
+        then: "the addition is rejected as an identifier conflict and nothing new is saved"
         result.getFailure() == new ParticipantIdentifierConflict(id, ADA)
         configuration.store.load(id).size() == 2
     }
 
     def "adding to an unknown Settlement rejects without creating a stream"() {
-        when:
+        when: "a Participant is added to a Settlement that does not exist"
         def result = configuration.addHandler.handle(new AddParticipant(UNKNOWN_ID, ADA, new ParticipantName("Ada")))
 
-        then:
+        then: "it is rejected as not found and no stream is created"
         result.getFailure() == new SettlementNotFound(UNKNOWN_ID)
         !configuration.store.exists(UNKNOWN_ID)
     }
 
     def "stale Participant addition fails optimistic concurrency and preserves the winner"() {
-        given:
+        given: "a handler holds an outdated copy of a Settlement after the Participant was added as Winner"
         SettlementId id = configuration.openSettlement("Holiday")
         def stale = configuration.repository.findById(id).orElseThrow()
         configuration.addHandler.handle(new AddParticipant(id, ADA, new ParticipantName("Winner")))
@@ -87,10 +87,10 @@ class AddParticipantHandlerSpec extends Specification {
             CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { configuration.repository.save(settlement) }
         }
 
-        when:
+        when: "the outdated handler adds the same Participant as Loser"
         new AddParticipantHandler(outdated).handle(new AddParticipant(id, ADA, new ParticipantName("Loser")))
 
-        then:
+        then: "the save fails on a version conflict and the Participant keeps the winning name"
         thrown(VersionConflictException)
         configuration.projector.findById(id).orElseThrow().participants().first().name() == "Winner"
     }

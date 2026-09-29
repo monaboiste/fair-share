@@ -25,13 +25,13 @@ class RemoveParticipantHandlerSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "removing a Participant commits an ordered envelope"() {
-        given:
+        given: "Ada is a Participant in an open Settlement"
         SettlementId id = withParticipant()
 
-        when:
+        when: "Ada is removed"
         def commit = configuration.removeParticipantHandler.handle(new RemoveParticipant(id, ADA)).getSuccess()
 
-        then:
+        then: "the commit carries one Participant removal at the next version, stamped with the current time"
         commit.streamId() == id
         commit.version() == 3
         commit.events().size() == 1
@@ -42,28 +42,28 @@ class RemoveParticipantHandlerSpec extends Specification {
     }
 
     def "removing an absent Participant rejects without committing"() {
-        given:
+        given: "Ada is the only Participant in an open Settlement"
         SettlementId id = withParticipant()
 
-        when:
+        when: "Bob, who was never added, is removed"
         def result = configuration.removeParticipantHandler.handle(new RemoveParticipant(id, BOB))
 
-        then:
+        then: "the removal is rejected as not found and nothing new is saved"
         result.getFailure() == new ParticipantNotFound(id, BOB)
         configuration.store.load(id).size() == 2
     }
 
     def "removing from an unknown Settlement rejects without creating a stream"() {
-        when:
+        when: "a Participant is removed from a Settlement that does not exist"
         def result = configuration.removeParticipantHandler.handle(new RemoveParticipant(UNKNOWN_ID, ADA))
 
-        then:
+        then: "it is rejected as not found and no stream is created"
         result.getFailure() == new SettlementNotFound(UNKNOWN_ID)
         !configuration.store.exists(UNKNOWN_ID)
     }
 
     def "stale Participant removal fails optimistic concurrency and preserves the winner"() {
-        given:
+        given: "a handler holds an outdated copy of a Settlement after Bob was added"
         SettlementId id = withParticipant()
         def stale = configuration.repository.findById(id).orElseThrow()
         configuration.addHandler.handle(new AddParticipant(id, BOB, new ParticipantName("Bob")))
@@ -72,10 +72,10 @@ class RemoveParticipantHandlerSpec extends Specification {
             CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { configuration.repository.save(settlement) }
         }
 
-        when:
+        when: "the outdated handler removes Ada"
         new RemoveParticipantHandler(outdated).handle(new RemoveParticipant(id, ADA))
 
-        then:
+        then: "the save fails on a version conflict and both Ada and Bob remain Participants"
         thrown(VersionConflictException)
         configuration.projector.findById(id).orElseThrow().participants()*.id() == [ADA, BOB]
     }

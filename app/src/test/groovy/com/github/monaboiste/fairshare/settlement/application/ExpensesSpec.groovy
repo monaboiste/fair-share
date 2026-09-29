@@ -43,18 +43,18 @@ class ExpensesSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "recorded Expense freezes original amount, valuation, rate and shares"() {
-        given:
+        given: "a Settlement in euros with three Participants and a 10.005 euro Expense paid by Ada, shared equally"
         def settlement = withParticipants()
         def command = expense(settlement, ADA, Money.of(new BigDecimal("10.005"), "EUR"), [CAL, BOB, ADA])
 
-        when:
+        when: "the Expense is recorded and the view is rebuilt from history"
         def commit = configuration.commands.dispatch(command).getSuccess()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
         def recorded = (ExpenseRecorded) commit.events().get(0).payload()
         def rebuilt = new SettlementProjector()
         rebuilt.rebuild(configuration.store)
 
-        then:
+        then: "the original amount, Valuation, Exchange Rate and Shares are frozen, and Balances net to zero"
         recorded.type() == "ExpenseRecorded"
         recorded.schemaVersion() == 1
         recorded.expenseId() == EXPENSE
@@ -82,48 +82,48 @@ class ExpensesSpec extends Specification {
     }
 
     def "exact Expense persists valued Shares in the settlement view"() {
-        given:
+        given: "a Settlement with Participants and exact Shares of 5 and 5.005 euros"
         def settlement = withParticipants()
         def allocation = exact([(CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")])
 
-        when:
+        when: "a 10.005 euro Expense is recorded with those Shares"
         def recorded = (ExpenseRecorded) configuration.commands.dispatch(
             expenseWithAllocation(settlement, ADA, Money.of(10.005, "EUR"), allocation))
             .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "the valued Shares are rounded to cents and shown in the view"
         recorded.shares() == [new Share(CAL, Money.of(5, "EUR")), new Share(BOB, Money.of(5.01, "EUR"))]
         view.expenses().first().shares() == recorded.shares()
     }
 
     def "weighted Expense retains recipients while persisting non-zero Shares"() {
-        given:
+        given: "a Settlement with Participants and a weighted Share Allocation of 1, 1 and 2"
         def settlement = withParticipants()
         def allocation = weighted([(CAL): 1, (BOB): 1, (ADA): 2])
 
-        when:
+        when: "a one-cent Expense is recorded with that allocation"
         def recorded = (ExpenseRecorded) configuration.commands.dispatch(
             expenseWithAllocation(settlement, ADA, Money.of(0.01, "EUR"), allocation))
             .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "all recipients are kept, but only the single non-zero Share is recorded"
         recorded.allocation().recipients().toList() == [CAL, BOB, ADA]
         recorded.shares() == [new Share(ADA, Money.of(0.01, "EUR"))]
         view.expenses().first().shares() == recorded.shares()
     }
 
     def "invalid Share Allocations reject without committing: #caseName"() {
-        given:
+        given: "a Settlement with Participants, optionally with Bob removed"
         def settlement = withParticipants()
         if (removeFirst) configuration.commands.dispatch(new RemoveParticipant(settlement, BOB))
         def version = configuration.store.load(settlement).size()
 
-        when:
+        when: "an Expense with an invalid Share Allocation is recorded"
         def result = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, amount, allocation))
 
-        then:
+        then: "the Expense is rejected with the expected reason and nothing is recorded"
         result.getFailure() == rejection.call(settlement)
         configuration.store.load(settlement).size() == version
 
@@ -155,14 +155,14 @@ class ExpensesSpec extends Specification {
     }
 
     def "Share Allocation rejection favors #priority"() {
-        given:
+        given: "a Settlement with Participants"
         def settlement = withParticipants()
         def version = configuration.store.load(settlement).size()
 
-        when:
+        when: "an Expense with several problems at once is recorded"
         def result = configuration.commands.dispatch(expenseWithAllocation(settlement, payer, amount, allocation))
 
-        then:
+        then: "the Expense is rejected with the higher-priority reason and nothing is recorded"
         result.getFailure() == rejection.call(settlement)
         configuration.store.load(settlement).size() == version
 
@@ -196,13 +196,13 @@ class ExpensesSpec extends Specification {
     }
 
     def "Share Allocation retries use order type and literal values"() {
-        given:
+        given: "a Settlement with a recorded Expense weighted 2 to 2 between Cal and Bob"
         def settlement = withParticipants()
         def original = weighted([(CAL): 2, (BOB): 2])
         configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, Money.of(10, "EUR"), original))
         def version = configuration.store.load(settlement).size()
 
-        when:
+        when: "the Expense is retried identically, reordered, with other weights, as exact Shares, and invalid"
         def identical = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
             Money.of(new BigDecimal("10.00"), "EUR"), weighted([(CAL): 2, (BOB): 2])))
         def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
@@ -214,7 +214,7 @@ class ExpensesSpec extends Specification {
         def invalidRetry = configuration.commands.dispatch(expenseWithAllocation(settlement, UNKNOWN,
             Money.zero("EUR"), weighted([:])))
 
-        then:
+        then: "only the identical retry succeeds without changes, every other retry conflicts, and nothing is recorded"
         identical.getSuccess().events().empty
         [reordered, literalChange, typeChange, invalidRetry]*.getFailure() ==
             [new ExpenseIdentifierConflict(settlement, EXPENSE)] * 4
@@ -222,13 +222,13 @@ class ExpensesSpec extends Specification {
     }
 
     def "exact retry compares numeric amounts across scales"() {
-        given:
+        given: "a Settlement with a recorded Expense using exact Shares of 4 and 6 euros"
         def settlement = withParticipants()
         configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, Money.of(10, "EUR"),
             exact([(CAL): Money.of(4, "EUR"), (BOB): Money.of(6, "EUR")])))
         def version = configuration.store.load(settlement).size()
 
-        when:
+        when: "the Expense is retried with the same amounts at other scales, and with its Shares reordered"
         def retry = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
             Money.of(new BigDecimal("10.00"), "EUR"), exact([
                 (CAL): Money.of(new BigDecimal("4.00"), "EUR"), (BOB): Money.of(new BigDecimal("6.0"), "EUR")
@@ -236,14 +236,14 @@ class ExpensesSpec extends Specification {
         def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
             Money.of(10, "EUR"), exact([(BOB): Money.of(6, "EUR"), (CAL): Money.of(4, "EUR")])))
 
-        then:
+        then: "the rescaled retry records nothing, while the reordered one conflicts"
         retry.getSuccess().events().empty
         reordered.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.store.load(settlement).size() == version
     }
 
     def "read models freeze collections without losing Balance order"() {
-        given:
+        given: "a Settlement with a recorded Expense and editable copies of its view contents"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, ADA, Money.of(3, "EUR"), [BOB, CAL]))
         def original = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
@@ -254,7 +254,7 @@ class ExpensesSpec extends Specification {
         def obligations = new ArrayList(original.obligations())
         def balances = new LinkedHashMap(original.balances())
 
-        when:
+        when: "new views are built from the copies and the copies are then cleared"
         def copiedExpense = new ExpenseView(frozen.id(), frozen.description(), frozen.incurredOn(), frozen.payer(),
             frozen.originalAmount(), frozen.allocation(), frozen.componentVersionId(), frozen.exchangeRate(),
             frozen.valuation(), shares, frozen.status())
@@ -266,7 +266,7 @@ class ExpensesSpec extends Specification {
         obligations.clear()
         balances.clear()
 
-        then:
+        then: "the new views keep their contents and the Balance order"
         copiedExpense.shares() == frozen.shares()
         copiedSettlement.participants() == original.participants()
         copiedSettlement.expenses() == original.expenses()
@@ -274,22 +274,22 @@ class ExpensesSpec extends Specification {
         copiedSettlement.balances().entrySet().toList()*.key == [ADA, BOB, CAL]
         copiedSettlement.balances() == original.balances()
 
-        when:
+        when: "the Balances of the new view are cleared"
         copiedSettlement.balances().clear()
 
-        then:
+        then: "the view refuses the change"
         thrown(UnsupportedOperationException)
     }
 
     def "payer need not receive a Share and duplicate recipients collapse"() {
-        given:
+        given: "a Settlement with Participants"
         def settlement = withParticipants()
 
-        when:
+        when: "Ada pays an Expense shared between Cal and Bob, with each listed twice"
         configuration.commands.dispatch(expense(settlement, ADA, Money.of(10, "EUR"), [CAL, BOB, BOB, CAL]))
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "duplicates collapse, Ada gets no Share, and Balances reflect the equal Shares"
         view.expenses().get(0).allocation().recipients().toList() == [CAL, BOB]
         view.expenses().get(0).shares()*.amount() == [Money.of(5, "EUR"), Money.of(5, "EUR")]
         view.balances()[ADA] == Money.of(10, "EUR")
@@ -298,15 +298,15 @@ class ExpensesSpec extends Specification {
     }
 
     def "invalid Expenses reject without committing"() {
-        given:
+        given: "a Settlement with Participants, optionally with Bob removed"
         def settlement = withParticipants()
         if (removeFirst) configuration.commands.dispatch(new RemoveParticipant(settlement, BOB))
         def previous = configuration.store.load(settlement).size()
 
-        when:
+        when: "an invalid Expense is recorded"
         def result = configuration.commands.dispatch(expense(settlement, payer, amount, recipients))
 
-        then:
+        then: "the Expense is rejected with the expected reason and nothing is recorded"
         result.getFailure() == rejection.call(settlement)
         configuration.store.load(settlement).size() == previous
 
@@ -323,14 +323,14 @@ class ExpensesSpec extends Specification {
     }
 
     def "Expense rejection favors #priority"() {
-        given:
+        given: "a Settlement with Participants"
         def settlement = withParticipants()
         def version = configuration.store.load(settlement).size()
 
-        when:
+        when: "an Expense with several problems at once is recorded"
         def result = configuration.commands.dispatch(expense(settlement, payer, amount, recipients))
 
-        then:
+        then: "the Expense is rejected with the higher-priority reason and nothing is recorded"
         result.getFailure() == rejection.call(settlement)
         configuration.store.load(settlement).size() == version
 
@@ -343,17 +343,17 @@ class ExpensesSpec extends Specification {
     }
 
     def "dispatched retries after repository reload produce no event and conflicting reuse rejects"() {
-        given:
+        given: "a Settlement with a recorded 10.0 euro Expense"
         def settlement = withParticipants()
         def first = expense(settlement, ADA, Money.of(new BigDecimal("10.0"), "EUR"), [BOB])
         configuration.commands.dispatch(first)
 
-        when:
+        when: "the Expense is retried as 10.00 euros, and then as 11 euros"
         def retry = configuration.commands.dispatch(expense(settlement, ADA,
             Money.of(new BigDecimal("10.00"), "EUR"), [BOB]))
         def conflict = configuration.commands.dispatch(expense(settlement, ADA, Money.of(11, "EUR"), [BOB]))
 
-        then:
+        then: "the numerically equal retry records nothing, while the changed amount conflicts"
         retry.getSuccess().events().empty
         retry.getSuccess().version() == 5
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
@@ -361,52 +361,52 @@ class ExpensesSpec extends Specification {
     }
 
     def "equal Share Allocation exposes immutable insertion order"() {
-        given:
+        given: "an equal Share Allocation listing Cal, Bob, Cal and Ada"
         def allocation = new EqualShareAllocation([CAL, BOB, CAL, ADA])
 
-        when:
+        when: "its recipients are read"
         def recipients = allocation.recipients()
 
-        then:
+        then: "duplicates collapse in first-seen order, and that order matters for equality"
         recipients.toList() == [CAL, BOB, ADA]
         recipients.getFirst() == CAL
         recipients.getLast() == ADA
         allocation != new EqualShareAllocation([BOB, CAL, ADA])
 
-        when:
+        when: "a recipient is added to the list"
         allocation.recipients().add(UNKNOWN)
 
-        then:
+        then: "the list refuses the change"
         thrown(UnsupportedOperationException)
     }
 
     def "reordering recipients conflicts with the original Expense allocation"() {
-        given:
+        given: "a Settlement with a recorded Expense shared between Cal and Bob"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, ADA, Money.of(10, "EUR"), [CAL, BOB]))
 
-        when:
+        when: "the Expense is retried with the recipients reversed"
         def reordered = configuration.commands.dispatch(expense(settlement, ADA, Money.of(10, "EUR"), [BOB, CAL]))
 
-        then:
+        then: "the retry conflicts and nothing is recorded"
         reordered.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.store.load(settlement).size() == 5
     }
 
     def "a payer or zero-share recipient cannot be removed"() {
-        given:
+        given: "a one-cent Expense by Ada leaves Cal with a zero Share, and Dex is an unrelated Participant"
         def settlement = withParticipants()
         configuration.commands.dispatch(new AddParticipant(settlement, DEX, new ParticipantName("Dex")))
         configuration.commands.dispatch(expense(settlement, ADA, Money.of(0.01, "EUR"), [BOB, CAL]))
         def beforeRemoval = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        when:
+        when: "Ada, Cal and Dex are each removed"
         def payerRemoval = configuration.commands.dispatch(new RemoveParticipant(settlement, ADA))
         def zeroShareRemoval = configuration.commands.dispatch(new RemoveParticipant(settlement, CAL))
         def unrelatedRemoval = configuration.commands.dispatch(new RemoveParticipant(settlement, DEX))
         def afterRemoval = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then:
+        then: "the payer and the zero-Share recipient stay, only Dex is removed, and the Balances follow"
         beforeRemoval.balances().entrySet().toList()*.key == [ADA, BOB, CAL, DEX]
         beforeRemoval.balances().entrySet().toList()*.value ==
             [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR"), Money.zero("EUR")]
@@ -420,20 +420,20 @@ class ExpensesSpec extends Specification {
     }
 
     def "unknown Settlement rejects recording without a stream"() {
-        when:
+        when: "an Expense is recorded for an unknown Settlement"
         def result = configuration.commands.dispatch(expense(configuration.UNKNOWN_ID, ADA, Money.of(1, "EUR"), [BOB]))
 
-        then:
+        then: "it is rejected and no Settlement history exists"
         result.getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
         configuration.queries.dispatch(new GetSettlementHistory(configuration.UNKNOWN_ID)).getFailure() ==
             new SettlementNotFound(configuration.UNKNOWN_ID)
     }
 
     def "Expense descriptions reject blank input"() {
-        when:
+        when: "an Expense description is created from blank text"
         new ExpenseDescription(value)
 
-        then:
+        then: "the description is rejected"
         thrown(IllegalArgumentException)
 
         where:

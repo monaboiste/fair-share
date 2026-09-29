@@ -38,42 +38,42 @@ class SettlementProjectorSpec extends Specification {
     def projector = new SettlementProjector()
 
     def "duplicate deliveries are ignored and renames preserve the opening currency"() {
-        when:
+        when: "the opening is delivered twice, followed by a rename to Mountains"
         projector.accept([opened(ID), opened(ID), renamed(ID, 2, "Mountains")])
 
-        then:
+        then: "the view shows the renamed Settlement at version 2, still in euros"
         projector.findById(ID) == Optional.of(emptySettlementView(ID, "Mountains", 2))
     }
 
     def "a batch containing a gap does not partially update any view"() {
-        when:
+        when: "a batch opens one Settlement and renames another that was never opened"
         projector.accept([opened(ID), renamed(OTHER, 2, "Skipped")])
 
-        then:
+        then: "the batch is rejected and neither Settlement is projected"
         thrown(IllegalStateException)
         projector.findById(ID).empty
     }
 
     def "a gap in an opened Settlement is rejected"() {
-        given:
+        given: "a Settlement has been opened"
         projector.accept([opened(ID)])
 
-        when:
+        when: "an event arrives that skips a version"
         projector.accept([renamed(ID, 3, "Skipped")])
 
-        then:
+        then: "it is rejected and the view stays as opened"
         thrown(IllegalStateException)
         projector.findById(ID) == Optional.of(emptySettlementView(ID, "Holiday", 1))
     }
 
     def "a missing Participant cannot be #change"() {
-        given:
+        given: "a Settlement has been opened without any Participants"
         projector.accept([opened(ID)])
 
-        when:
+        when: "a change arrives for a Participant who was never added"
         projector.accept([event(ID, 2, payload)])
 
-        then:
+        then: "it is rejected and the view stays as opened"
         thrown(IllegalStateException)
         projector.findById(ID) == Optional.of(emptySettlementView(ID, "Holiday", 1))
 
@@ -84,21 +84,21 @@ class SettlementProjectorSpec extends Specification {
     }
 
     def "batch stages touched streams while preserving untouched views"() {
-        given:
+        given: "two Settlements have been opened"
         def untouched = new SettlementId(UUID.randomUUID())
         projector.accept([opened(untouched), opened(ID)])
 
-        when:
+        when: "a batch renames one of them and opens and renames a third"
         projector.accept([renamed(ID, 2, "Mountains"), opened(OTHER), renamed(OTHER, 2, "Forest")])
 
-        then:
+        then: "the untouched Settlement is unchanged while the other two show their latest names"
         projector.findById(untouched) == Optional.of(emptySettlementView(untouched, "Holiday", 1))
         projector.findById(ID) == Optional.of(emptySettlementView(ID, "Mountains", 2))
         projector.findById(OTHER) == Optional.of(emptySettlementView(OTHER, "Forest", 2))
     }
 
     def "rebuild replaces existing views with globally ordered history"() {
-        given:
+        given: "a saved history of two Settlements, one renamed, and a stale view of a Settlement not in the store"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         store.append(ID, 0, [pending(new SettlementOpened("Holiday", EUR))])
         store.append(OTHER, 0, [pending(new SettlementOpened("Other", EUR))])
@@ -106,33 +106,33 @@ class SettlementProjectorSpec extends Specification {
         def stale = new SettlementId(UUID.randomUUID())
         projector.accept([opened(stale)])
 
-        when:
+        when: "the projection is rebuilt from the store"
         projector.rebuild(store)
 
-        then:
+        then: "only the saved Settlements are shown, with their latest names and versions"
         projector.findById(ID) == Optional.of(emptySettlementView(ID, "Mountains", 2))
         projector.findById(OTHER) == Optional.of(emptySettlementView(OTHER, "Other", 1))
         projector.findById(stale).empty
     }
 
     def "a removed Participant cannot be re-added by a live delivery"() {
-        given:
+        given: "a Participant has been added to a projected Settlement and then removed"
         projector.accept([
             opened(ID),
             event(ID, 2, new ParticipantAdded(PARTICIPANT, "Alex")),
             event(ID, 3, new ParticipantRemoved(PARTICIPANT))
         ])
 
-        when:
+        when: "a live delivery adds the same Participant again"
         projector.accept([event(ID, 4, new ParticipantAdded(PARTICIPANT, "Alex"))])
 
-        then:
+        then: "it is rejected and the view stays as it was after the removal"
         thrown(IllegalStateException)
         projector.findById(ID) == Optional.of(emptySettlementView(ID, "Holiday", 3))
     }
 
     def "a removed Participant cannot be re-added during rebuild"() {
-        given:
+        given: "a saved history in which a removed Participant is added again"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         store.append(ID, 0, [
             pending(new SettlementOpened("Holiday", EUR)),
@@ -141,19 +141,19 @@ class SettlementProjectorSpec extends Specification {
             pending(new ParticipantAdded(PARTICIPANT, "Alex"))
         ])
 
-        when:
+        when: "the projection is rebuilt from the store"
         projector.rebuild(store)
 
-        then:
+        then: "the rebuild is rejected"
         thrown(IllegalStateException)
     }
 
     def "recorded Expense is projected from frozen facts and rebuild matches live view"() {
-        given:
+        given: "a live view of a 3 euro Expense paid by one Participant and fully shared to another"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def payer = new ParticipantId(new UUID(0L, 11L))
         def expense = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), new ExpenseDescription("Lunch"),
-            LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]),
+            LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]), null,
             VERSION_ID, IDENTITY_RATE, Money.of(3, "EUR"),
             [new Share(PARTICIPANT, Money.of(3, "EUR"))])
         def history = [pending(new SettlementOpened("Holiday", EUR)), pending(new ParticipantAdded(payer, "Payer")),
@@ -162,11 +162,11 @@ class SettlementProjectorSpec extends Specification {
         projector.accept(store.load(ID))
         def live = projector.findById(ID).orElseThrow()
 
-        when:
+        when: "the projection is rebuilt from the same history"
         def rebuilt = new SettlementProjector()
         rebuilt.rebuild(store)
 
-        then:
+        then: "the recipient owes the payer 3 euros and the rebuilt view matches the live one"
         live.expenses().get(0).shares() == expense.shares()
         live.obligations()*.from() == [PARTICIPANT]
         live.obligations()*.to() == [payer]
@@ -174,55 +174,55 @@ class SettlementProjectorSpec extends Specification {
         live.balances()[PARTICIPANT] == Money.of(-3, "EUR")
         rebuilt.findById(ID).orElseThrow() == live
 
-        when:
+        when: "a second Expense with the same facts is delivered"
         def second = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), expense.description(), expense.incurredOn(),
-            payer, expense.originalAmount(), expense.allocation(), expense.componentVersionId(),
+            payer, expense.originalAmount(), expense.allocation(), null, expense.componentVersionId(),
             expense.exchangeRate(), expense.valuation(), expense.shares())
         projector.accept([event(ID, 5, second)])
         def withTwoExpenses = projector.findById(ID).orElseThrow()
 
-        then:
+        then: "both Expenses are listed and the payer's Balance doubles to 6 euros"
         withTwoExpenses.expenses()*.id() == [expense.expenseId(), second.expenseId()]
         withTwoExpenses.balances()[payer] == Money.of(6, "EUR")
 
-        when:
+        when: "the recipient, who still holds a Share, is removed"
         projector.accept([event(ID, 6, new ParticipantRemoved(PARTICIPANT))])
 
-        then:
+        then: "the removal is rejected and the view with both Expenses is kept"
         thrown(IllegalStateException)
         projector.findById(ID).orElseThrow() == withTwoExpenses
     }
 
     def "Expense projection rejects missing payer, recipient or repeated identifier"() {
-        given:
+        given: "a projected Settlement with a payer and a recipient, and a way to build a 1 euro Expense"
         def payer = new ParticipantId(new UUID(0L, 11L))
         def missing = new ParticipantId(new UUID(0L, 12L))
         projector.accept([opened(ID), event(ID, 2, new ParticipantAdded(payer, "Payer")),
             event(ID, 3, new ParticipantAdded(PARTICIPANT, "Recipient"))])
         def recorded = { whoPaid, recipient -> new ExpenseRecorded(new ExpenseId(new UUID(0L, 21L)),
             new ExpenseDescription("Dinner"), LocalDate.of(2026, 1, 2), whoPaid, Money.of(1, "EUR"),
-            new EqualShareAllocation([recipient]), VERSION_ID, IDENTITY_RATE,
+            new EqualShareAllocation([recipient]), null, VERSION_ID, IDENTITY_RATE,
             Money.of(1, "EUR"), [new Share(recipient, Money.of(1, "EUR"))]) }
 
-        when:
+        when: "an Expense paid by an unknown Participant arrives"
         projector.accept([event(ID, 4, recorded(missing, PARTICIPANT))])
 
-        then:
+        then: "it is rejected and the view stays unchanged"
         thrown(IllegalStateException)
         projector.findById(ID).orElseThrow().version() == 3
 
-        when:
+        when: "an Expense shared with an unknown Participant arrives"
         projector.accept([event(ID, 4, recorded(payer, missing))])
 
-        then:
+        then: "it is rejected and the view stays unchanged"
         thrown(IllegalStateException)
         projector.findById(ID).orElseThrow().version() == 3
 
-        when:
+        when: "a valid Expense arrives, followed by another under the same identifier"
         projector.accept([event(ID, 4, recorded(payer, PARTICIPANT))])
         projector.accept([event(ID, 5, recorded(payer, PARTICIPANT))])
 
-        then:
+        then: "the repeat is rejected and only the first Expense is kept"
         thrown(IllegalStateException)
         projector.findById(ID).orElseThrow().version() == 4
     }

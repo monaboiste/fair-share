@@ -4,10 +4,10 @@ import spock.lang.Specification
 
 class ParticipantNameSpec extends Specification {
     def "blank Participant names reject"() {
-        when:
+        when: "a Participant name is made from blank text"
         new ParticipantName(value)
 
-        then:
+        then: "it is rejected"
         thrown(IllegalArgumentException)
 
         where:

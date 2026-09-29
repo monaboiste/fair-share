@@ -14,4 +14,5 @@ public sealed interface SettlementRejection
                 ExactShareSumMismatch,
                 NonPositiveShareWeight,
                 ExchangeRateTargetMismatch,
-                ExplicitIdentityExchangeRate {}
+                ExplicitIdentityExchangeRate,
+                ExchangeRateOverrideMismatch {}

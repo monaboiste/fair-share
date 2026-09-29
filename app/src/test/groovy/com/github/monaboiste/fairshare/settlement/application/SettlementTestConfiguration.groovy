@@ -50,7 +50,7 @@ class SettlementTestConfiguration {
     final AddParticipantHandler addHandler = new AddParticipantHandler(repository)
     final RenameParticipantHandler renameParticipantHandler = new RenameParticipantHandler(repository)
     final RemoveParticipantHandler removeParticipantHandler = new RemoveParticipantHandler(repository)
-    final RecordExpenseHandler recordExpenseHandler = new RecordExpenseHandler(repository)
+    final RecordExpenseHandler recordExpenseHandler = new RecordExpenseHandler(repository, CLOCK)
     final ConfigureExchangeRateHandler configureExchangeRateHandler = new ConfigureExchangeRateHandler(repository, CLOCK)
     final GetSettlementHandler viewHandler = new GetSettlementHandler(projector)
     final GetSettlementHistoryHandler historyHandler = new GetSettlementHistoryHandler(store)

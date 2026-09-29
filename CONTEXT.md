@@ -35,7 +35,11 @@ the Settlement Currency. A configured Exchange Rate applies during a validity pe
 used for its Valuation. _Avoid_: Rate, price, currency pair
 
 **Valuation**: The conversion of an Expense into the Settlement Currency using the applicable versioned Exchange Rate or
-a manual override. _Avoid_: Price, currency conversion
+an Exchange Rate Override. _Avoid_: Price, currency conversion
+
+**Exchange Rate Override**: A manual Exchange Rate scoped to one Expense. It takes precedence over configured Exchange
+Rates for that Expense and does not create or change configured Exchange Rate versions. _Avoid_: Custom rate, rate
+correction
 
 **Obligation**:
 A directional monetary amount owed by one Participant to another within a Settlement.

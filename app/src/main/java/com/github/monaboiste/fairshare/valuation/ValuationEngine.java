@@ -18,12 +18,7 @@ public interface ValuationEngine {
 
     Valuation value(Money source, CurrencyUnit target, ExchangeRateVersion selected);
 
-    Valuation value(
-            Money source,
-            CurrencyUnit targetCurrency,
-            LocalDateTime at,
-            ExchangeRate override,
-            ComponentVersionId versionId);
+    Valuation value(Money source, CurrencyUnit target, ExchangeRateOverride override);
 
     static ValuationEngine standard() {
         return new StandardValuationEngine();
@@ -51,13 +46,11 @@ final class StandardValuationEngine implements ValuationEngine {
     }
 
     @Override
-    public Valuation value(
-            Money source,
-            CurrencyUnit targetCurrency,
-            LocalDateTime at,
-            ExchangeRate override,
-            ComponentVersionId versionId) {
-        return value(source, targetCurrency, override.version(versionId, Validity.always(), at));
+    public Valuation value(Money source, CurrencyUnit targetCurrency, ExchangeRateOverride override) {
+        return value(
+                source,
+                targetCurrency,
+                override.rate().version(override.versionId(), Validity.always(), override.definedAt()));
     }
 
     private Valuation value(Money source, CurrencyUnit targetCurrency, SimpleComponentVersion version) {

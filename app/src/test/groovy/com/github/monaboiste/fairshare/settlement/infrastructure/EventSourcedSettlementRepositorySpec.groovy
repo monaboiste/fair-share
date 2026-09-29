@@ -18,7 +18,7 @@ class EventSourcedSettlementRepositorySpec extends Specification {
     private static final EUR = Monetary.getCurrency("EUR")
 
     def "a stale Settlement retains pending events after a rejected save"() {
-        given:
+        given: "two copies of a saved Settlement; one saves a rename to Winner, the other is renamed to Loser"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         SettlementId id = repository.save(Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)).streamId()
@@ -28,10 +28,10 @@ class EventSourcedSettlementRepositorySpec extends Specification {
         repository.save(winner)
         stale.rename(new SettlementName("Loser"))
 
-        when:
+        when: "the outdated copy is saved"
         repository.save(stale)
 
-        then:
+        then: "the save fails on a version conflict, the outdated copy keeps its rename and the history is untouched"
         thrown(VersionConflictException)
         stale.pendingEvents().size() == 1
         store.load(id)*.payload()*.name() == ["Holiday", "Winner"]

@@ -11,76 +11,76 @@ class ObligationsSpec extends Specification {
     private static final CurrencyUnit USD = Monetary.getCurrency("USD")
 
     def "keeps every participant even with no obligations"() {
-        when:
+        when: "Obligations are created for two Participants without any amounts owed"
         Obligations<String> obligations = Obligations.of(["ada", "bob"] as Set, List.of(), PLN)
 
-        then:
+        then: "both Participants are kept, with no Obligations, in zlotys"
         obligations.participants() == ["ada", "bob"] as Set
         obligations.obligations().isEmpty()
         obligations.currency() == PLN
     }
 
     def "exposes the obligations it was built from"() {
-        given:
+        given: "Ada owes Bob ten zlotys"
         Obligation<String> owed = new Obligation<>("ada", "bob", Money.of(10, "PLN"))
 
-        when:
+        when: "Obligations are created from it"
         Obligations<String> obligations = Obligations.of(["ada", "bob"] as Set, [owed], PLN)
 
-        then:
+        then: "that Obligation is exposed unchanged"
         obligations.obligations() == [owed]
     }
 
     def "signed balances include uninvolved participants and sum to zero"() {
-        given:
+        given: "a single Obligation in US dollars among three Participants"
         def obligations = Obligations.of(["ada", "bob", "cal"] as Set,
             [new Obligation<>("ada", "bob", Money.of(10, "USD"))], USD)
 
-        when:
+        when: "signed Balances are derived"
         def balances = obligations.signedBalances()
 
-        then:
+        then: "every Participant has a Balance, including the one not involved, and they sum to zero"
         balances == ["ada": Money.of(-10, "USD"), "bob": Money.of(10, "USD"), "cal": Money.zero("USD")]
         balances.values().inject(Money.zero("USD")) { sum, amount -> sum.add(amount) }.isZero()
     }
 
     def "rejects obligations in mixed currencies"() {
-        given:
+        given: "one Obligation in zlotys and another in US dollars"
         Obligation<String> local = new Obligation<>("ada", "bob", Money.of(10, "PLN"))
         Obligation<String> foreign = new Obligation<>("ada", "bob", Money.of(10, "USD"))
 
-        when:
+        when: "Obligations are created in zlotys from both"
         Obligations.of(["ada", "bob"] as Set, [local, foreign], PLN)
 
-        then:
+        then: "they are rejected"
         thrown(IllegalArgumentException)
     }
 
     def "rejects obligations referencing unknown participants"() {
-        given:
+        given: "an Obligation owed to someone who is not a Participant"
         Obligation<String> stranger = new Obligation<>("ada", "mallory", Money.of(10, "PLN"))
 
-        when:
+        when: "Obligations are created for Ada and Bob"
         Obligations.of(["ada", "bob"] as Set, [stranger], PLN)
 
-        then:
+        then: "they are rejected for referring to an unknown Participant"
         IllegalArgumentException error = thrown()
         error.message.contains("unknown participant")
     }
 
     def "rejects a negative obligation amount"() {
-        when:
+        when: "an Obligation of a negative amount is created"
         new Obligation<>("ada", "bob", Money.of(-10, "PLN"))
 
-        then:
+        then: "it is rejected"
         thrown(IllegalArgumentException)
     }
 
     def "rejects a null #missing input"() {
-        when:
+        when: "Obligations are created with missing input"
         Obligations.of(participants, obligations, PLN)
 
-        then:
+        then: "they are refused"
         thrown(NullPointerException)
 
         where:

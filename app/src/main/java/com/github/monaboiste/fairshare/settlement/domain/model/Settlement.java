@@ -7,8 +7,9 @@ import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
 import com.github.monaboiste.fairshare.pricing.component.Validity;
 import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation;
+import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateOverrideMismatch;
 import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateTargetMismatch;
-import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription;
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseDetails;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.ExplicitIdentityExchangeRate;
@@ -32,12 +33,12 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
 import com.github.monaboiste.fairshare.valuation.ExchangeRate;
+import com.github.monaboiste.fairshare.valuation.ExchangeRateOverride;
 import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
 import com.github.monaboiste.fairshare.valuation.ExchangeRateVersions;
 import com.github.monaboiste.fairshare.valuation.Valuation;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -131,43 +132,54 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, ExpenseId> recordExpense(
-            ExpenseId expenseId,
-            ExpenseDescription description,
-            LocalDate incurredOn,
-            ParticipantId payer,
-            Money amount,
-            ShareAllocation allocation) {
-        ExpenseRecorded existing = expenses.get(expenseId);
+            ExpenseDetails expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
+        ExchangeRate overrideRate = override == null ? null : override.rate();
+        ExpenseRecorded existing = expenses.get(expense.expenseId());
         if (existing != null) {
-            boolean identical = existing.description().equals(description)
-                    && existing.incurredOn().equals(incurredOn)
-                    && existing.payer().equals(payer)
-                    && existing.allocation().equals(allocation)
-                    && existing.originalAmount().currencyUnit().equals(amount.currencyUnit())
-                    && existing.originalAmount().compareTo(amount) == 0;
-            return identical ? Result.success(expenseId) : Result.failure(new ExpenseIdentifierConflict(id, expenseId));
+            return retry(existing, expense, overrideRate);
         }
-        Optional<SettlementRejection> rejection = validateNewExpense(expenseId, payer, amount, allocation);
+        Optional<SettlementRejection> rejection = validateNewExpense(expense, overrideRate);
         if (rejection.isPresent()) {
             return Result.failure(rejection.get());
         }
-        Valuation valuation;
-        if (amount.currencyUnit().equals(settlementCurrency())) {
-            valuation = ValuationEngine.standard().identity(amount);
-        } else {
-            Optional<ExchangeRateVersion> selected =
-                    exchangeRates.applicableAt(amount.currencyUnit(), settlementCurrency(), incurredOn.atStartOfDay());
-            if (selected.isEmpty()) {
-                return Result.failure(new MissingExchangeRate(id, expenseId));
-            }
-            valuation = ValuationEngine.standard().value(amount, settlementCurrency(), selected.get());
+        Result<SettlementRejection, Valuation> valued = value(expense, override, engine);
+        if (valued.failure()) {
+            return Result.failure(valued.getFailure());
         }
-        registerExpense(expenseId, description, incurredOn, payer, amount, allocation, valuation);
-        return Result.success(expenseId);
+        registerExpense(expense, overrideRate, valued.getSuccess());
+        return Result.success(expense.expenseId());
+    }
+
+    private Result<SettlementRejection, ExpenseId> retry(
+            ExpenseRecorded existing, ExpenseDetails expense, @Nullable ExchangeRate overrideRate) {
+        boolean identical = existing.description().equals(expense.description())
+                && existing.incurredOn().equals(expense.incurredOn())
+                && existing.payer().equals(expense.payer())
+                && existing.allocation().equals(expense.allocation())
+                && existing.originalAmount()
+                        .currencyUnit()
+                        .equals(expense.amount().currencyUnit())
+                && existing.originalAmount().compareTo(expense.amount()) == 0
+                && sameOverride(existing.exchangeRateOverride(), overrideRate);
+        return identical
+                ? Result.success(expense.expenseId())
+                : Result.failure(new ExpenseIdentifierConflict(id, expense.expenseId()));
+    }
+
+    private static boolean sameOverride(@Nullable ExchangeRate recorded, @Nullable ExchangeRate requested) {
+        if (recorded == null || requested == null) {
+            return recorded == null && requested == null;
+        }
+        return recorded.sourceCurrency().equals(requested.sourceCurrency())
+                && recorded.targetCurrency().equals(requested.targetCurrency())
+                && recorded.value().compareTo(requested.value()) == 0;
     }
 
     private Optional<SettlementRejection> validateNewExpense(
-            ExpenseId expenseId, ParticipantId payer, Money amount, ShareAllocation allocation) {
+            ExpenseDetails expense, @Nullable ExchangeRate overrideRate) {
+        ExpenseId expenseId = expense.expenseId();
+        Money amount = expense.amount();
+        ShareAllocation allocation = expense.allocation();
         if (amount.isZero() || amount.isNegative()) {
             return Optional.of(new NonPositiveExpenseAmount(id, expenseId));
         }
@@ -178,37 +190,59 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         if (invalidAllocation.isPresent()) {
             return invalidAllocation;
         }
-        if (!active(payer)) {
-            return Optional.of(new ParticipantNotFound(id, payer));
+        if (!active(expense.payer())) {
+            return Optional.of(new ParticipantNotFound(id, expense.payer()));
         }
         for (ParticipantId recipient : allocation.recipients()) {
             if (!active(recipient)) {
                 return Optional.of(new ParticipantNotFound(id, recipient));
             }
         }
+        if (overrideRate != null && !convertsIntoSettlementCurrency(overrideRate, amount)) {
+            return Optional.of(new ExchangeRateOverrideMismatch(id, expenseId));
+        }
         return Optional.empty();
     }
 
-    private void registerExpense(
-            ExpenseId expenseId,
-            ExpenseDescription description,
-            LocalDate incurredOn,
-            ParticipantId payer,
-            Money amount,
-            ShareAllocation allocation,
-            Valuation valued) {
+    private boolean convertsIntoSettlementCurrency(ExchangeRate rate, Money amount) {
+        return rate.sourceCurrency().equals(amount.currencyUnit())
+                && rate.targetCurrency().equals(settlementCurrency())
+                && !amount.currencyUnit().equals(settlementCurrency());
+    }
+
+    private Result<SettlementRejection, Valuation> value(
+            ExpenseDetails expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
+        Money amount = expense.amount();
+        if (override != null) {
+            return Result.success(engine.value(amount, settlementCurrency(), override));
+        }
+        if (amount.currencyUnit().equals(settlementCurrency())) {
+            return Result.success(engine.identity(amount));
+        }
+        Optional<ExchangeRateVersion> selected = exchangeRates.applicableAt(
+                amount.currencyUnit(),
+                settlementCurrency(),
+                expense.incurredOn().atStartOfDay());
+        if (selected.isEmpty()) {
+            return Result.failure(new MissingExchangeRate(id, expense.expenseId()));
+        }
+        return Result.success(engine.value(amount, settlementCurrency(), selected.get()));
+    }
+
+    private void registerExpense(ExpenseDetails expense, @Nullable ExchangeRate override, Valuation valued) {
         Money valuation = valued.money();
         register(new ExpenseRecorded(
-                expenseId,
-                description,
-                incurredOn,
-                payer,
-                amount,
-                allocation,
+                expense.expenseId(),
+                expense.description(),
+                expense.incurredOn(),
+                expense.payer(),
+                expense.amount(),
+                expense.allocation(),
+                override,
                 valued.componentVersion().id(),
                 valued.exchangeRate(),
                 valuation,
-                allocation.resolve(valuation)));
+                expense.allocation().resolve(valuation)));
     }
 
     private CurrencyUnit settlementCurrency() {

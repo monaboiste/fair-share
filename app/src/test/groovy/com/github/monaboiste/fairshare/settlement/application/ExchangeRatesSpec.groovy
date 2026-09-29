@@ -28,18 +28,18 @@ class ExchangeRatesSpec extends Specification {
     def validity = Validity.from(from)
 
     def "configuring an Exchange Rate retains its version in the view and history"() {
-        given:
+        given: "an open Settlement in euros and an Exchange Rate from US dollars to euros"
         def id = configuration.openSettlement("Holiday")
         def rate = ExchangeRate.of(configuration.USD, configuration.EUR, new BigDecimal("0.90"))
 
-        when:
+        when: "the Exchange Rate is configured"
         def commit = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate, validity)).getSuccess()
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
         def history = configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()
         def rebuilt = new SettlementProjector()
         rebuilt.rebuild(configuration.store)
 
-        then:
+        then: "one version is recorded, stamped with the current time, and shown in the view, history and rebuilt view"
         commit.version() == 2
         commit.events().size() == 1
         def event = commit.events().first().payload()
@@ -57,12 +57,12 @@ class ExchangeRatesSpec extends Specification {
     }
 
     def "an identical numeric retry keeps the stream version while later changes append a version"() {
-        given:
+        given: "a Settlement with an Exchange Rate of 0.90 configured"
         def id = configuration.openSettlement("Holiday")
         def first = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity))
             .getSuccess().events().first().payload().version()
 
-        when:
+        when: "the same value is configured again at another scale, then a new value of 0.95"
         def retry = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.900"), validity))
             .getSuccess()
         def next = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.95"), validity))
@@ -70,7 +70,7 @@ class ExchangeRatesSpec extends Specification {
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
         def history = configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()
 
-        then:
+        then: "the retry records nothing, while the new value appends a second version after the first"
         retry.version() == 2
         retry.events().empty
         next.version() == 3
@@ -83,7 +83,7 @@ class ExchangeRatesSpec extends Specification {
     }
 
     def "a correction back to an earlier Exchange Rate appends a new version after interleaved tuples"() {
-        given:
+        given: "a Settlement and Exchange Rate changes that return to an earlier value amid other versions"
         def id = configuration.openSettlement("Holiday")
         def earlier = Validity.from(from.minusDays(1))
         def commands = [
@@ -95,7 +95,7 @@ class ExchangeRatesSpec extends Specification {
             new ConfigureExchangeRate(id, rate("0.90"), validity)
         ]
 
-        when:
+        when: "the changes are configured, the view is rebuilt, and the last change is retried"
         def commits = commands.collect { configuration.commands.dispatch(it).getSuccess() }
         def history = configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
@@ -103,7 +103,7 @@ class ExchangeRatesSpec extends Specification {
         rebuilt.rebuild(configuration.store)
         def retry = configuration.commands.dispatch(commands.last()).getSuccess()
 
-        then:
+        then: "every change appends its own version in order, and only the retry records nothing"
         commits*.version() == [2L, 3L, 4L, 5L, 6L]
         history*.sequence() == [1L, 2L, 3L, 4L, 5L, 6L]
         view.exchangeRates()*.id() == commits*.events()*.first()*.payload()*.version()*.id()
@@ -116,10 +116,10 @@ class ExchangeRatesSpec extends Specification {
     }
 
     def "Exchange Rate configuration rejects a wrong target or explicit identity without changing history"() {
-        given:
+        given: "an open Settlement in euros"
         def id = configuration.openSettlement("Holiday")
 
-        when:
+        when: "Exchange Rates into another currency, from euros to euros, or for an unknown Settlement are configured"
         def wrongTarget = configuration.commands.dispatch(new ConfigureExchangeRate(id,
             ExchangeRate.of(configuration.EUR, configuration.USD, BigDecimal.ONE), validity))
         def identity = configuration.commands.dispatch(new ConfigureExchangeRate(id,
@@ -127,7 +127,7 @@ class ExchangeRatesSpec extends Specification {
         def missing = configuration.commands.dispatch(new ConfigureExchangeRate(configuration.UNKNOWN_ID,
             rate("0.90"), validity))
 
-        then:
+        then: "each is rejected with its reason and the Settlement history is unchanged"
         wrongTarget.getFailure() == new ExchangeRateTargetMismatch(id, configuration.USD)
         identity.getFailure() == new ExplicitIdentityExchangeRate(id)
         missing.getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
@@ -135,32 +135,32 @@ class ExchangeRatesSpec extends Specification {
     }
 
     def "unrelated Settlement changes retain configured versions in order and view is immutable"() {
-        given:
+        given: "a Settlement with one configured Exchange Rate that was later renamed to Journey"
         def id = configuration.openSettlement("Holiday")
         def first = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity))
             .getSuccess().events().first().payload()
         configuration.commands.dispatch(new RenameSettlement(id, new SettlementName("Journey")))
 
-        when:
+        when: "a second Exchange Rate from pounds is configured"
         def second = configuration.commands.dispatch(new ConfigureExchangeRate(id,
             ExchangeRate.of(Monetary.getCurrency("GBP"), configuration.EUR, BigDecimal.ONE), validity))
             .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
 
-        then:
+        then: "the view shows the new name and both versions in configuration order"
         view.name() == "Journey"
         view.exchangeRates() == [first.version(), second.version()]
         configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()*.sequence() == [1L, 2L, 3L, 4L]
 
-        when:
+        when: "the configured versions shown in the view are cleared"
         view.exchangeRates().clear()
 
-        then:
+        then: "the view refuses the change"
         thrown(UnsupportedOperationException)
     }
 
     def "persisted overlapping Exchange Rates select the latest valid-from Valuation"() {
-        given:
+        given: "a Settlement with an Exchange Rate valid from February and an overlapping always-valid one, rebuilt"
         def id = configuration.openSettlement("Holiday")
         def februaryVersionId = new ComponentVersionId(new UUID(0L, 41L))
         def baselineVersionId = new ComponentVersionId(new UUID(0L, 42L))
@@ -176,11 +176,11 @@ class ExchangeRatesSpec extends Specification {
         def versionList = rebuilt.findById(id).orElseThrow().exchangeRates()
         ExchangeRateVersions versions = ExchangeRateVersions.from(versionList)
 
-        when:
+        when: "the applicable Exchange Rate is looked up just before February and during February"
         def before = versions.applicableAt(configuration.USD, configuration.EUR, from.minusSeconds(1))
         def during = versions.applicableAt(configuration.USD, configuration.EUR, from.plusDays(1))
 
-        then:
+        then: "before February the always-valid version gives the Valuation, and during February the February one does"
         versionList*.id() == [februaryVersionId, baselineVersionId]
         before.isPresent()
         during.isPresent()
@@ -193,7 +193,7 @@ class ExchangeRatesSpec extends Specification {
     }
 
     def "persisted equal-start Exchange Rates select the later stream version after replay"() {
-        given:
+        given: "a Settlement with two Exchange Rates valid from the same date, rebuilt from history"
         def id = configuration.openSettlement("Holiday")
         def firstId = new ComponentVersionId(new UUID(0L, 51L))
         def laterId = new ComponentVersionId(new UUID(0L, 52L))
@@ -210,10 +210,10 @@ class ExchangeRatesSpec extends Specification {
         def replayedVersions = rebuilt.findById(id).orElseThrow().exchangeRates()
         ExchangeRateVersions versions = ExchangeRateVersions.from(replayedVersions)
 
-        when:
+        when: "the applicable Exchange Rate is looked up after that date"
         def selected = versions.applicableAt(configuration.USD, configuration.EUR, from.plusDays(1))
 
-        then:
+        then: "the replayed versions match the live ones and the later configured version gives the Valuation"
         liveVersions == replayedVersions
         replayedVersions*.id() == [firstId, laterId]
         selected.isPresent()

@@ -6,6 +6,7 @@ import com.github.monaboiste.fairshare.common.events.inmemory.InMemoryEventStore
 import com.github.monaboiste.fairshare.quantity.money.Money
 import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseDetails
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
@@ -23,6 +24,7 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
 import com.github.monaboiste.fairshare.settlement.infrastructure.EventSourcedSettlementRepository
+import com.github.monaboiste.fairshare.valuation.ValuationEngine
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -228,20 +230,22 @@ class SettlementSpec extends Specification {
         def expenseId = new ExpenseId(UUID.randomUUID())
         def date = LocalDate.of(2026, 1, 2)
         def allocation = new EqualShareAllocation([PARTICIPANT])
+        def expense = { String description, Money amount ->
+            new ExpenseDetails(expenseId, new ExpenseDescription(description), date, PARTICIPANT, amount, allocation)
+        }
         settlement.addParticipant(PARTICIPANT, new ParticipantName("Ada"))
-        settlement.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
-            Money.of(10.0, "EUR"), allocation)
+        def recorded = settlement.recordExpense(expense("Dinner", Money.of(10.0, "EUR")), null,
+                ValuationEngine.standard())
         repository.save(settlement)
 
         when: "the Settlement is loaded and the same Expense is recorded again, once unchanged and once as Lunch"
         def replayed = repository.findById(settlement.id()).orElseThrow()
-        def retry = replayed.recordExpense(expenseId, new ExpenseDescription("Dinner"), date, PARTICIPANT,
-            Money.of(10.00, "EUR"), allocation)
-        def conflict = replayed.recordExpense(expenseId, new ExpenseDescription("Lunch"), date, PARTICIPANT,
-            Money.of(10, "EUR"), allocation)
+        def retry = replayed.recordExpense(expense("Dinner", Money.of(10.00, "EUR")), null, ValuationEngine.standard())
+        def conflict = replayed.recordExpense(expense("Lunch", Money.of(10, "EUR")), null, ValuationEngine.standard())
 
         then: "the repeat is accepted, the change is refused, and the Participant cannot be removed while in use"
-        retry.success()
+        recorded.getSuccess() == expenseId
+        retry.getSuccess() == expenseId
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement.id(), expenseId)
         replayed.removeParticipant(PARTICIPANT).getFailure() == new ParticipantReferenced(settlement.id(), PARTICIPANT)
         replayed.pendingEvents().empty

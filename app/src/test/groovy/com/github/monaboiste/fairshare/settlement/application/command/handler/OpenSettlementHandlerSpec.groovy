@@ -22,10 +22,10 @@ class OpenSettlementHandlerSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "opening a Settlement returns its generated identifier and committed opening envelope"() {
-        when:
+        when: "a Settlement called Holiday is opened in euros"
         def result = configuration.openHandler.handle(new OpenSettlement(new SettlementName("  Holiday  "), EUR))
 
-        then:
+        then: "the commit carries the opening at version 1 under a new identifier, stamped with the current time"
         def commit = result.getSuccess()
         commit.streamId() != null
         commit.version() == 1
@@ -39,11 +39,11 @@ class OpenSettlementHandlerSpec extends Specification {
     }
 
     def "opening separate Settlements generates distinct identifiers"() {
-        when:
+        when: "two Settlements are opened, one in euros and one in US dollars"
         SettlementId first = configuration.openSettlement("Holiday", EUR)
         SettlementId second = configuration.openSettlement("Mountains", USD)
 
-        then:
+        then: "each gets its own identifier and both openings are stored in order"
         first != null
         second != null
         first != second
@@ -51,17 +51,17 @@ class OpenSettlementHandlerSpec extends Specification {
     }
 
     def "store failure propagates unchanged without projecting the attempted Settlement"() {
-        given:
+        given: "a handler whose event store is unavailable"
         def outage = new IllegalStateException("unavailable")
         EventStore<SettlementId, SettlementEvent> broken = Mock()
         def projector = new SettlementProjector()
         SettlementId attemptedId
         def handler = new OpenSettlementHandler(new EventSourcedSettlementRepository(broken, CLOCK), CLOCK)
 
-        when:
+        when: "a Settlement is opened"
         handler.handle(new OpenSettlement(new SettlementName("Holiday"), EUR))
 
-        then:
+        then: "the store failure surfaces unchanged and the attempted Settlement is never projected"
         1 * broken.append(_, _, _) >> { args ->
             attemptedId = args[0] as SettlementId
             throw outage
@@ -73,17 +73,17 @@ class OpenSettlementHandlerSpec extends Specification {
     }
 
     def "publication failure leaves the opening committed and reports its identifier and version"() {
-        given:
+        given: "a handler whose event store has a failing subscriber ahead of the projection"
         def failingStore = new InMemoryEventStore<SettlementId, SettlementEvent>()
         failingStore.subscribe { throw new IllegalStateException("projection failed") }
         def projector = new SettlementProjector()
         failingStore.subscribe(projector)
         def handler = new OpenSettlementHandler(new EventSourcedSettlementRepository(failingStore, CLOCK), CLOCK)
 
-        when:
+        when: "a Settlement is opened"
         handler.handle(new OpenSettlement(new SettlementName("Holiday"), EUR))
 
-        then:
+        then: "the failure reports the committed identifier and version, and the opening stays saved but unprojected"
         def failure = thrown(PostCommitPublicationException)
         failure.streamId() instanceof SettlementId
         failure.committedVersion() == 1
