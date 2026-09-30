@@ -28,6 +28,7 @@ public record ExpenseView(
     }
 
     public enum Status {
-        ACTIVE
+        ACTIVE,
+        CANCELLED
     }
 }

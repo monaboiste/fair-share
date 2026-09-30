@@ -26,6 +26,10 @@ _Avoid_: Split, contribution
 **Repayment**: A transfer made on a specified date in the Settlement Currency from one Participant to another that
 reduces their outstanding balances. _Avoid_: Expense, payment
 
+**Cancellation**: An irreversible mark on an Expense or Repayment that preserves its history and Participant references
+but excludes it from current Obligations and Balances. A correction is a separate entry with a new identifier.
+_Avoid_: Deletion, edit, refund
+
 **Settlement Currency**:
 The currency in which a Settlement expresses balances and proposed repayments.
 _Avoid_: Base currency, group currency

@@ -11,12 +11,15 @@ import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.Share
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
@@ -225,6 +228,52 @@ class SettlementProjectorSpec extends Specification {
         then: "the repeat is rejected and only the first Expense is kept"
         thrown(IllegalStateException)
         projector.findById(ID).orElseThrow().version() == 4
+    }
+
+    def "an unknown #kind cancellation rejects live batches and rebuilds atomically"() {
+        given: "an opened Settlement with an untouched prior view"
+        projector.accept([opened(ID)])
+        def before = projector.findById(ID).orElseThrow()
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        store.append(ID, 0, [pending(new SettlementOpened("Holiday", EUR)),
+            pending(new SettlementRenamed("Updated")), pending(invalid.call())])
+
+        when: "a batch includes a valid rename before the invalid cancellation"
+        projector.accept(store.load(ID).drop(1))
+
+        then: "the batch fails without committing the rename"
+        thrown(IllegalStateException)
+        projector.findById(ID).orElseThrow() == before
+
+        when: "a rebuild uses the invalid history"
+        projector.rebuild(store)
+
+        then: "the rebuild fails without replacing the existing view"
+        thrown(IllegalStateException)
+        projector.findById(ID).orElseThrow() == before
+
+        where:
+        kind | invalid
+        "Expense" | { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
+        "Repayment" | { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
+    }
+
+    def "repeated Expense cancellation rejects a projected batch without changing the view"() {
+        given: "an Expense has been recorded and cancelled"
+        def expenseId = new ExpenseId(new UUID(0, 21))
+        def recorded = new ExpenseRecorded(expenseId, new ExpenseDescription("Lunch"), LocalDate.of(2026, 1, 2),
+            PARTICIPANT, Money.of(1, "EUR"), new EqualShareAllocation([PARTICIPANT]), null,
+            VERSION_ID, IDENTITY_RATE, Money.of(1, "EUR"), [new Share(PARTICIPANT, Money.of(1, "EUR"))])
+        projector.accept([opened(ID), event(ID, 2, new ParticipantAdded(PARTICIPANT, "Alex")),
+            event(ID, 3, recorded), event(ID, 4, new ExpenseCancelled(expenseId))])
+        def before = projector.findById(ID).orElseThrow()
+
+        when: "a later batch renames the Settlement before repeating the cancellation"
+        projector.accept([renamed(ID, 5, "Weekend"), event(ID, 6, new ExpenseCancelled(expenseId))])
+
+        then: "the batch is rejected atomically"
+        thrown(IllegalStateException)
+        projector.findById(ID).orElseThrow() == before
     }
 
     private static SettlementView emptySettlementView(SettlementId id, String name, long version) {

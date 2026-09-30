@@ -195,7 +195,7 @@ class ExpensesSpec extends Specification {
             weighted([(BOB): 1]) | { id -> new MissingExchangeRate(id, EXPENSE) }
     }
 
-    def "Share Allocation retries use order type and literal values"() {
+    def "used Expense identifiers conflict regardless of allocation or validity"() {
         given: "a Settlement with a recorded Expense weighted 2 to 2 between Cal and Bob"
         def settlement = withParticipants()
         def original = weighted([(CAL): 2, (BOB): 2])
@@ -214,14 +214,13 @@ class ExpensesSpec extends Specification {
         def invalidRetry = configuration.commands.dispatch(expenseWithAllocation(settlement, UNKNOWN,
             Money.zero("EUR"), weighted([:])))
 
-        then: "only the identical retry succeeds without changes, every other retry conflicts, and nothing is recorded"
-        identical.getSuccess().events().empty
-        [reordered, literalChange, typeChange, invalidRetry]*.getFailure() ==
-            [new ExpenseIdentifierConflict(settlement, EXPENSE)] * 4
+        then: "every reused identifier conflicts and nothing is recorded"
+        [identical, reordered, literalChange, typeChange, invalidRetry]*.getFailure() ==
+            [new ExpenseIdentifierConflict(settlement, EXPENSE)] * 5
         configuration.store.load(settlement).size() == version
     }
 
-    def "exact retry compares numeric amounts across scales"() {
+    def "used Expense identifier conflicts across numeric scales and Share order"() {
         given: "a Settlement with a recorded Expense using exact Shares of 4 and 6 euros"
         def settlement = withParticipants()
         configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, Money.of(10, "EUR"),
@@ -236,8 +235,8 @@ class ExpensesSpec extends Specification {
         def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
             Money.of(10, "EUR"), exact([(BOB): Money.of(6, "EUR"), (CAL): Money.of(4, "EUR")])))
 
-        then: "the rescaled retry records nothing, while the reordered one conflicts"
-        retry.getSuccess().events().empty
+        then: "both submissions conflict"
+        retry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         reordered.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.store.load(settlement).size() == version
     }
@@ -342,7 +341,7 @@ class ExpensesSpec extends Specification {
         "unknown recipient over currency" | Money.of(1, "USD") | ADA | [UNKNOWN] | { id -> new ParticipantNotFound(id, UNKNOWN) }
     }
 
-    def "dispatched retries after repository reload produce no event and conflicting reuse rejects"() {
+    def "dispatched reused Expense identifiers always conflict after repository reload"() {
         given: "a Settlement with a recorded 10.0 euro Expense"
         def settlement = withParticipants()
         def first = expense(settlement, ADA, Money.of(new BigDecimal("10.0"), "EUR"), [BOB])
@@ -353,9 +352,8 @@ class ExpensesSpec extends Specification {
             Money.of(new BigDecimal("10.00"), "EUR"), [BOB]))
         def conflict = configuration.commands.dispatch(expense(settlement, ADA, Money.of(11, "EUR"), [BOB]))
 
-        then: "the numerically equal retry records nothing, while the changed amount conflicts"
-        retry.getSuccess().events().empty
-        retry.getSuccess().version() == 5
+        then: "equal and changed amounts both conflict without appending"
+        retry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.store.load(settlement).size() == 5
     }

@@ -14,5 +14,7 @@ public sealed interface SettlementCommand
                 RenameParticipant,
                 RemoveParticipant,
                 RecordExpense,
+                CancelExpense,
                 RecordRepayment,
+                CancelRepayment,
                 ConfigureExchangeRate {}

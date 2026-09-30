@@ -68,19 +68,17 @@ class RecordExpenseHandlerSpec extends Specification {
         payload.shares() == [new Share(ADA, Money.of(10, "EUR"))]
     }
 
-    def "identical Expense retry succeeds without committing"() {
+    def "identical Expense identifier reuse conflicts without committing"() {
         given: "a 10 euro Expense has already been recorded"
         SettlementId id = withParticipant()
         def command = expense(id, Money.of(10, "EUR"))
         configuration.recordExpenseHandler.handle(command)
 
         when: "the same recording is sent again"
-        def retry = configuration.recordExpenseHandler.handle(command).getSuccess()
+        def retry = configuration.recordExpenseHandler.handle(command)
 
-        then: "it succeeds at the same version and nothing new is saved"
-        retry.streamId() == id
-        retry.version() == 3
-        retry.events().empty
+        then: "it conflicts and nothing new is saved"
+        retry.getFailure() == new ExpenseIdentifierConflict(id, EXPENSE)
         configuration.store.load(id).size() == 3
     }
 

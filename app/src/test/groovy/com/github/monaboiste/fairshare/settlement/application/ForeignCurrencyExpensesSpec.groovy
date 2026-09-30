@@ -178,7 +178,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
         view.balances().values().inject(Money.zero("EUR")) { sum, balance -> sum.add(balance) }.isZero()
     }
 
-    def "identical retry after a newer rate does not revalue and changed input conflicts"() {
+    def "used Expense identifier conflicts after a newer rate without revaluing"() {
         given: "a Settlement with a recorded US dollar Expense, after which a newer Exchange Rate was configured"
         def settlement = withParticipants()
         configure(settlement, "0.90", Validity.always())
@@ -197,8 +197,8 @@ class ForeignCurrencyExpensesSpec extends Specification {
                 Money.of(10, "EUR"), new EqualShareAllocation([BOB])))
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
-        then: "the identical retry keeps the frozen Valuation, while the changed ones conflict and nothing is recorded"
-        retry.getSuccess().events().empty
+        then: "all reused identifiers conflict, keeping the frozen Valuation"
+        retry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         changedAmount.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         changedCurrency.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
@@ -292,7 +292,7 @@ class ForeignCurrencyExpensesSpec extends Specification {
         "unknown recipient"   | Money.of(10, "USD") | UNKNOWN   | { id -> new ParticipantNotFound(id, UNKNOWN) }
     }
 
-    def "retry with the same Exchange Rate Override at another scale records nothing"() {
+    def "used Expense identifier conflicts with equivalent Exchange Rate Override"() {
         given: "a Settlement with an Expense recorded with an Exchange Rate Override of 0.95"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, DATE, Money.of(10, "USD"),
@@ -303,8 +303,8 @@ class ForeignCurrencyExpensesSpec extends Specification {
         def retry = configuration.commands.dispatch(expense(settlement, DATE, Money.of(10, "USD"),
                 new EqualShareAllocation([BOB]), manual("0.950")))
 
-        then: "the retry records nothing"
-        retry.getSuccess().events().empty
+        then: "the reuse conflicts without appending"
+        retry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
         configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess() == before
     }
 
@@ -366,10 +366,10 @@ class ForeignCurrencyExpensesSpec extends Specification {
         def replayed = rebuilt.findById(settlement).orElseThrow()
         def fresh = record(settlement, DATE, Money.of(10, "USD"), new EqualShareAllocation([BOB]), null, FRESH_EXPENSE)
 
-        then: "retries are not revalued, replay keeps frozen Valuations, and a new Expense uses the lower Exchange Rate"
+        then: "reused identifiers conflict without revaluation, replay retains facts, and a new Expense uses the lower rate"
         0 * changedValuationEngine._
-        overriddenRetry.getSuccess().events().empty
-        configuredRetry.getSuccess().events().empty
+        overriddenRetry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
+        configuredRetry.getFailure() == new ExpenseIdentifierConflict(settlement, OTHER_EXPENSE)
         overridden.valuation() == Money.of(9.70, "EUR")
         overridden.shares() == [new Share(BOB, Money.of(4.85, "EUR")), new Share(CAL, Money.of(4.85, "EUR"))]
         configured.valuation() == Money.of(9, "EUR")

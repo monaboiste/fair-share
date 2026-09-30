@@ -14,12 +14,16 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierCo
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentDetails
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
@@ -222,7 +226,7 @@ class SettlementSpec extends Specification {
         ]
     }
 
-    def "replay preserves Expense inputs for retries and protects referenced Participants"() {
+    def "replay reserves Expense identifiers and protects referenced Participants"() {
         given: "a Settlement with a Dinner Expense paid by and shared with one Participant"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
@@ -243,14 +247,73 @@ class SettlementSpec extends Specification {
         def retry = replayed.recordExpense(expense("Dinner", Money.of(10.00, "EUR")), null, ValuationEngine.standard())
         def conflict = replayed.recordExpense(expense("Lunch", Money.of(10, "EUR")), null, ValuationEngine.standard())
 
-        then: "the repeat is accepted, the change is refused, and the Participant cannot be removed while in use"
+        then: "both repeats are refused and the Participant cannot be removed while in use"
         recorded.getSuccess() == expenseId
-        retry.getSuccess() == expenseId
+        retry.getFailure() == new ExpenseIdentifierConflict(settlement.id(), expenseId)
         conflict.getFailure() == new ExpenseIdentifierConflict(settlement.id(), expenseId)
         replayed.removeParticipant(PARTICIPANT).getFailure() == new ParticipantReferenced(settlement.id(), PARTICIPANT)
         replayed.pendingEvents().empty
         replayed.version() == 3
         store.load(settlement.id()).last().payload() instanceof ExpenseRecorded
+    }
+
+    def "an invalid #kind cancellation in saved history rejects aggregate replay"() {
+        given: "a Settlement with the Participant and a valid opening"
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, CLOCK)
+        def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
+        settlement.addParticipant(PARTICIPANT, new ParticipantName("Alex"))
+        repository.save(settlement)
+        def id = settlement.id()
+        def entry = cancellation.call()
+        store.append(id, 2, [pending(EventId.random(), entry)])
+
+        when: "an entry that was never recorded is cancelled during replay"
+        repository.findById(id)
+
+        then: "the broken stream is rejected"
+        thrown(IllegalStateException)
+
+        where:
+        kind | cancellation
+        "Expense" | { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
+        "Repayment" | { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
+    }
+
+    def "a repeated #kind cancellation in saved history rejects aggregate replay"() {
+        given: "a Settlement with an entry already cancelled"
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        def repository = new EventSourcedSettlementRepository(store, CLOCK)
+        def settlement = Settlement.open(new SettlementName("Holiday"), EUR, CLOCK)
+        settlement.addParticipant(PARTICIPANT, new ParticipantName("Alex"))
+        record.call(settlement)
+        cancel.call(settlement)
+        repository.save(settlement)
+        def id = settlement.id()
+        def version = settlement.version()
+        store.append(id, version, [pending(EventId.random(), event.call())])
+
+        when: "the duplicate cancellation is replayed"
+        repository.findById(id)
+
+        then: "the broken stream is rejected"
+        thrown(IllegalStateException)
+
+        where:
+        kind | record | cancel | event
+        "Expense" | { aggregate -> aggregate.recordExpense(
+            new ExpenseDetails(new ExpenseId(new UUID(0, 21)), new ExpenseDescription("Lunch"),
+                LocalDate.of(2026, 1, 2), PARTICIPANT, Money.of(1, "EUR"),
+                new EqualShareAllocation([PARTICIPANT])), null, ValuationEngine.standard()) } |
+            { aggregate -> aggregate.cancelExpense(new ExpenseId(new UUID(0, 21))) } |
+            { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
+        "Repayment" | { aggregate ->
+            def other = new ParticipantId(new UUID(0, 12))
+            aggregate.addParticipant(other, new ParticipantName("Bob"))
+            aggregate.recordRepayment(new RepaymentDetails(new RepaymentId(new UUID(0, 31)),
+                LocalDate.of(2026, 1, 2), other, PARTICIPANT, Money.of(1, "EUR"))) } |
+            { aggregate -> aggregate.cancelRepayment(new RepaymentId(new UUID(0, 31))) } |
+            { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
     }
 
     private static PendingEvent<SettlementEvent> pending(EventId id, SettlementEvent payload) {
