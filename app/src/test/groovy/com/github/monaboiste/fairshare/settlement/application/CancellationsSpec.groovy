@@ -1,5 +1,6 @@
 package com.github.monaboiste.fairshare.settlement.application
 
+import com.github.monaboiste.fairshare.netting.Obligation
 import com.github.monaboiste.fairshare.quantity.money.Money
 import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.CancelExpense
@@ -193,6 +194,66 @@ class CancellationsSpec extends Specification {
         result.balances()[BOB] == Money.of(-6, "EUR")
         result.expenses()*.status() == [ExpenseView.Status.CANCELLED, ExpenseView.Status.ACTIVE]
         result.repayments()*.status() == [RepaymentView.Status.CANCELLED, RepaymentView.Status.ACTIVE]
+    }
+
+    def "cancelling an Expense with a payer Share leaves an equal Repayment contribution"() {
+        given: "Ada shares an Expense with Bob and transfers him the amount of his Share"
+        def settlement = settlementWithParticipants()
+        configuration.commands.dispatch(new RecordExpense(settlement, ORIGINAL, new ExpenseDescription("Lunch"),
+            LocalDate.of(2026, 2, 3), ADA, Money.of(20, "EUR"), new EqualShareAllocation([ADA, BOB])))
+        configuration.commands.dispatch(new RecordRepayment(settlement, REPAYMENT, LocalDate.of(2026, 2, 3),
+            ADA, BOB, Money.of(10, "EUR")))
+        def equalContribution = new Obligation(BOB, ADA, Money.of(10, "EUR"))
+        def before = view(settlement)
+
+        when: "the Expense is cancelled while the Repayment remains active"
+        configuration.commands.dispatch(new CancelExpense(settlement, ORIGINAL)).getSuccess()
+        def current = view(settlement)
+        def rebuilt = new SettlementProjector()
+        rebuilt.rebuild(configuration.store)
+
+        then: "only the Repayment remains, with its original direction and ordered history"
+        before.obligations() == [equalContribution, equalContribution]
+        before.balances()[ADA] == Money.of(20, "EUR")
+        before.balances()[BOB] == Money.of(-20, "EUR")
+        current.obligations() == [equalContribution]
+        current.expenses()*.status() == [ExpenseView.Status.CANCELLED]
+        current.repayments()*.status() == [RepaymentView.Status.ACTIVE]
+        current.balances()[ADA] == Money.of(10, "EUR")
+        current.balances()[BOB] == Money.of(-10, "EUR")
+        history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
+            "ParticipantAdded", "ExpenseRecorded", "RepaymentRecorded", "ExpenseCancelled"]
+        rebuilt.findById(settlement).orElseThrow() == current
+    }
+
+    def "cancelling a Repayment leaves an equal Expense contribution with a payer Share"() {
+        given: "Ada transfers Bob before sharing an Expense equally with him"
+        def settlement = settlementWithParticipants()
+        configuration.commands.dispatch(new RecordRepayment(settlement, REPAYMENT, LocalDate.of(2026, 2, 3),
+            ADA, BOB, Money.of(10, "EUR")))
+        configuration.commands.dispatch(new RecordExpense(settlement, ORIGINAL, new ExpenseDescription("Lunch"),
+            LocalDate.of(2026, 2, 3), ADA, Money.of(20, "EUR"), new EqualShareAllocation([ADA, BOB])))
+        def equalContribution = new Obligation(BOB, ADA, Money.of(10, "EUR"))
+        def before = view(settlement)
+
+        when: "the Repayment is cancelled while the Expense remains active"
+        configuration.commands.dispatch(new CancelRepayment(settlement, REPAYMENT)).getSuccess()
+        def current = view(settlement)
+        def rebuilt = new SettlementProjector()
+        rebuilt.rebuild(configuration.store)
+
+        then: "only Bob's Expense Share remains, with both entries and history intact"
+        before.obligations() == [equalContribution, equalContribution]
+        before.balances()[ADA] == Money.of(20, "EUR")
+        before.balances()[BOB] == Money.of(-20, "EUR")
+        current.obligations() == [equalContribution]
+        current.expenses()*.status() == [ExpenseView.Status.ACTIVE]
+        current.repayments()*.status() == [RepaymentView.Status.CANCELLED]
+        current.balances()[ADA] == Money.of(10, "EUR")
+        current.balances()[BOB] == Money.of(-10, "EUR")
+        history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
+            "ParticipantAdded", "RepaymentRecorded", "ExpenseRecorded", "RepaymentCancelled"]
+        rebuilt.findById(settlement).orElseThrow() == current
     }
 
     def "cancelling a later Expense removes only its distinct contribution"() {

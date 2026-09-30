@@ -269,11 +269,7 @@ public final class SettlementProjector
                 recorded.shares(),
                 ExpenseView.Status.ACTIVE));
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        for (Share share : recorded.shares()) {
-            if (!share.participantId().equals(recorded.payer())) {
-                obligations.add(new Obligation<>(share.participantId(), recorded.payer(), share.amount()));
-            }
-        }
+        obligations.addAll(expenseContributions(recorded.payer(), recorded.shares()));
         return new Projection(
                 updated(previous, event, previous.participants(), List.copyOf(expenses), List.copyOf(obligations)),
                 retired);
@@ -308,14 +304,23 @@ public final class SettlementProjector
                         : expense)
                 .toList();
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        for (Share share : original.shares()) {
-            if (!share.participantId().equals(original.payer())
-                    && !obligations.remove(new Obligation<>(share.participantId(), original.payer(), share.amount()))) {
+        for (Obligation<ParticipantId> contribution : expenseContributions(original.payer(), original.shares())) {
+            if (!obligations.remove(contribution)) {
                 throw new IllegalStateException("Expense Obligation missing for cancellation");
             }
         }
         return new Projection(
                 updated(previous, event, previous.participants(), expenses, List.copyOf(obligations)), retired);
+    }
+
+    private static List<Obligation<ParticipantId>> expenseContributions(ParticipantId payer, List<Share> shares) {
+        List<Obligation<ParticipantId>> contributions = new ArrayList<>();
+        for (Share share : shares) {
+            if (!share.participantId().equals(payer)) {
+                contributions.add(new Obligation<>(share.participantId(), payer, share.amount()));
+            }
+        }
+        return contributions;
     }
 
     private static Projection recordRepayment(
@@ -343,7 +348,7 @@ public final class SettlementProjector
                 recorded.amount(),
                 RepaymentView.Status.ACTIVE));
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        obligations.add(new Obligation<>(recorded.recipient(), recorded.payer(), recorded.amount()));
+        obligations.add(repaymentContribution(recorded.payer(), recorded.recipient(), recorded.amount()));
         return new Projection(
                 updated(previous, event, previous.participants(), previous.expenses(), repayments, obligations),
                 retired);
@@ -373,7 +378,7 @@ public final class SettlementProjector
                         : repayment)
                 .toList();
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        if (!obligations.remove(new Obligation<>(original.recipient(), original.payer(), original.amount()))) {
+        if (!obligations.remove(repaymentContribution(original.payer(), original.recipient(), original.amount()))) {
             throw new IllegalStateException("Repayment Obligation missing for cancellation");
         }
         return new Projection(
@@ -385,6 +390,11 @@ public final class SettlementProjector
                         repayments,
                         List.copyOf(obligations)),
                 retired);
+    }
+
+    private static Obligation<ParticipantId> repaymentContribution(
+            ParticipantId payer, ParticipantId recipient, Money amount) {
+        return new Obligation<>(recipient, payer, amount);
     }
 
     private static SettlementView requireSettlement(@Nullable SettlementView view) {
