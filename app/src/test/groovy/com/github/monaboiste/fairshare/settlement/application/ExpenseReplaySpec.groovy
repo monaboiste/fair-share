@@ -43,9 +43,9 @@ class ExpenseReplaySpec extends Specification {
         def allocation = new EqualShareAllocation([BOB])
         def valuation = ValuationEngine.standard().identity(Money.of(10, "EUR"))
         def recorded = new ExpenseRecorded(EXPENSE, new ExpenseDescription("Lunch"), DATE, ADA,
-            Money.of(10, "EUR"), allocation, null,
-            valuation.componentVersion().id(), valuation.exchangeRate(), Money.of(10, "EUR"),
-            allocation.resolve(Money.of(10, "EUR")))
+                Money.of(10, "EUR"), allocation, null,
+                valuation.componentVersion().id(), valuation.exchangeRate(), Money.of(10, "EUR"),
+                allocation.resolve(Money.of(10, "EUR")))
         def copied = new InMemoryEventStore()
         def pending = configuration.queries.dispatch(new GetSettlementHistory(settlement)).getSuccess().collect {
             new PendingEvent<SettlementEvent>(it.eventId(), it.payload(), it.occurredAt())
@@ -54,15 +54,15 @@ class ExpenseReplaySpec extends Specification {
         copied.append(settlement, 0, pending)
         def rebuilt = new SettlementProjector()
         def commands = RegisteredCommandDispatcher.builder()
-            .register(RecordExpense, new RecordExpenseHandler(
-                new EventSourcedSettlementRepository(copied, configuration.CLOCK), configuration.CLOCK)).build()
+                .register(RecordExpense, new RecordExpenseHandler(
+                        new EventSourcedSettlementRepository(copied, configuration.CLOCK), configuration.CLOCK)).build()
 
         when: "the saved history is replayed"
         if (route == "projection") {
             rebuilt.rebuild(copied)
         } else {
             commands.dispatch(new RecordExpense(settlement, new ExpenseId(new UUID(0, 22)),
-                new ExpenseDescription("Dinner"), DATE, ADA, Money.of(1, "EUR"), new EqualShareAllocation([ADA])))
+                    new ExpenseDescription("Dinner"), DATE, ADA, Money.of(1, "EUR"), new EqualShareAllocation([ADA])))
         }
 
         then: "the inconsistent history is rejected before accepting another Expense"

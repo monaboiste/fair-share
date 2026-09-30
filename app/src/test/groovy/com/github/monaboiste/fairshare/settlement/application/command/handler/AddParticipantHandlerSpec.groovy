@@ -84,7 +84,10 @@ class AddParticipantHandlerSpec extends Specification {
         configuration.addHandler.handle(new AddParticipant(id, ADA, new ParticipantName("Winner")))
         SettlementRepository outdated = new SettlementRepository() {
             Optional<Settlement> findById(SettlementId lookupId) { Optional.of(stale) }
-            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { configuration.repository.save(settlement) }
+
+            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) {
+                configuration.repository.save(settlement)
+            }
         }
 
         when: "the outdated handler adds the same Participant as Loser"

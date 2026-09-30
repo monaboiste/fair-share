@@ -2,6 +2,7 @@ package com.github.monaboiste.fairshare.valuation
 
 import com.github.monaboiste.fairshare.pricing.calculation.TotalPrice
 import com.github.monaboiste.fairshare.quantity.money.Money
+
 import javax.money.CurrencyUnit
 
 class DoublingValuationEngine implements ValuationEngine {

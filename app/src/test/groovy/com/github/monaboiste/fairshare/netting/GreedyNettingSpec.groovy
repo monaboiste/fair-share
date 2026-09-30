@@ -35,8 +35,8 @@ class GreedyNettingSpec extends Specification {
 
         then: "Ada and Bob are each proposed to repay Dan directly"
         proposal.proposedRepayments() as Set == [
-            new ProposedRepayment<>("ada", "dan", Money.of(10, "PLN")),
-            new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))] as Set
+                new ProposedRepayment<>("ada", "dan", Money.of(10, "PLN")),
+                new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))] as Set
     }
 
     def "eliminates an original obligation cycle into no repayments"() {
@@ -101,8 +101,8 @@ class GreedyNettingSpec extends Specification {
 
         then: "debtors and creditors are paired by Participant order"
         proposal.proposedRepayments() as Set == [
-            new ProposedRepayment<>("ada", "cid", Money.of(10, "PLN")),
-            new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))] as Set
+                new ProposedRepayment<>("ada", "cid", Money.of(10, "PLN")),
+                new ProposedRepayment<>("bob", "dan", Money.of(10, "PLN"))] as Set
     }
 
     def "preserves every participant balance"() {
@@ -129,9 +129,9 @@ class GreedyNettingSpec extends Specification {
 
         then: "the largest remaining debtor is always matched with the largest remaining creditor"
         proposal.proposedRepayments() as Set == [
-            new ProposedRepayment<>("ada", "cid", Money.of(95, "PLN")),
-            new ProposedRepayment<>("bob", "dan", Money.of(90, "PLN")),
-            new ProposedRepayment<>("ada", "dan", Money.of(5, "PLN"))] as Set
+                new ProposedRepayment<>("ada", "cid", Money.of(95, "PLN")),
+                new ProposedRepayment<>("bob", "dan", Money.of(90, "PLN")),
+                new ProposedRepayment<>("ada", "dan", Money.of(5, "PLN"))] as Set
     }
 
     def "produces a valid graph within the edge bound"() {
@@ -183,7 +183,7 @@ class GreedyNettingSpec extends Specification {
 
         then: "Ada is proposed to repay Cid the exact amount, keeping the currency's precision"
         proposal.proposedRepayments() == [
-            new ProposedRepayment<>("ada", "cid", Money.of(new BigDecimal(owed), currencyCode))]
+                new ProposedRepayment<>("ada", "cid", Money.of(new BigDecimal(owed), currencyCode))]
 
         where:
         currencyCode | owed

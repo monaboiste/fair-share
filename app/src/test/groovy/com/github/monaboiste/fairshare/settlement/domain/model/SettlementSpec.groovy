@@ -56,7 +56,7 @@ class SettlementSpec extends Specification {
 
         then: "only the opening and a single rename are remembered, both stamped with the current time"
         settlement.pendingEvents()*.payload() == [new SettlementOpened("Holiday", EUR),
-            new SettlementRenamed("Mountains")]
+                                                  new SettlementRenamed("Mountains")]
         settlement.pendingEvents().first().payload().currency() == EUR
         settlement.pendingEvents()*.occurredAt() == [NOW, NOW]
         settlement.pendingEvents().every { it.eventId() != null }
@@ -118,7 +118,7 @@ class SettlementSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
-            pending(RENAMED_ID, new SettlementOpened("Again", USD))])
+                             pending(RENAMED_ID, new SettlementOpened("Again", USD))])
 
         when: "the Settlement is loaded"
         repository.findById(ID)
@@ -167,7 +167,7 @@ class SettlementSpec extends Specification {
         retry.success()
         conflict.getFailure() == new ParticipantIdentifierConflict(settlement.id(), PARTICIPANT)
         replayed.renameParticipant(PARTICIPANT, new ParticipantName("Again")).getFailure() ==
-            new ParticipantNotFound(settlement.id(), PARTICIPANT)
+                new ParticipantNotFound(settlement.id(), PARTICIPANT)
         replayed.pendingEvents().empty
         replayed.version() == 4
     }
@@ -177,7 +177,7 @@ class SettlementSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
-            pending(RENAMED_ID, new ParticipantAdded(PARTICIPANT, ""))])
+                             pending(RENAMED_ID, new ParticipantAdded(PARTICIPANT, ""))])
 
         when: "the Settlement is loaded"
         def replayed = repository.findById(ID).orElseThrow()
@@ -208,9 +208,9 @@ class SettlementSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def repository = new EventSourcedSettlementRepository(store, CLOCK)
         store.append(ID, 0, [pending(OPENED_ID, new SettlementOpened("Holiday", EUR)),
-            pending(EventId.random(), new ParticipantAdded(PARTICIPANT, "Alex")),
-            pending(EventId.random(), new ParticipantRemoved(PARTICIPANT)),
-            pending(RENAMED_ID, laterEvent)])
+                             pending(EventId.random(), new ParticipantAdded(PARTICIPANT, "Alex")),
+                             pending(EventId.random(), new ParticipantRemoved(PARTICIPANT)),
+                             pending(RENAMED_ID, laterEvent)])
 
         when: "the Settlement is loaded"
         repository.findById(ID)
@@ -220,9 +220,9 @@ class SettlementSpec extends Specification {
 
         where:
         laterEvent << [
-            new ParticipantRenamed(PARTICIPANT, "Ada"),
-            new ParticipantRemoved(PARTICIPANT),
-            new ParticipantAdded(PARTICIPANT, "Alex")
+                new ParticipantRenamed(PARTICIPANT, "Ada"),
+                new ParticipantRemoved(PARTICIPANT),
+                new ParticipantAdded(PARTICIPANT, "Alex")
         ]
     }
 
@@ -275,8 +275,8 @@ class SettlementSpec extends Specification {
         thrown(IllegalStateException)
 
         where:
-        kind | cancellation
-        "Expense" | { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
+        kind        | cancellation
+        "Expense"   | { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
         "Repayment" | { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
     }
 
@@ -300,20 +300,23 @@ class SettlementSpec extends Specification {
         thrown(IllegalStateException)
 
         where:
-        kind | record | cancel | event
-        "Expense" | { aggregate -> aggregate.recordExpense(
-            new ExpenseDetails(new ExpenseId(new UUID(0, 21)), new ExpenseDescription("Lunch"),
-                LocalDate.of(2026, 1, 2), PARTICIPANT, Money.of(1, "EUR"),
-                new EqualShareAllocation([PARTICIPANT])), null, ValuationEngine.standard()) } |
-            { aggregate -> aggregate.cancelExpense(new ExpenseId(new UUID(0, 21))) } |
-            { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
+        kind        | record | cancel                                                               | event
+        "Expense"   | { aggregate ->
+            aggregate.recordExpense(
+                    new ExpenseDetails(new ExpenseId(new UUID(0, 21)), new ExpenseDescription("Lunch"),
+                            LocalDate.of(2026, 1, 2), PARTICIPANT, Money.of(1, "EUR"),
+                            new EqualShareAllocation([PARTICIPANT])), null, ValuationEngine.standard())
+        }                    |
+                { aggregate -> aggregate.cancelExpense(new ExpenseId(new UUID(0, 21))) }            |
+                { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
         "Repayment" | { aggregate ->
             def other = new ParticipantId(new UUID(0, 12))
             aggregate.addParticipant(other, new ParticipantName("Bob"))
             aggregate.recordRepayment(new RepaymentDetails(new RepaymentId(new UUID(0, 31)),
-                LocalDate.of(2026, 1, 2), other, PARTICIPANT, Money.of(1, "EUR"))) } |
-            { aggregate -> aggregate.cancelRepayment(new RepaymentId(new UUID(0, 31))) } |
-            { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
+                    LocalDate.of(2026, 1, 2), other, PARTICIPANT, Money.of(1, "EUR")))
+        }                    |
+                { aggregate -> aggregate.cancelRepayment(new RepaymentId(new UUID(0, 31))) }        |
+                { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
     }
 
     private static PendingEvent<SettlementEvent> pending(EventId id, SettlementEvent payload) {

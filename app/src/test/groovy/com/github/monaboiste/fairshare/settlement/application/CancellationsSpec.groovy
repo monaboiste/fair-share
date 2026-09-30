@@ -55,7 +55,7 @@ class CancellationsSpec extends Specification {
         view.balances()[ADA] == Money.zero("EUR")
         view.balances()[BOB] == Money.zero("EUR")
         history(settlement)*.payload()*.class*.simpleName ==
-            ["SettlementOpened", "ParticipantAdded", "ParticipantAdded", "ExpenseRecorded", "ExpenseCancelled"]
+                ["SettlementOpened", "ParticipantAdded", "ParticipantAdded", "ExpenseRecorded", "ExpenseCancelled"]
     }
 
     def "cancelling a Repayment retains its transfer and clears its reverse Obligation"() {
@@ -101,13 +101,13 @@ class CancellationsSpec extends Specification {
         history(settlement) == previousHistory
 
         where:
-        kind | known | unknown | record | cancel | notFound | already
-        "Expense" | ORIGINAL | new ExpenseId(new UUID(0, 99)) |
-            { id -> expense(id, ORIGINAL, 10) } | { id, entry -> new CancelExpense(id, entry) } |
-            { id, entry -> new ExpenseNotFound(id, entry) } | { id, entry -> new ExpenseAlreadyCancelled(id, entry) }
+        kind        | known     | unknown                          | record | cancel                                          | notFound | already
+        "Expense"   | ORIGINAL  | new ExpenseId(new UUID(0, 99))   |
+                { id -> expense(id, ORIGINAL, 10) }                         | { id, entry -> new CancelExpense(id, entry) }   |
+                { id, entry -> new ExpenseNotFound(id, entry) }                                                                          | { id, entry -> new ExpenseAlreadyCancelled(id, entry) }
         "Repayment" | REPAYMENT | new RepaymentId(new UUID(0, 99)) |
-            { id -> repayment(id, REPAYMENT, 5) } | { id, entry -> new CancelRepayment(id, entry) } |
-            { id, entry -> new RepaymentNotFound(id, entry) } | { id, entry -> new RepaymentAlreadyCancelled(id, entry) }
+                { id -> repayment(id, REPAYMENT, 5) }                       | { id, entry -> new CancelRepayment(id, entry) } |
+                { id, entry -> new RepaymentNotFound(id, entry) }                                                                        | { id, entry -> new RepaymentAlreadyCancelled(id, entry) }
     }
 
     def "cancelled Expense and Repayment require new identifiers for corrections"() {
@@ -147,10 +147,10 @@ class CancellationsSpec extends Specification {
         corrected.balances()[BOB] == Money.of(-9, "EUR")
         rebuilt.findById(settlement).orElseThrow() == corrected
         history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
-            "ParticipantAdded", "ExpenseRecorded", "RepaymentRecorded", "ExpenseCancelled", "RepaymentCancelled",
-            "ExpenseRecorded", "RepaymentRecorded"]
+                                                              "ParticipantAdded", "ExpenseRecorded", "RepaymentRecorded", "ExpenseCancelled", "RepaymentCancelled",
+                                                              "ExpenseRecorded", "RepaymentRecorded"]
         configuration.commands.dispatch(new RemoveParticipant(settlement, BOB)).getFailure() ==
-            new ParticipantReferenced(settlement, BOB)
+                new ParticipantReferenced(settlement, BOB)
     }
 
     def "cancelled entries still keep their Participants in the Settlement"() {
@@ -200,9 +200,9 @@ class CancellationsSpec extends Specification {
         given: "Ada shares an Expense with Bob and transfers him the amount of his Share"
         def settlement = settlementWithParticipants()
         configuration.commands.dispatch(new RecordExpense(settlement, ORIGINAL, new ExpenseDescription("Lunch"),
-            LocalDate.of(2026, 2, 3), ADA, Money.of(20, "EUR"), new EqualShareAllocation([ADA, BOB])))
+                LocalDate.of(2026, 2, 3), ADA, Money.of(20, "EUR"), new EqualShareAllocation([ADA, BOB])))
         configuration.commands.dispatch(new RecordRepayment(settlement, REPAYMENT, LocalDate.of(2026, 2, 3),
-            ADA, BOB, Money.of(10, "EUR")))
+                ADA, BOB, Money.of(10, "EUR")))
         def equalContribution = new Obligation(BOB, ADA, Money.of(10, "EUR"))
         def before = view(settlement)
 
@@ -222,7 +222,7 @@ class CancellationsSpec extends Specification {
         current.balances()[ADA] == Money.of(10, "EUR")
         current.balances()[BOB] == Money.of(-10, "EUR")
         history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
-            "ParticipantAdded", "ExpenseRecorded", "RepaymentRecorded", "ExpenseCancelled"]
+                                                              "ParticipantAdded", "ExpenseRecorded", "RepaymentRecorded", "ExpenseCancelled"]
         rebuilt.findById(settlement).orElseThrow() == current
     }
 
@@ -230,9 +230,9 @@ class CancellationsSpec extends Specification {
         given: "Ada transfers Bob before sharing an Expense equally with him"
         def settlement = settlementWithParticipants()
         configuration.commands.dispatch(new RecordRepayment(settlement, REPAYMENT, LocalDate.of(2026, 2, 3),
-            ADA, BOB, Money.of(10, "EUR")))
+                ADA, BOB, Money.of(10, "EUR")))
         configuration.commands.dispatch(new RecordExpense(settlement, ORIGINAL, new ExpenseDescription("Lunch"),
-            LocalDate.of(2026, 2, 3), ADA, Money.of(20, "EUR"), new EqualShareAllocation([ADA, BOB])))
+                LocalDate.of(2026, 2, 3), ADA, Money.of(20, "EUR"), new EqualShareAllocation([ADA, BOB])))
         def equalContribution = new Obligation(BOB, ADA, Money.of(10, "EUR"))
         def before = view(settlement)
 
@@ -252,7 +252,7 @@ class CancellationsSpec extends Specification {
         current.balances()[ADA] == Money.of(10, "EUR")
         current.balances()[BOB] == Money.of(-10, "EUR")
         history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
-            "ParticipantAdded", "RepaymentRecorded", "ExpenseRecorded", "RepaymentCancelled"]
+                                                              "ParticipantAdded", "RepaymentRecorded", "ExpenseRecorded", "RepaymentCancelled"]
         rebuilt.findById(settlement).orElseThrow() == current
     }
 
@@ -277,7 +277,7 @@ class CancellationsSpec extends Specification {
         current.balances()[ADA] == Money.of(10, "EUR")
         current.balances()[BOB] == Money.of(-10, "EUR")
         history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
-            "ParticipantAdded", "ExpenseRecorded", "ExpenseRecorded", "ExpenseCancelled"]
+                                                              "ParticipantAdded", "ExpenseRecorded", "ExpenseRecorded", "ExpenseCancelled"]
         history(settlement).last().payload() == new ExpenseCancelled(later)
         rebuilt.findById(settlement).orElseThrow() == current
     }
@@ -303,7 +303,7 @@ class CancellationsSpec extends Specification {
         current.balances()[ADA] == Money.of(-4, "EUR")
         current.balances()[BOB] == Money.of(4, "EUR")
         history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
-            "ParticipantAdded", "RepaymentRecorded", "RepaymentRecorded", "RepaymentCancelled"]
+                                                              "ParticipantAdded", "RepaymentRecorded", "RepaymentRecorded", "RepaymentCancelled"]
         history(settlement).last().payload() == new RepaymentCancelled(later)
         rebuilt.findById(settlement).orElseThrow() == current
     }
@@ -318,7 +318,7 @@ class CancellationsSpec extends Specification {
 
     private static RecordExpense expense(def settlement, ExpenseId id, int amount) {
         new RecordExpense(settlement, id, new ExpenseDescription("Lunch"), LocalDate.of(2026, 2, 3), ADA,
-            Money.of(amount, "EUR"), new EqualShareAllocation([BOB]))
+                Money.of(amount, "EUR"), new EqualShareAllocation([BOB]))
     }
 
     private def view(def settlement) {

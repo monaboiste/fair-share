@@ -30,7 +30,6 @@ import com.github.monaboiste.fairshare.valuation.DoublingValuationEngine
 import com.github.monaboiste.fairshare.valuation.ExchangeRate
 import com.github.monaboiste.fairshare.valuation.ValuationEngine
 import java.time.LocalDate
-import java.time.LocalDateTime
 import javax.money.CurrencyUnit
 import javax.money.Monetary
 import spock.lang.Specification
@@ -97,14 +96,14 @@ class ForeignCurrencyExpensesSpec extends Specification {
         configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess().expenses().empty
 
         where:
-        scenario                     | configuredRate                               | validity
-        "unconfigured"               | null                                         | null
+        scenario                     | configuredRate                           | validity
+        "unconfigured"               | null                                     | null
         "other source currency"      | ExchangeRate.of(Monetary.getCurrency("GBP"),
-                SettlementTestConfiguration.EUR, BigDecimal.ONE)                    | Validity.always()
+                SettlementTestConfiguration.EUR, BigDecimal.ONE)                | Validity.always()
         "before valid-from midnight" | ExchangeRate.of(SettlementTestConfiguration.USD,
-                SettlementTestConfiguration.EUR, BigDecimal.ONE)                    | Validity.from(DATE.atStartOfDay().plusSeconds(1))
+                SettlementTestConfiguration.EUR, BigDecimal.ONE)                | Validity.from(DATE.atStartOfDay().plusSeconds(1))
         "after valid-until"          | ExchangeRate.of(SettlementTestConfiguration.USD,
-                SettlementTestConfiguration.EUR, BigDecimal.ONE)                    | Validity.until(DATE.minusDays(1).atStartOfDay())
+                SettlementTestConfiguration.EUR, BigDecimal.ONE)                | Validity.until(DATE.minusDays(1).atStartOfDay())
     }
 
     def "foreign #allocationName allocation resolves Shares in Settlement Currency"() {
@@ -125,18 +124,18 @@ class ForeignCurrencyExpensesSpec extends Specification {
         view.expenses().first().shares() == shares
 
         where:
-        allocationName | rate   | original            | allocation                                                                | valuation | shares
-        "equal"        | "0.95" | Money.of(10, "USD") | new EqualShareAllocation([CAL, BOB, ADA])                                 |
-                Money.of(9.50, "EUR")                                                                                                         | [new Share(CAL, Money.of(3.16, "EUR")),
-                                                                                                                                                 new Share(BOB, Money.of(3.17, "EUR")), new Share(ADA, Money.of(3.17, "EUR"))]
+        allocationName | rate   | original            | allocation                                | valuation                       | shares
+        "equal"        | "0.95" | Money.of(10, "USD") | new EqualShareAllocation([CAL, BOB, ADA]) |
+                Money.of(9.50, "EUR")                                                                                               | [new Share(CAL, Money.of(3.16, "EUR")),
+                                                                                                                                       new Share(BOB, Money.of(3.17, "EUR")), new Share(ADA, Money.of(3.17, "EUR"))]
         "weighted"     | "0.95" | Money.of(10, "USD") |
-                new WeightedShareAllocation(new LinkedHashMap([(CAL): 1, (BOB): 1, (ADA): 2]))                                    |
-                Money.of(9.50, "EUR")                                                                                                         | [new Share(CAL, Money.of(2.37, "EUR")),
-                                                                                                                                                 new Share(BOB, Money.of(2.38, "EUR")), new Share(ADA, Money.of(4.75, "EUR"))]
+                new WeightedShareAllocation(new LinkedHashMap([(CAL): 1, (BOB): 1, (ADA): 2]))    |
+                Money.of(9.50, "EUR")                                                                                               | [new Share(CAL, Money.of(2.37, "EUR")),
+                                                                                                                                       new Share(BOB, Money.of(2.38, "EUR")), new Share(ADA, Money.of(4.75, "EUR"))]
         "exact in USD" | "0.01" | Money.of(1, "USD")  |
                 new ExactShareAllocation(new LinkedHashMap([(CAL): Money.of(0.50, "USD"),
-                                                            (BOB): Money.of(0.50, "USD")]))                                       |
-                Money.of(0.01, "EUR")                                                                                                         | [new Share(BOB, Money.of(0.01, "EUR"))]
+                                                            (BOB): Money.of(0.50, "USD")]))       |
+                Money.of(0.01, "EUR")                                                                                               | [new Share(BOB, Money.of(0.01, "EUR"))]
     }
 
     def "recorded foreign Expense freezes original Money, selected Valuation and balances across replay"() {

@@ -59,9 +59,9 @@ class NettingPropertiesSpec extends Specification {
         int unbalanced = expected.values().count { !it.isZero() }.toInteger()
 
         return [
-            balancePreserved: actual == expected,
-            acyclic: acyclic(proposal),
-            withinEdgeBound: proposal.proposedRepayments().size() <= Math.max(0, unbalanced - 1)
+                balancePreserved: actual == expected,
+                acyclic         : acyclic(proposal),
+                withinEdgeBound : proposal.proposedRepayments().size() <= Math.max(0, unbalanced - 1)
         ]
     }
 

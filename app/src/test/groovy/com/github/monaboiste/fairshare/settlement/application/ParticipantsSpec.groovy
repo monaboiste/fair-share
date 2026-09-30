@@ -109,15 +109,15 @@ class ParticipantsSpec extends Specification {
 
         expect: "changes to an unknown Settlement or Participant are rejected and nothing is stored"
         configuration.commands.dispatch(new AddParticipant(configuration.UNKNOWN_ID, ADA, new ParticipantName("Ada")))
-            .getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
+                .getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
         configuration.commands.dispatch(new RenameParticipant(configuration.UNKNOWN_ID, ADA, new ParticipantName("Ada")))
-            .getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
+                .getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
         configuration.commands.dispatch(new RemoveParticipant(configuration.UNKNOWN_ID, ADA))
-            .getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
+                .getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
         configuration.commands.dispatch(new RenameParticipant(settlementId, ADA, new ParticipantName("Ada")))
-            .getFailure() == new ParticipantNotFound(settlementId, ADA)
+                .getFailure() == new ParticipantNotFound(settlementId, ADA)
         configuration.commands.dispatch(new RemoveParticipant(settlementId, ADA))
-            .getFailure() == new ParticipantNotFound(settlementId, ADA)
+                .getFailure() == new ParticipantNotFound(settlementId, ADA)
         configuration.store.load(settlementId).size() == 1
     }
 }

@@ -88,8 +88,8 @@ class ExpensesSpec extends Specification {
 
         when: "a 10.005 euro Expense is recorded with those Shares"
         def recorded = (ExpenseRecorded) configuration.commands.dispatch(
-            expenseWithAllocation(settlement, ADA, Money.of(10.005, "EUR"), allocation))
-            .getSuccess().events().first().payload()
+                expenseWithAllocation(settlement, ADA, Money.of(10.005, "EUR"), allocation))
+                .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         then: "the valued Shares are rounded to cents and shown in the view"
@@ -104,8 +104,8 @@ class ExpensesSpec extends Specification {
 
         when: "a one-cent Expense is recorded with that allocation"
         def recorded = (ExpenseRecorded) configuration.commands.dispatch(
-            expenseWithAllocation(settlement, ADA, Money.of(0.01, "EUR"), allocation))
-            .getSuccess().events().first().payload()
+                expenseWithAllocation(settlement, ADA, Money.of(0.01, "EUR"), allocation))
+                .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(settlement)).getSuccess()
 
         then: "all recipients are kept, but only the single non-zero Share is recorded"
@@ -128,30 +128,30 @@ class ExpensesSpec extends Specification {
         configuration.store.load(settlement).size() == version
 
         where:
-        caseName | amount | allocation | removeFirst | rejection
-        "exact currency" | Money.of(1, "EUR") | exact([(BOB): Money.of(1, "USD")]) | false |
-            { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
-        "mixed exact currencies" | Money.of(10, "EUR") |
-            exact([(CAL): Money.of(3, "USD"), (BOB): Money.of(7, "EUR")]) | false |
-            { id -> new ExactShareCurrencyMismatch(id, EXPENSE, CAL) }
-        "exact zero" | Money.of(1, "EUR") | exact([(BOB): Money.zero("EUR")]) | false |
-            { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
-        "exact negative" | Money.of(1, "EUR") | exact([(BOB): Money.of(-1, "EUR")]) | false |
-            { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
-        "exact sum" | Money.of(1, "EUR") | exact([(BOB): Money.of(1.001, "EUR")]) | false |
-            { id -> new ExactShareSumMismatch(id, EXPENSE) }
-        "weight zero" | Money.of(1, "EUR") | weighted([(BOB): 0]) | false |
-            { id -> new NonPositiveShareWeight(id, EXPENSE, BOB) }
-        "weight negative" | Money.of(1, "EUR") | weighted([(BOB): -1]) | false |
-            { id -> new NonPositiveShareWeight(id, EXPENSE, BOB) }
-        "empty exact" | Money.of(1, "EUR") | exact([:]) | false |
-            { id -> new EmptyShareAllocation(id, EXPENSE) }
-        "empty weighted" | Money.of(1, "EUR") | weighted([:]) | false |
-            { id -> new EmptyShareAllocation(id, EXPENSE) }
-        "unknown exact recipient" | Money.of(1, "EUR") | exact([(UNKNOWN): Money.of(1, "EUR")]) | false |
-            { id -> new ParticipantNotFound(id, UNKNOWN) }
-        "removed weighted recipient" | Money.of(1, "EUR") | weighted([(BOB): 1]) | true |
-            { id -> new ParticipantNotFound(id, BOB) }
+        caseName                     | amount              | allocation                             | removeFirst | rejection
+        "exact currency"             | Money.of(1, "EUR")  | exact([(BOB): Money.of(1, "USD")])     | false       |
+                { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
+        "mixed exact currencies"     | Money.of(10, "EUR") |
+                exact([(CAL): Money.of(3, "USD"), (BOB): Money.of(7, "EUR")])                       | false       |
+                { id -> new ExactShareCurrencyMismatch(id, EXPENSE, CAL) }
+        "exact zero"                 | Money.of(1, "EUR")  | exact([(BOB): Money.zero("EUR")])      | false       |
+                { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
+        "exact negative"             | Money.of(1, "EUR")  | exact([(BOB): Money.of(-1, "EUR")])    | false       |
+                { id -> new NonPositiveExactShare(id, EXPENSE, BOB) }
+        "exact sum"                  | Money.of(1, "EUR")  | exact([(BOB): Money.of(1.001, "EUR")]) | false       |
+                { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "weight zero"                | Money.of(1, "EUR")  | weighted([(BOB): 0])                   | false       |
+                { id -> new NonPositiveShareWeight(id, EXPENSE, BOB) }
+        "weight negative"            | Money.of(1, "EUR")  | weighted([(BOB): -1])                  | false       |
+                { id -> new NonPositiveShareWeight(id, EXPENSE, BOB) }
+        "empty exact"                | Money.of(1, "EUR")  | exact([:])                             | false       |
+                { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "empty weighted"             | Money.of(1, "EUR")  | weighted([:])                          | false       |
+                { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "unknown exact recipient"    | Money.of(1, "EUR")  | exact([(UNKNOWN): Money.of(1, "EUR")]) | false       |
+                { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "removed weighted recipient" | Money.of(1, "EUR")  | weighted([(BOB): 1])                   | true        |
+                { id -> new ParticipantNotFound(id, BOB) }
     }
 
     def "Share Allocation rejection favors #priority"() {
@@ -167,32 +167,32 @@ class ExpensesSpec extends Specification {
         configuration.store.load(settlement).size() == version
 
         where:
-        priority | amount | payer | allocation | rejection
-        "amount over empty exact" | Money.zero("EUR") | UNKNOWN | exact([:]) |
-            { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
-        "amount over invalid weight" | Money.zero("EUR") | UNKNOWN | weighted([(BOB): 0]) |
-            { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
-        "empty over invalid payer" | Money.of(1, "EUR") | UNKNOWN | weighted([:]) |
-            { id -> new EmptyShareAllocation(id, EXPENSE) }
+        priority                                       | amount             | payer   | allocation           | rejection
+        "amount over empty exact"                      | Money.zero("EUR")  | UNKNOWN | exact([:])           |
+                { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        "amount over invalid weight"                   | Money.zero("EUR")  | UNKNOWN | weighted([(BOB): 0]) |
+                { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        "empty over invalid payer"                     | Money.of(1, "EUR") | UNKNOWN | weighted([:])        |
+                { id -> new EmptyShareAllocation(id, EXPENSE) }
         "currency over positivity in same exact entry" | Money.of(1, "EUR") | UNKNOWN |
-            exact([(BOB): Money.zero("USD")]) | { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
-        "entry order over error type" | Money.of(1, "EUR") | UNKNOWN |
-            exact([(CAL): Money.zero("EUR"), (BOB): Money.of(1, "USD")]) |
-            { id -> new NonPositiveExactShare(id, EXPENSE, CAL) }
-        "weight order over payer" | Money.of(1, "EUR") | UNKNOWN |
-            weighted([(CAL): -1, (BOB): 0]) | { id -> new NonPositiveShareWeight(id, EXPENSE, CAL) }
-        "sum over payer" | Money.of(1, "EUR") | UNKNOWN |
-            exact([(BOB): Money.of(2, "EUR")]) | { id -> new ExactShareSumMismatch(id, EXPENSE) }
-        "sum over recipient" | Money.of(1, "EUR") | ADA |
-            exact([(UNKNOWN): Money.of(2, "EUR")]) | { id -> new ExactShareSumMismatch(id, EXPENSE) }
-        "payer over recipient" | Money.of(1, "EUR") | UNKNOWN |
-            exact([(UNKNOWN): Money.of(1, "EUR")]) | { id -> new ParticipantNotFound(id, UNKNOWN) }
-        "recipient over missing exchange rate" | Money.of(1, "USD") | ADA |
-            exact([(UNKNOWN): Money.of(1, "USD")]) | { id -> new ParticipantNotFound(id, UNKNOWN) }
-        "sum over missing exchange rate" | Money.of(1, "USD") | ADA |
-            exact([(BOB): Money.of(2, "USD")]) | { id -> new ExactShareSumMismatch(id, EXPENSE) }
-        "missing exchange rate after validation" | Money.of(1, "USD") | ADA |
-            weighted([(BOB): 1]) | { id -> new MissingExchangeRate(id, EXPENSE) }
+                exact([(BOB): Money.zero("USD")])                                                            | { id -> new ExactShareCurrencyMismatch(id, EXPENSE, BOB) }
+        "entry order over error type"                  | Money.of(1, "EUR") | UNKNOWN |
+                exact([(CAL): Money.zero("EUR"), (BOB): Money.of(1, "USD")])                                 |
+                { id -> new NonPositiveExactShare(id, EXPENSE, CAL) }
+        "weight order over payer"                      | Money.of(1, "EUR") | UNKNOWN |
+                weighted([(CAL): -1, (BOB): 0])                                                              | { id -> new NonPositiveShareWeight(id, EXPENSE, CAL) }
+        "sum over payer"                               | Money.of(1, "EUR") | UNKNOWN |
+                exact([(BOB): Money.of(2, "EUR")])                                                           | { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "sum over recipient"                           | Money.of(1, "EUR") | ADA     |
+                exact([(UNKNOWN): Money.of(2, "EUR")])                                                       | { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "payer over recipient"                         | Money.of(1, "EUR") | UNKNOWN |
+                exact([(UNKNOWN): Money.of(1, "EUR")])                                                       | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "recipient over missing exchange rate"         | Money.of(1, "USD") | ADA     |
+                exact([(UNKNOWN): Money.of(1, "USD")])                                                       | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "sum over missing exchange rate"               | Money.of(1, "USD") | ADA     |
+                exact([(BOB): Money.of(2, "USD")])                                                           | { id -> new ExactShareSumMismatch(id, EXPENSE) }
+        "missing exchange rate after validation"       | Money.of(1, "USD") | ADA     |
+                weighted([(BOB): 1])                                                                         | { id -> new MissingExchangeRate(id, EXPENSE) }
     }
 
     def "used Expense identifiers conflict regardless of allocation or validity"() {
@@ -204,19 +204,19 @@ class ExpensesSpec extends Specification {
 
         when: "the Expense is retried identically, reordered, with other weights, as exact Shares, and invalid"
         def identical = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
-            Money.of(new BigDecimal("10.00"), "EUR"), weighted([(CAL): 2, (BOB): 2])))
+                Money.of(new BigDecimal("10.00"), "EUR"), weighted([(CAL): 2, (BOB): 2])))
         def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
-            Money.of(10, "EUR"), weighted([(BOB): 2, (CAL): 2])))
+                Money.of(10, "EUR"), weighted([(BOB): 2, (CAL): 2])))
         def literalChange = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
-            Money.of(10, "EUR"), weighted([(CAL): 1, (BOB): 1])))
+                Money.of(10, "EUR"), weighted([(CAL): 1, (BOB): 1])))
         def typeChange = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
-            Money.of(10, "EUR"), exact([(CAL): Money.of(5, "EUR"), (BOB): Money.of(5, "EUR")])))
+                Money.of(10, "EUR"), exact([(CAL): Money.of(5, "EUR"), (BOB): Money.of(5, "EUR")])))
         def invalidRetry = configuration.commands.dispatch(expenseWithAllocation(settlement, UNKNOWN,
-            Money.zero("EUR"), weighted([:])))
+                Money.zero("EUR"), weighted([:])))
 
         then: "every reused identifier conflicts and nothing is recorded"
         [identical, reordered, literalChange, typeChange, invalidRetry]*.getFailure() ==
-            [new ExpenseIdentifierConflict(settlement, EXPENSE)] * 5
+                [new ExpenseIdentifierConflict(settlement, EXPENSE)] * 5
         configuration.store.load(settlement).size() == version
     }
 
@@ -224,16 +224,16 @@ class ExpensesSpec extends Specification {
         given: "a Settlement with a recorded Expense using exact Shares of 4 and 6 euros"
         def settlement = withParticipants()
         configuration.commands.dispatch(expenseWithAllocation(settlement, ADA, Money.of(10, "EUR"),
-            exact([(CAL): Money.of(4, "EUR"), (BOB): Money.of(6, "EUR")])))
+                exact([(CAL): Money.of(4, "EUR"), (BOB): Money.of(6, "EUR")])))
         def version = configuration.store.load(settlement).size()
 
         when: "the Expense is retried with the same amounts at other scales, and with its Shares reordered"
         def retry = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
-            Money.of(new BigDecimal("10.00"), "EUR"), exact([
+                Money.of(new BigDecimal("10.00"), "EUR"), exact([
                 (CAL): Money.of(new BigDecimal("4.00"), "EUR"), (BOB): Money.of(new BigDecimal("6.0"), "EUR")
-            ])))
+        ])))
         def reordered = configuration.commands.dispatch(expenseWithAllocation(settlement, ADA,
-            Money.of(10, "EUR"), exact([(BOB): Money.of(6, "EUR"), (CAL): Money.of(4, "EUR")])))
+                Money.of(10, "EUR"), exact([(BOB): Money.of(6, "EUR"), (CAL): Money.of(4, "EUR")])))
 
         then: "both submissions conflict"
         retry.getFailure() == new ExpenseIdentifierConflict(settlement, EXPENSE)
@@ -255,10 +255,10 @@ class ExpensesSpec extends Specification {
 
         when: "new views are built from the copies and the copies are then cleared"
         def copiedExpense = new ExpenseView(frozen.id(), frozen.description(), frozen.incurredOn(), frozen.payer(),
-            frozen.originalAmount(), frozen.allocation(), frozen.componentVersionId(), frozen.exchangeRate(),
-            frozen.valuation(), shares, frozen.status())
+                frozen.originalAmount(), frozen.allocation(), frozen.componentVersionId(), frozen.exchangeRate(),
+                frozen.valuation(), shares, frozen.status())
         def copiedSettlement = new SettlementView(original.id(), original.name(), original.currency(),
-            original.version(), participants, expenses, original.repayments(), obligations, balances, original.exchangeRates())
+                original.version(), participants, expenses, original.repayments(), obligations, balances, original.exchangeRates())
         shares.clear()
         participants.clear()
         expenses.clear()
@@ -310,15 +310,15 @@ class ExpensesSpec extends Specification {
         configuration.store.load(settlement).size() == previous
 
         where:
-        payer | amount                 | recipients  | removeFirst | rejection
-        ADA   | Money.of(1, "EUR")     | []          | false       | { id -> new EmptyShareAllocation(id, EXPENSE) }
-        ADA   | Money.zero("EUR")      | [BOB]       | false       | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
-        ADA   | Money.of(-1, "EUR")    | [BOB]       | false       | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
-        UNKNOWN | Money.of(1, "EUR")   | [BOB]       | false       | { id -> new ParticipantNotFound(id, UNKNOWN) }
-        ADA   | Money.of(1, "EUR")     | [UNKNOWN]   | false       | { id -> new ParticipantNotFound(id, UNKNOWN) }
-        BOB   | Money.of(1, "EUR")     | [ADA]       | true        | { id -> new ParticipantNotFound(id, BOB) }
-        ADA   | Money.of(1, "EUR")     | [BOB]       | true        | { id -> new ParticipantNotFound(id, BOB) }
-        ADA   | Money.of(1, "USD")     | [BOB]       | false       | { id -> new MissingExchangeRate(id, EXPENSE) }
+        payer   | amount              | recipients | removeFirst | rejection
+        ADA     | Money.of(1, "EUR")  | []         | false       | { id -> new EmptyShareAllocation(id, EXPENSE) }
+        ADA     | Money.zero("EUR")   | [BOB]      | false       | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        ADA     | Money.of(-1, "EUR") | [BOB]      | false       | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        UNKNOWN | Money.of(1, "EUR")  | [BOB]      | false       | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        ADA     | Money.of(1, "EUR")  | [UNKNOWN]  | false       | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        BOB     | Money.of(1, "EUR")  | [ADA]      | true        | { id -> new ParticipantNotFound(id, BOB) }
+        ADA     | Money.of(1, "EUR")  | [BOB]      | true        | { id -> new ParticipantNotFound(id, BOB) }
+        ADA     | Money.of(1, "USD")  | [BOB]      | false       | { id -> new MissingExchangeRate(id, EXPENSE) }
     }
 
     def "Expense rejection favors #priority"() {
@@ -334,11 +334,11 @@ class ExpensesSpec extends Specification {
         configuration.store.load(settlement).size() == version
 
         where:
-        priority                       | amount             | payer   | recipients | rejection
-        "non-positive over empty"      | Money.zero("EUR")  | ADA     | []         | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
-        "empty over unknown payer"     | Money.of(1, "EUR") | UNKNOWN | []         | { id -> new EmptyShareAllocation(id, EXPENSE) }
-        "unknown payer over currency"  | Money.of(1, "USD") | UNKNOWN | [BOB]      | { id -> new ParticipantNotFound(id, UNKNOWN) }
-        "unknown recipient over currency" | Money.of(1, "USD") | ADA | [UNKNOWN] | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        priority                          | amount             | payer   | recipients | rejection
+        "non-positive over empty"         | Money.zero("EUR")  | ADA     | []         | { id -> new NonPositiveExpenseAmount(id, EXPENSE) }
+        "empty over unknown payer"        | Money.of(1, "EUR") | UNKNOWN | []         | { id -> new EmptyShareAllocation(id, EXPENSE) }
+        "unknown payer over currency"     | Money.of(1, "USD") | UNKNOWN | [BOB]      | { id -> new ParticipantNotFound(id, UNKNOWN) }
+        "unknown recipient over currency" | Money.of(1, "USD") | ADA     | [UNKNOWN]  | { id -> new ParticipantNotFound(id, UNKNOWN) }
     }
 
     def "dispatched reused Expense identifiers always conflict after repository reload"() {
@@ -349,7 +349,7 @@ class ExpensesSpec extends Specification {
 
         when: "the Expense is retried as 10.00 euros, and then as 11 euros"
         def retry = configuration.commands.dispatch(expense(settlement, ADA,
-            Money.of(new BigDecimal("10.00"), "EUR"), [BOB]))
+                Money.of(new BigDecimal("10.00"), "EUR"), [BOB]))
         def conflict = configuration.commands.dispatch(expense(settlement, ADA, Money.of(11, "EUR"), [BOB]))
 
         then: "equal and changed amounts both conflict without appending"
@@ -407,13 +407,13 @@ class ExpensesSpec extends Specification {
         then: "the payer and the zero-Share recipient stay, only Dex is removed, and the Balances follow"
         beforeRemoval.balances().entrySet().toList()*.key == [ADA, BOB, CAL, DEX]
         beforeRemoval.balances().entrySet().toList()*.value ==
-            [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR"), Money.zero("EUR")]
+                [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR"), Money.zero("EUR")]
         payerRemoval.getFailure() == new ParticipantReferenced(settlement, ADA)
         zeroShareRemoval.getFailure() == new ParticipantReferenced(settlement, CAL)
         unrelatedRemoval.getSuccess().events().size() == 1
         afterRemoval.balances().entrySet().toList()*.key == [ADA, BOB, CAL]
         afterRemoval.balances().entrySet().toList()*.value ==
-            [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR")]
+                [Money.of(0.01, "EUR"), Money.of(-0.01, "EUR"), Money.zero("EUR")]
         configuration.store.load(settlement).size() == 7
     }
 
@@ -424,7 +424,7 @@ class ExpensesSpec extends Specification {
         then: "it is rejected and no Settlement history exists"
         result.getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
         configuration.queries.dispatch(new GetSettlementHistory(configuration.UNKNOWN_ID)).getFailure() ==
-            new SettlementNotFound(configuration.UNKNOWN_ID)
+                new SettlementNotFound(configuration.UNKNOWN_ID)
     }
 
     def "Expense descriptions reject blank input"() {
@@ -448,7 +448,7 @@ class ExpensesSpec extends Specification {
 
     private static RecordExpense expense(settlement, payer, amount, recipients) {
         new RecordExpense(settlement, EXPENSE, new ExpenseDescription("Lunch"), DATE, payer, amount,
-            new EqualShareAllocation(recipients))
+                new EqualShareAllocation(recipients))
     }
 
     private static ExactShareAllocation exact(Map amounts) {

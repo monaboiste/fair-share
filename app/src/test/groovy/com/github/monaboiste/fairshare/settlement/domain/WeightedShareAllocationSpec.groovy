@@ -19,7 +19,7 @@ class WeightedShareAllocationSpec extends Specification {
         thrown(NullPointerException)
 
         where:
-        missingValue | incomplete
+        missingValue        | incomplete
         "missing recipient" | [(null): 1]
         "missing weight"    | [(ADA): null]
     }
@@ -27,7 +27,7 @@ class WeightedShareAllocationSpec extends Specification {
     def "weighted Shares rank exact remainders and identifier ties in #currency"() {
         given: "a weighted Share Allocation of one, two and one"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (CAL): 1, (BOB): 2, (ADA): 1
+                (CAL): 1, (BOB): 2, (ADA): 1
         ]))
 
         when: "a total in the currency is divided into Shares"
@@ -48,20 +48,20 @@ class WeightedShareAllocationSpec extends Specification {
     def "largest remainder beats identifier order"() {
         given: "a weighted Share Allocation of five, three and two"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (CAL): 5, (BOB): 3, (ADA): 2
+                (CAL): 5, (BOB): 3, (ADA): 2
         ]))
 
         expect: "the leftover cent goes to the largest remainder rather than by Participant identifier"
         allocation.resolve(Money.of(0.07, "EUR")) == [
-            new Share(CAL, Money.of(0.04, "EUR")), new Share(BOB, Money.of(0.02, "EUR")),
-            new Share(ADA, Money.of(0.01, "EUR"))
+                new Share(CAL, Money.of(0.04, "EUR")), new Share(BOB, Money.of(0.02, "EUR")),
+                new Share(ADA, Money.of(0.01, "EUR"))
         ]
     }
 
     def "large weight totals do not overflow"() {
         given: "a weighted Share Allocation whose weights add up to more than the largest supported whole number"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (BOB): Integer.MAX_VALUE, (ADA): 1, (CAL): Integer.MAX_VALUE
+                (BOB): Integer.MAX_VALUE, (ADA): 1, (CAL): Integer.MAX_VALUE
         ]))
 
         when: "three cents are divided into Shares"
@@ -74,7 +74,7 @@ class WeightedShareAllocationSpec extends Specification {
     def "zero Shares are omitted without removing recipients"() {
         given: "a weighted Share Allocation among three Participants"
         def allocation = new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (CAL): 1, (BOB): 1, (ADA): 2
+                (CAL): 1, (BOB): 1, (ADA): 2
         ]))
 
         when: "a single cent is divided into Shares"
@@ -102,10 +102,10 @@ class WeightedShareAllocationSpec extends Specification {
         allocation != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([(BOB): 2, (CAL): 2]))
         allocation.recipients().toList() == [CAL, BOB]
         allocation.hashCode() != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (CAL): 1, (BOB): 2
+                (CAL): 1, (BOB): 2
         ])).hashCode()
         allocation.hashCode() != new WeightedShareAllocation(new LinkedHashMap<ParticipantId, Integer>([
-            (BOB): 2, (CAL): 2
+                (BOB): 2, (CAL): 2
         ])).hashCode()
 
         when: "its weights are changed afterwards"

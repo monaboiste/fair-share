@@ -26,7 +26,7 @@ class GetSettlementHistoryHandlerSpec extends Specification {
 
         when: "its history is requested"
         List<EventEnvelope<SettlementId, SettlementEvent>> history = configuration.historyHandler
-            .handle(new GetSettlementHistory(id)).getSuccess()
+                .handle(new GetSettlementHistory(id)).getSuccess()
 
         then: "the opening and the rename come back in order with distinct identities, types and timestamps"
         history*.streamId() == [id, id]

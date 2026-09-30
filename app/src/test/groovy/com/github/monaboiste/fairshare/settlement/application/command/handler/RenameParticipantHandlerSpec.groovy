@@ -29,7 +29,7 @@ class RenameParticipantHandlerSpec extends Specification {
 
         when: "Ada is renamed to Alex"
         def commit = configuration.renameParticipantHandler.handle(
-            new RenameParticipant(id, ADA, new ParticipantName("Alex"))).getSuccess()
+                new RenameParticipant(id, ADA, new ParticipantName("Alex"))).getSuccess()
 
         then: "the commit carries one Participant rename at the next version, stamped with the current time"
         commit.streamId() == id
@@ -72,7 +72,7 @@ class RenameParticipantHandlerSpec extends Specification {
     def "renaming in an unknown Settlement rejects without creating a stream"() {
         when: "a Participant is renamed in a Settlement that does not exist"
         def result = configuration.renameParticipantHandler.handle(
-            new RenameParticipant(UNKNOWN_ID, ADA, new ParticipantName("Alex")))
+                new RenameParticipant(UNKNOWN_ID, ADA, new ParticipantName("Alex")))
 
         then: "it is rejected as not found and no stream is created"
         result.getFailure() == new SettlementNotFound(UNKNOWN_ID)
@@ -86,7 +86,10 @@ class RenameParticipantHandlerSpec extends Specification {
         configuration.renameParticipantHandler.handle(new RenameParticipant(id, ADA, new ParticipantName("Winner")))
         SettlementRepository outdated = new SettlementRepository() {
             Optional<Settlement> findById(SettlementId lookupId) { Optional.of(stale) }
-            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { configuration.repository.save(settlement) }
+
+            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) {
+                configuration.repository.save(settlement)
+            }
         }
 
         when: "the outdated handler renames the Participant to Loser"
