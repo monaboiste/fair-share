@@ -34,7 +34,7 @@ class ObligationsSpec extends Specification {
     def "signed balances include uninvolved participants and sum to zero"() {
         given: "a single Obligation in US dollars among three Participants"
         def obligations = Obligations.of(["ada", "bob", "cal"] as Set,
-            [new Obligation<>("ada", "bob", Money.of(10, "USD"))], USD)
+                [new Obligation<>("ada", "bob", Money.of(10, "USD"))], USD)
 
         when: "signed Balances are derived"
         def balances = obligations.signedBalances()
@@ -85,7 +85,7 @@ class ObligationsSpec extends Specification {
 
         where:
         missing        | participants   | obligations
-        "participants" | null           | List.<Obligation<String>>of()
+        "participants" | null           | List.<Obligation<String>> of()
         "obligations"  | ["ada"] as Set | null
     }
 }

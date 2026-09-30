@@ -71,7 +71,10 @@ class RenameSettlementHandlerSpec extends Specification {
         configuration.renameHandler.handle(new RenameSettlement(id, new SettlementName("Winner")))
         SettlementRepository outdated = new SettlementRepository() {
             Optional<Settlement> findById(SettlementId lookupId) { Optional.of(stale) }
-            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) { configuration.repository.save(settlement) }
+
+            CommitResult<SettlementId, SettlementEvent> save(Settlement settlement) {
+                configuration.repository.save(settlement)
+            }
         }
 
         when: "the outdated handler renames it to Loser"

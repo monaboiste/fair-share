@@ -19,7 +19,7 @@ class ExactShareAllocationSpec extends Specification {
         thrown(NullPointerException)
 
         where:
-        missingValue | incomplete
+        missingValue        | incomplete
         "missing recipient" | [(null): Money.of(1, "EUR")]
         "missing amount"    | [(ADA): null]
     }
@@ -27,8 +27,8 @@ class ExactShareAllocationSpec extends Specification {
     def "sub-unit exact amounts apportion valued #currency without intermediate rounding"() {
         given: "an exact Share Allocation with amounts smaller than the currency's smallest unit"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(calShare, currency), (BOB): Money.of(bobShare, currency),
-            (ADA): Money.of(adaShare, currency)
+                (CAL): Money.of(calShare, currency), (BOB): Money.of(bobShare, currency),
+                (ADA): Money.of(adaShare, currency)
         ]))
 
         when: "a Valuation in that currency is divided into Shares"
@@ -49,21 +49,21 @@ class ExactShareAllocationSpec extends Specification {
     def "exact largest remainder outranks Participant identifier"() {
         given: "an exact Share Allocation whose amounts leave different remainders"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(0.005, "EUR"), (BOB): Money.of(0.003, "EUR"),
-            (ADA): Money.of(0.002, "EUR")
+                (CAL): Money.of(0.005, "EUR"), (BOB): Money.of(0.003, "EUR"),
+                (ADA): Money.of(0.002, "EUR")
         ]))
 
         expect: "the leftover cent goes to the largest remainder rather than by Participant identifier"
         allocation.resolve(Money.of(0.07, "EUR")) == [
-            new Share(CAL, Money.of(0.04, "EUR")), new Share(BOB, Money.of(0.02, "EUR")),
-            new Share(ADA, Money.of(0.01, "EUR"))
+                new Share(CAL, Money.of(0.04, "EUR")), new Share(BOB, Money.of(0.02, "EUR")),
+                new Share(ADA, Money.of(0.01, "EUR"))
         ]
     }
 
     def "exact proportions use valuation rather than the original amount"() {
         given: "an exact Share Allocation of five euros and of five euros and half a cent"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")
+                (CAL): Money.of(5, "EUR"), (BOB): Money.of(5.005, "EUR")
         ]))
 
         when: "a Valuation of ten euros and one cent is divided into Shares"
@@ -76,7 +76,7 @@ class ExactShareAllocationSpec extends Specification {
     def "exact amounts in one currency apportion a Valuation in another"() {
         given: "an exact Share Allocation defined in US dollars"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(3, "USD"), (BOB): Money.of(7, "USD")
+                (CAL): Money.of(3, "USD"), (BOB): Money.of(7, "USD")
         ]))
 
         when: "a Valuation in euros is divided into Shares"
@@ -90,7 +90,7 @@ class ExactShareAllocationSpec extends Specification {
     def "mixed-currency exact amounts cannot be resolved"() {
         given: "an exact Share Allocation mixing US dollars and euros"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(3, "USD"), (BOB): Money.of(7, "EUR")
+                (CAL): Money.of(3, "USD"), (BOB): Money.of(7, "EUR")
         ]))
 
         when: "a Valuation is divided into Shares"
@@ -103,7 +103,7 @@ class ExactShareAllocationSpec extends Specification {
     def "exact allocation omits zero Shares and retains ordered recipients"() {
         given: "an exact Share Allocation among three Participants"
         def allocation = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(1, "EUR"), (BOB): Money.of(1, "EUR"), (ADA): Money.of(2, "EUR")
+                (CAL): Money.of(1, "EUR"), (BOB): Money.of(1, "EUR"), (ADA): Money.of(2, "EUR")
         ]))
 
         when: "a single cent is divided into Shares"
@@ -120,7 +120,7 @@ class ExactShareAllocationSpec extends Specification {
         def allocation = new ExactShareAllocation(source)
         source[ADA] = Money.of(1, "EUR")
         def identical = new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(new BigDecimal("10.00"), "EUR"), (BOB): Money.of(new BigDecimal("2.0"), "EUR")
+                (CAL): Money.of(new BigDecimal("10.00"), "EUR"), (BOB): Money.of(new BigDecimal("2.0"), "EUR")
         ]))
 
         when: "their identities are compared"
@@ -130,20 +130,20 @@ class ExactShareAllocationSpec extends Specification {
         allocation == identical
         sameHash
         allocation != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (BOB): Money.of(2, "EUR"), (CAL): Money.of(10, "EUR")
+                (BOB): Money.of(2, "EUR"), (CAL): Money.of(10, "EUR")
         ]))
         allocation != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(10, "USD"), (BOB): Money.of(2, "EUR")
+                (CAL): Money.of(10, "USD"), (BOB): Money.of(2, "EUR")
         ]))
         allocation.recipients().toList() == [CAL, BOB]
         allocation != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(10, "EUR")
+                (CAL): Money.of(10, "EUR")
         ]))
         allocation.hashCode() != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (BOB): Money.of(2, "EUR"), (CAL): Money.of(10, "EUR")
+                (BOB): Money.of(2, "EUR"), (CAL): Money.of(10, "EUR")
         ])).hashCode()
         allocation.hashCode() != new ExactShareAllocation(new LinkedHashMap<ParticipantId, Money>([
-            (CAL): Money.of(11, "EUR"), (BOB): Money.of(2, "EUR")
+                (CAL): Money.of(11, "EUR"), (BOB): Money.of(2, "EUR")
         ])).hashCode()
 
         when: "its amounts are changed afterwards"

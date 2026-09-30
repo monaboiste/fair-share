@@ -2,7 +2,6 @@ package com.github.monaboiste.fairshare.valuation
 
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId
 import com.github.monaboiste.fairshare.pricing.component.Validity
-import com.github.monaboiste.fairshare.valuation.ExchangeRateVersions
 import java.time.LocalDateTime
 import javax.money.CurrencyUnit
 import javax.money.Monetary
@@ -48,10 +47,10 @@ class ExchangeRateVersionsSpec extends Specification {
                 Validity.from(LocalDateTime.parse("2025-01-01T00:00:00")),
                 LocalDateTime.parse("2024-12-01T00:00:00"))
         ExchangeRateVersion unrelated = new ExchangeRateVersion(
-                        componentVersionId("00000000-0000-0000-0000-000000000002"),
-                        ExchangeRate.of(Monetary.getCurrency("GBP"), PLN, 5.0),
-                        Validity.from(LocalDateTime.parse("2025-02-01T00:00:00")),
-                        LocalDateTime.parse("2025-01-01T00:00:00"))
+                componentVersionId("00000000-0000-0000-0000-000000000002"),
+                ExchangeRate.of(Monetary.getCurrency("GBP"), PLN, 5.0),
+                Validity.from(LocalDateTime.parse("2025-02-01T00:00:00")),
+                LocalDateTime.parse("2025-01-01T00:00:00"))
         ExchangeRateVersions versions = ExchangeRateVersions.from([matching, unrelated])
 
         when: "the applicable euro-to-zloty version is looked up"
@@ -141,9 +140,9 @@ class ExchangeRateVersionsSpec extends Specification {
         def midnight = LocalDateTime.parse("2026-09-27T00:00:00")
         def noon = LocalDateTime.parse("2026-09-27T12:00:00")
         def base = exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
-            Validity.until(midnight), midnight.minusDays(1))
+                Validity.until(midnight), midnight.minusDays(1))
         def newer = exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5",
-            Validity.from(noon), midnight.minusDays(2))
+                Validity.from(noon), midnight.minusDays(2))
         ExchangeRateVersions versions = ExchangeRateVersions.from([base, newer])
 
         when: "the applicable version is looked up at midnight and at noon"
@@ -161,10 +160,10 @@ class ExchangeRateVersionsSpec extends Specification {
         given: "a version that ends and another that starts two days later"
         def end = LocalDateTime.parse("2026-09-26T23:59:59")
         def versions = ExchangeRateVersions.from([
-            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
-                Validity.until(end), end.minusDays(1)),
-            exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5",
-                Validity.from(end.plusDays(2)), end.minusDays(1))
+                exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
+                        Validity.until(end), end.minusDays(1)),
+                exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5",
+                        Validity.from(end.plusDays(2)), end.minusDays(1))
         ])
 
         when: "the applicable version is looked up one second after the first ends"
@@ -178,10 +177,10 @@ class ExchangeRateVersionsSpec extends Specification {
         given: "two euro-to-zloty Exchange Rate versions with the same validity and different values"
         Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
         ExchangeRateVersions versions = ExchangeRateVersions.from([
-            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0", validity,
-                LocalDateTime.parse("2024-12-01T00:00:00")),
-            exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5", validity,
-                LocalDateTime.parse("2024-12-01T00:00:00"))
+                exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0", validity,
+                        LocalDateTime.parse("2024-12-01T00:00:00")),
+                exchangeRateVersion("00000000-0000-0000-0000-000000000002", "4.5", validity,
+                        LocalDateTime.parse("2024-12-01T00:00:00"))
         ])
 
         when: "the latest version with that validity is looked up"
@@ -196,13 +195,13 @@ class ExchangeRateVersionsSpec extends Specification {
         given: "a euro-to-zloty Exchange Rate version followed by an unrelated pound-to-zloty one"
         Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
         ExchangeRateVersions versions = ExchangeRateVersions.from([
-            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0", validity,
-                LocalDateTime.parse("2024-12-01T00:00:00")),
-            new ExchangeRateVersion(componentVersionId("00000000-0000-0000-0000-000000000002"),
-                ExchangeRate.of(Monetary.getCurrency("GBP"), PLN, 9.9),
-                Validity.between(LocalDateTime.parse("2025-03-01T00:00:00"),
-                    LocalDateTime.parse("2025-03-15T00:00:00")),
-                LocalDateTime.parse("2024-12-01T00:00:00"))
+                exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0", validity,
+                        LocalDateTime.parse("2024-12-01T00:00:00")),
+                new ExchangeRateVersion(componentVersionId("00000000-0000-0000-0000-000000000002"),
+                        ExchangeRate.of(Monetary.getCurrency("GBP"), PLN, 9.9),
+                        Validity.between(LocalDateTime.parse("2025-03-01T00:00:00"),
+                                LocalDateTime.parse("2025-03-15T00:00:00")),
+                        LocalDateTime.parse("2024-12-01T00:00:00"))
         ])
 
         when: "the latest euro-to-zloty version with that validity is looked up"
@@ -217,8 +216,8 @@ class ExchangeRateVersionsSpec extends Specification {
         given: "a single Exchange Rate version valid at all times"
         Validity validity = Validity.from(LocalDateTime.parse("2025-01-01T00:00:00"))
         ExchangeRateVersions versions = ExchangeRateVersions.from([
-            exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
-                Validity.always(), LocalDateTime.parse("2024-12-01T00:00:00"))
+                exchangeRateVersion("00000000-0000-0000-0000-000000000001", "4.0",
+                        Validity.always(), LocalDateTime.parse("2024-12-01T00:00:00"))
         ])
 
         when: "the latest version with a different validity is looked up"

@@ -7,7 +7,6 @@ import com.github.monaboiste.fairshare.common.events.VersionConflictException;
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
 import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDetails;
-import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
@@ -23,9 +22,8 @@ import java.util.function.Supplier;
 /**
  * Records a valued Expense in an existing Settlement.
  *
- * <p>An identical retry succeeds without an envelope or version change; changed data rejects with
- * {@link ExpenseIdentifierConflict}. Invalid Expenses return typed rejections, and an unknown Settlement returns
- * {@link SettlementNotFound}. Concurrent commits throw {@link VersionConflictException}.
+ * <p>Every reused Expense identifier rejects. Invalid Expenses return typed rejections, and an unknown Settlement
+ * returns {@link SettlementNotFound}. Concurrent commits throw {@link VersionConflictException}.
  */
 public final class RecordExpenseHandler
         implements CommandHandler<RecordExpense, SettlementRejection, CommitResult<SettlementId, SettlementEvent>> {

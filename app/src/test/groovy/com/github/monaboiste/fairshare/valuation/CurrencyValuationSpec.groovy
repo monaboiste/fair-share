@@ -123,9 +123,9 @@ class CurrencyValuationSpec extends Specification {
         thrown(IllegalArgumentException)
 
         where:
-        label                | sourceCurrency | targetCurrency
-        "source only mismatch" | EUR        | JPY
-        "target only mismatch" | USD        | EUR
+        label                  | sourceCurrency | targetCurrency
+        "source only mismatch" | EUR            | JPY
+        "target only mismatch" | USD            | EUR
     }
 
     def "rejects an Exchange Rate with #description value"() {
@@ -136,9 +136,9 @@ class CurrencyValuationSpec extends Specification {
         thrown(IllegalArgumentException)
 
         where:
-        description                       | value
-        "zero"                            | "0"
-        "negative"                        | "-1"
+        description                      | value
+        "zero"                           | "0"
+        "negative"                       | "-1"
         "excessive fractional precision" | "1.1234567890123"
         "excessive trailing precision"   | "1.0000000000000"
     }

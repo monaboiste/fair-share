@@ -11,14 +11,18 @@ import com.github.monaboiste.fairshare.settlement.application.query.ParticipantV
 import com.github.monaboiste.fairshare.settlement.application.query.RepaymentView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView;
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementViews;
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseId;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId;
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.Share;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured;
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
@@ -101,7 +105,11 @@ public final class SettlementProjector
                         retired);
             }
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
+            case ExpenseCancelled(var expenseId) ->
+                cancelExpense(requireSettlement(previous), retired, event, expenseId);
             case RepaymentRecorded recorded -> recordRepayment(requireSettlement(previous), retired, event, recorded);
+            case RepaymentCancelled(var repaymentId) ->
+                cancelRepayment(requireSettlement(previous), retired, event, repaymentId);
             case ExchangeRateConfigured configured -> {
                 SettlementView view = requireSettlement(previous);
                 List<ExchangeRateVersion> rates = new ArrayList<>(view.exchangeRates());
@@ -261,14 +269,58 @@ public final class SettlementProjector
                 recorded.shares(),
                 ExpenseView.Status.ACTIVE));
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        for (Share share : recorded.shares()) {
-            if (!share.participantId().equals(recorded.payer())) {
-                obligations.add(new Obligation<>(share.participantId(), recorded.payer(), share.amount()));
-            }
-        }
+        obligations.addAll(expenseContributions(recorded.payer(), recorded.shares()));
         return new Projection(
                 updated(previous, event, previous.participants(), List.copyOf(expenses), List.copyOf(obligations)),
                 retired);
+    }
+
+    private static Projection cancelExpense(
+            SettlementView previous,
+            Set<ParticipantId> retired,
+            EventEnvelope<SettlementId, SettlementEvent> event,
+            ExpenseId expenseId) {
+        ExpenseView original = previous.expenses().stream()
+                .filter(expense -> expense.id().equals(expenseId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Expense missing for cancellation"));
+        if (original.status() != ExpenseView.Status.ACTIVE) {
+            throw new IllegalStateException("Expense already cancelled");
+        }
+        List<ExpenseView> expenses = previous.expenses().stream()
+                .map(expense -> expense.id().equals(expenseId)
+                        ? new ExpenseView(
+                                expense.id(),
+                                expense.description(),
+                                expense.incurredOn(),
+                                expense.payer(),
+                                expense.originalAmount(),
+                                expense.allocation(),
+                                expense.componentVersionId(),
+                                expense.exchangeRate(),
+                                expense.valuation(),
+                                expense.shares(),
+                                ExpenseView.Status.CANCELLED)
+                        : expense)
+                .toList();
+        List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
+        for (Obligation<ParticipantId> contribution : expenseContributions(original.payer(), original.shares())) {
+            if (!obligations.remove(contribution)) {
+                throw new IllegalStateException("Expense Obligation missing for cancellation");
+            }
+        }
+        return new Projection(
+                updated(previous, event, previous.participants(), expenses, List.copyOf(obligations)), retired);
+    }
+
+    private static List<Obligation<ParticipantId>> expenseContributions(ParticipantId payer, List<Share> shares) {
+        List<Obligation<ParticipantId>> contributions = new ArrayList<>();
+        for (Share share : shares) {
+            if (!share.participantId().equals(payer)) {
+                contributions.add(new Obligation<>(share.participantId(), payer, share.amount()));
+            }
+        }
+        return contributions;
     }
 
     private static Projection recordRepayment(
@@ -296,10 +348,53 @@ public final class SettlementProjector
                 recorded.amount(),
                 RepaymentView.Status.ACTIVE));
         List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        obligations.add(new Obligation<>(recorded.recipient(), recorded.payer(), recorded.amount()));
+        obligations.add(repaymentContribution(recorded.payer(), recorded.recipient(), recorded.amount()));
         return new Projection(
                 updated(previous, event, previous.participants(), previous.expenses(), repayments, obligations),
                 retired);
+    }
+
+    private static Projection cancelRepayment(
+            SettlementView previous,
+            Set<ParticipantId> retired,
+            EventEnvelope<SettlementId, SettlementEvent> event,
+            RepaymentId repaymentId) {
+        RepaymentView original = previous.repayments().stream()
+                .filter(repayment -> repayment.id().equals(repaymentId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Repayment missing for cancellation"));
+        if (original.status() != RepaymentView.Status.ACTIVE) {
+            throw new IllegalStateException("Repayment already cancelled");
+        }
+        List<RepaymentView> repayments = previous.repayments().stream()
+                .map(repayment -> repayment.id().equals(repaymentId)
+                        ? new RepaymentView(
+                                repayment.id(),
+                                repayment.paidOn(),
+                                repayment.payer(),
+                                repayment.recipient(),
+                                repayment.amount(),
+                                RepaymentView.Status.CANCELLED)
+                        : repayment)
+                .toList();
+        List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
+        if (!obligations.remove(repaymentContribution(original.payer(), original.recipient(), original.amount()))) {
+            throw new IllegalStateException("Repayment Obligation missing for cancellation");
+        }
+        return new Projection(
+                updated(
+                        previous,
+                        event,
+                        previous.participants(),
+                        previous.expenses(),
+                        repayments,
+                        List.copyOf(obligations)),
+                retired);
+    }
+
+    private static Obligation<ParticipantId> repaymentContribution(
+            ParticipantId payer, ParticipantId recipient, Money amount) {
+        return new Obligation<>(recipient, payer, amount);
     }
 
     private static SettlementView requireSettlement(@Nullable SettlementView view) {

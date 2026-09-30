@@ -11,12 +11,15 @@ import com.github.monaboiste.fairshare.settlement.domain.EqualShareAllocation
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDescription
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.Share
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed
@@ -30,7 +33,7 @@ class SettlementProjectorSpec extends Specification {
     private static final SettlementId ID = new SettlementId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
     private static final SettlementId OTHER = new SettlementId(UUID.fromString("00000000-0000-0000-0000-000000000002"))
     private static final ParticipantId PARTICIPANT =
-        new ParticipantId(UUID.fromString("00000000-0000-0000-0000-000000000010"))
+            new ParticipantId(UUID.fromString("00000000-0000-0000-0000-000000000010"))
     private static final Instant NOW = Instant.parse("2026-01-01T12:00:00Z")
     private static final EUR = Monetary.getCurrency("EUR")
     private static final ComponentVersionId VERSION_ID = new ComponentVersionId(new UUID(0L, 61L))
@@ -118,9 +121,9 @@ class SettlementProjectorSpec extends Specification {
     def "a removed Participant cannot be re-added by a live delivery"() {
         given: "a Participant has been added to a projected Settlement and then removed"
         projector.accept([
-            opened(ID),
-            event(ID, 2, new ParticipantAdded(PARTICIPANT, "Alex")),
-            event(ID, 3, new ParticipantRemoved(PARTICIPANT))
+                opened(ID),
+                event(ID, 2, new ParticipantAdded(PARTICIPANT, "Alex")),
+                event(ID, 3, new ParticipantRemoved(PARTICIPANT))
         ])
 
         when: "a live delivery adds the same Participant again"
@@ -135,10 +138,10 @@ class SettlementProjectorSpec extends Specification {
         given: "a saved history in which a removed Participant is added again"
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         store.append(ID, 0, [
-            pending(new SettlementOpened("Holiday", EUR)),
-            pending(new ParticipantAdded(PARTICIPANT, "Alex")),
-            pending(new ParticipantRemoved(PARTICIPANT)),
-            pending(new ParticipantAdded(PARTICIPANT, "Alex"))
+                pending(new SettlementOpened("Holiday", EUR)),
+                pending(new ParticipantAdded(PARTICIPANT, "Alex")),
+                pending(new ParticipantRemoved(PARTICIPANT)),
+                pending(new ParticipantAdded(PARTICIPANT, "Alex"))
         ])
 
         when: "the projection is rebuilt from the store"
@@ -153,11 +156,11 @@ class SettlementProjectorSpec extends Specification {
         def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
         def payer = new ParticipantId(new UUID(0L, 11L))
         def expense = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), new ExpenseDescription("Lunch"),
-            LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]), null,
-            VERSION_ID, IDENTITY_RATE, Money.of(3, "EUR"),
-            [new Share(PARTICIPANT, Money.of(3, "EUR"))])
+                LocalDate.of(2026, 1, 2), payer, Money.of(3, "EUR"), new EqualShareAllocation([PARTICIPANT]), null,
+                VERSION_ID, IDENTITY_RATE, Money.of(3, "EUR"),
+                [new Share(PARTICIPANT, Money.of(3, "EUR"))])
         def history = [pending(new SettlementOpened("Holiday", EUR)), pending(new ParticipantAdded(payer, "Payer")),
-            pending(new ParticipantAdded(PARTICIPANT, "Recipient")), pending(expense)]
+                       pending(new ParticipantAdded(PARTICIPANT, "Recipient")), pending(expense)]
         store.append(ID, 0, history)
         projector.accept(store.load(ID))
         def live = projector.findById(ID).orElseThrow()
@@ -176,8 +179,8 @@ class SettlementProjectorSpec extends Specification {
 
         when: "a second Expense with the same facts is delivered"
         def second = new ExpenseRecorded(new ExpenseId(UUID.randomUUID()), expense.description(), expense.incurredOn(),
-            payer, expense.originalAmount(), expense.allocation(), null, expense.componentVersionId(),
-            expense.exchangeRate(), expense.valuation(), expense.shares())
+                payer, expense.originalAmount(), expense.allocation(), null, expense.componentVersionId(),
+                expense.exchangeRate(), expense.valuation(), expense.shares())
         projector.accept([event(ID, 5, second)])
         def withTwoExpenses = projector.findById(ID).orElseThrow()
 
@@ -198,11 +201,13 @@ class SettlementProjectorSpec extends Specification {
         def payer = new ParticipantId(new UUID(0L, 11L))
         def missing = new ParticipantId(new UUID(0L, 12L))
         projector.accept([opened(ID), event(ID, 2, new ParticipantAdded(payer, "Payer")),
-            event(ID, 3, new ParticipantAdded(PARTICIPANT, "Recipient"))])
-        def recorded = { whoPaid, recipient -> new ExpenseRecorded(new ExpenseId(new UUID(0L, 21L)),
-            new ExpenseDescription("Dinner"), LocalDate.of(2026, 1, 2), whoPaid, Money.of(1, "EUR"),
-            new EqualShareAllocation([recipient]), null, VERSION_ID, IDENTITY_RATE,
-            Money.of(1, "EUR"), [new Share(recipient, Money.of(1, "EUR"))]) }
+                          event(ID, 3, new ParticipantAdded(PARTICIPANT, "Recipient"))])
+        def recorded = { whoPaid, recipient ->
+            new ExpenseRecorded(new ExpenseId(new UUID(0L, 21L)),
+                    new ExpenseDescription("Dinner"), LocalDate.of(2026, 1, 2), whoPaid, Money.of(1, "EUR"),
+                    new EqualShareAllocation([recipient]), null, VERSION_ID, IDENTITY_RATE,
+                    Money.of(1, "EUR"), [new Share(recipient, Money.of(1, "EUR"))])
+        }
 
         when: "an Expense paid by an unknown Participant arrives"
         projector.accept([event(ID, 4, recorded(missing, PARTICIPANT))])
@@ -227,6 +232,52 @@ class SettlementProjectorSpec extends Specification {
         projector.findById(ID).orElseThrow().version() == 4
     }
 
+    def "an unknown #kind cancellation rejects live batches and rebuilds atomically"() {
+        given: "an opened Settlement with an untouched prior view"
+        projector.accept([opened(ID)])
+        def before = projector.findById(ID).orElseThrow()
+        def store = new InMemoryEventStore<SettlementId, SettlementEvent>()
+        store.append(ID, 0, [pending(new SettlementOpened("Holiday", EUR)),
+                             pending(new SettlementRenamed("Updated")), pending(invalid.call())])
+
+        when: "a batch includes a valid rename before the invalid cancellation"
+        projector.accept(store.load(ID).drop(1))
+
+        then: "the batch fails without committing the rename"
+        thrown(IllegalStateException)
+        projector.findById(ID).orElseThrow() == before
+
+        when: "a rebuild uses the invalid history"
+        projector.rebuild(store)
+
+        then: "the rebuild fails without replacing the existing view"
+        thrown(IllegalStateException)
+        projector.findById(ID).orElseThrow() == before
+
+        where:
+        kind        | invalid
+        "Expense"   | { -> new ExpenseCancelled(new ExpenseId(new UUID(0, 21))) }
+        "Repayment" | { -> new RepaymentCancelled(new RepaymentId(new UUID(0, 31))) }
+    }
+
+    def "repeated Expense cancellation rejects a projected batch without changing the view"() {
+        given: "an Expense has been recorded and cancelled"
+        def expenseId = new ExpenseId(new UUID(0, 21))
+        def recorded = new ExpenseRecorded(expenseId, new ExpenseDescription("Lunch"), LocalDate.of(2026, 1, 2),
+                PARTICIPANT, Money.of(1, "EUR"), new EqualShareAllocation([PARTICIPANT]), null,
+                VERSION_ID, IDENTITY_RATE, Money.of(1, "EUR"), [new Share(PARTICIPANT, Money.of(1, "EUR"))])
+        projector.accept([opened(ID), event(ID, 2, new ParticipantAdded(PARTICIPANT, "Alex")),
+                          event(ID, 3, recorded), event(ID, 4, new ExpenseCancelled(expenseId))])
+        def before = projector.findById(ID).orElseThrow()
+
+        when: "a later batch renames the Settlement before repeating the cancellation"
+        projector.accept([renamed(ID, 5, "Weekend"), event(ID, 6, new ExpenseCancelled(expenseId))])
+
+        then: "the batch is rejected atomically"
+        thrown(IllegalStateException)
+        projector.findById(ID).orElseThrow() == before
+    }
+
     private static SettlementView emptySettlementView(SettlementId id, String name, long version) {
         new SettlementView(id, name, EUR, version, [], [], [], [], [:], [])
     }
@@ -237,16 +288,16 @@ class SettlementProjectorSpec extends Specification {
 
     private static EventEnvelope<SettlementId, SettlementEvent> opened(SettlementId id) {
         new EventEnvelope<SettlementId, SettlementEvent>(id, 1, 1, EventId.random(), NOW,
-            new SettlementOpened("Holiday", EUR))
+                new SettlementOpened("Holiday", EUR))
     }
 
     private static EventEnvelope<SettlementId, SettlementEvent> event(
-        SettlementId id, long sequence, SettlementEvent payload) {
+            SettlementId id, long sequence, SettlementEvent payload) {
         new EventEnvelope<SettlementId, SettlementEvent>(id, sequence, sequence, EventId.random(), NOW, payload)
     }
 
     private static EventEnvelope<SettlementId, SettlementEvent> renamed(SettlementId id, long sequence, String name) {
         new EventEnvelope<SettlementId, SettlementEvent>(id, sequence, sequence, EventId.random(), NOW,
-            new SettlementRenamed(name))
+                new SettlementRenamed(name))
     }
 }

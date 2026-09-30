@@ -8,6 +8,7 @@ import java.time.LocalDate;
 public record RepaymentView(
         RepaymentId id, LocalDate paidOn, ParticipantId payer, ParticipantId recipient, Money amount, Status status) {
     public enum Status {
-        ACTIVE
+        ACTIVE,
+        CANCELLED
     }
 }

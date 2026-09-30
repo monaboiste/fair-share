@@ -9,9 +9,11 @@ import com.github.monaboiste.fairshare.quantity.money.Money;
 import com.github.monaboiste.fairshare.settlement.domain.EmptyShareAllocation;
 import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateOverrideMismatch;
 import com.github.monaboiste.fairshare.settlement.domain.ExchangeRateTargetMismatch;
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseAlreadyCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseDetails;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseId;
 import com.github.monaboiste.fairshare.settlement.domain.ExpenseIdentifierConflict;
+import com.github.monaboiste.fairshare.settlement.domain.ExpenseNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.ExplicitIdentityExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.MissingExchangeRate;
 import com.github.monaboiste.fairshare.settlement.domain.NonPositiveExpenseAmount;
@@ -20,19 +22,23 @@ import com.github.monaboiste.fairshare.settlement.domain.ParticipantIdentifierCo
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantName;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantReferenced;
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentAlreadyCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentDetails;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentId;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentIdentifierConflict;
+import com.github.monaboiste.fairshare.settlement.domain.RepaymentNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SelfDirectedRepayment;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
 import com.github.monaboiste.fairshare.settlement.domain.ShareAllocation;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured;
+import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantAdded;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemoved;
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
+import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentRecorded;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
@@ -46,8 +52,10 @@ import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.money.CurrencyUnit;
 import org.jspecify.annotations.Nullable;
 
@@ -57,7 +65,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private @Nullable CurrencyUnit currency;
     private final Map<ParticipantId, Participant> participants = new HashMap<>();
     private final Map<ExpenseId, ExpenseRecorded> expenses = new HashMap<>();
+    private final Set<ExpenseId> cancelledExpenses = new HashSet<>();
     private final Map<RepaymentId, RepaymentRecorded> repayments = new HashMap<>();
+    private final Set<RepaymentId> cancelledRepayments = new HashSet<>();
     private final ExchangeRateVersions exchangeRates = ExchangeRateVersions.empty();
 
     private Settlement(SettlementId id, Clock clock) {
@@ -147,9 +157,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     public Result<SettlementRejection, ExpenseId> recordExpense(
             ExpenseDetails expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
         ExchangeRate overrideRate = override == null ? null : override.rate();
-        ExpenseRecorded existing = expenses.get(expense.expenseId());
-        if (existing != null) {
-            return retry(existing, expense, overrideRate);
+        if (expenses.containsKey(expense.expenseId())) {
+            return Result.failure(new ExpenseIdentifierConflict(id, expense.expenseId()));
         }
         Optional<SettlementRejection> rejection = validateNewExpense(expense, overrideRate);
         if (rejection.isPresent()) {
@@ -189,29 +198,26 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return Result.success(repayment.repaymentId());
     }
 
-    private Result<SettlementRejection, ExpenseId> retry(
-            ExpenseRecorded existing, ExpenseDetails expense, @Nullable ExchangeRate overrideRate) {
-        boolean identical = existing.description().equals(expense.description())
-                && existing.incurredOn().equals(expense.incurredOn())
-                && existing.payer().equals(expense.payer())
-                && existing.allocation().equals(expense.allocation())
-                && existing.originalAmount()
-                        .currencyUnit()
-                        .equals(expense.amount().currencyUnit())
-                && existing.originalAmount().compareTo(expense.amount()) == 0
-                && sameOverride(existing.exchangeRateOverride(), overrideRate);
-        return identical
-                ? Result.success(expense.expenseId())
-                : Result.failure(new ExpenseIdentifierConflict(id, expense.expenseId()));
+    public Result<SettlementRejection, RepaymentId> cancelRepayment(RepaymentId repaymentId) {
+        if (!repayments.containsKey(repaymentId)) {
+            return Result.failure(new RepaymentNotFound(id, repaymentId));
+        }
+        if (cancelledRepayments.contains(repaymentId)) {
+            return Result.failure(new RepaymentAlreadyCancelled(id, repaymentId));
+        }
+        register(new RepaymentCancelled(repaymentId));
+        return Result.success(repaymentId);
     }
 
-    private static boolean sameOverride(@Nullable ExchangeRate recorded, @Nullable ExchangeRate requested) {
-        if (recorded == null || requested == null) {
-            return recorded == null && requested == null;
+    public Result<SettlementRejection, ExpenseId> cancelExpense(ExpenseId expenseId) {
+        if (!expenses.containsKey(expenseId)) {
+            return Result.failure(new ExpenseNotFound(id, expenseId));
         }
-        return recorded.sourceCurrency().equals(requested.sourceCurrency())
-                && recorded.targetCurrency().equals(requested.targetCurrency())
-                && recorded.value().compareTo(requested.value()) == 0;
+        if (cancelledExpenses.contains(expenseId)) {
+            return Result.failure(new ExpenseAlreadyCancelled(id, expenseId));
+        }
+        register(new ExpenseCancelled(expenseId));
+        return Result.success(expenseId);
     }
 
     private Optional<SettlementRejection> validateNewExpense(
@@ -306,7 +312,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     protected void apply(SettlementEvent event) {
         switch (event) {
             case ExpenseRecorded recorded -> applyExpenseRecorded(recorded);
+            case ExpenseCancelled(var expenseId) -> applyExpenseCancelled(expenseId);
             case RepaymentRecorded recorded -> applyRepaymentRecorded(recorded);
+            case RepaymentCancelled(var repaymentId) -> applyRepaymentCancelled(repaymentId);
             case ExchangeRateConfigured configured -> applyExchangeRateConfigured(configured);
             case SettlementOpened(var openedName, var openedCurrency) ->
                 applySettlementOpened(openedName, openedCurrency);
@@ -370,6 +378,18 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
             throw new IllegalStateException("Invalid Expense recording");
         }
         expenses.put(recorded.expenseId(), recorded);
+    }
+
+    private void applyRepaymentCancelled(RepaymentId repaymentId) {
+        if (!repayments.containsKey(repaymentId) || !cancelledRepayments.add(repaymentId)) {
+            throw new IllegalStateException("Invalid Repayment cancellation");
+        }
+    }
+
+    private void applyExpenseCancelled(ExpenseId expenseId) {
+        if (!expenses.containsKey(expenseId) || !cancelledExpenses.add(expenseId)) {
+            throw new IllegalStateException("Invalid Expense cancellation");
+        }
     }
 
     private void applyRepaymentRecorded(RepaymentRecorded recorded) {

@@ -31,7 +31,7 @@ class SettlementApplicationSpec extends Specification {
     def "rebuilding from stored commands reproduces the live view"() {
         given: "a Settlement called Holiday that was opened and renamed to Mountains"
         SettlementId id = configuration.commands.dispatch(new OpenSettlement(new SettlementName("Holiday"), configuration.EUR))
-            .getSuccess().streamId()
+                .getSuccess().streamId()
         configuration.commands.dispatch(new RenameSettlement(id, new SettlementName("Mountains")))
         def rebuilt = new SettlementProjector()
 

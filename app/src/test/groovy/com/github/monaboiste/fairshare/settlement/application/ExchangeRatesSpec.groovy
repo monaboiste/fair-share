@@ -60,13 +60,13 @@ class ExchangeRatesSpec extends Specification {
         given: "a Settlement with an Exchange Rate of 0.90 configured"
         def id = configuration.openSettlement("Holiday")
         def first = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity))
-            .getSuccess().events().first().payload().version()
+                .getSuccess().events().first().payload().version()
 
         when: "the same value is configured again at another scale, then a new value of 0.95"
         def retry = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.900"), validity))
-            .getSuccess()
+                .getSuccess()
         def next = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.95"), validity))
-            .getSuccess()
+                .getSuccess()
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
         def history = configuration.queries.dispatch(new GetSettlementHistory(id)).getSuccess()
 
@@ -87,12 +87,12 @@ class ExchangeRatesSpec extends Specification {
         def id = configuration.openSettlement("Holiday")
         def earlier = Validity.from(from.minusDays(1))
         def commands = [
-            new ConfigureExchangeRate(id, rate("0.90"), validity),
-            new ConfigureExchangeRate(id, rate("0.95"), validity),
-            new ConfigureExchangeRate(id, rate("0.90"), earlier),
-            new ConfigureExchangeRate(id, ExchangeRate.of(configuration.USD, configuration.EUR,
-                new BigDecimal("1.10")), Validity.always()),
-            new ConfigureExchangeRate(id, rate("0.90"), validity)
+                new ConfigureExchangeRate(id, rate("0.90"), validity),
+                new ConfigureExchangeRate(id, rate("0.95"), validity),
+                new ConfigureExchangeRate(id, rate("0.90"), earlier),
+                new ConfigureExchangeRate(id, ExchangeRate.of(configuration.USD, configuration.EUR,
+                        new BigDecimal("1.10")), Validity.always()),
+                new ConfigureExchangeRate(id, rate("0.90"), validity)
         ]
 
         when: "the changes are configured, the view is rebuilt, and the last change is retried"
@@ -109,7 +109,7 @@ class ExchangeRatesSpec extends Specification {
         view.exchangeRates()*.id() == commits*.events()*.first()*.payload()*.version()*.id()
         view.exchangeRates()*.validity() == [validity, validity, earlier, Validity.always(), validity]
         view.exchangeRates()*.exchangeRate()*.value() ==
-            ["0.90", "0.95", "0.90", "1.10", "0.90"]*.toBigDecimal()
+                ["0.90", "0.95", "0.90", "1.10", "0.90"]*.toBigDecimal()
         rebuilt.findById(id).orElseThrow() == view
         retry.events().empty
         retry.version() == 6
@@ -121,11 +121,11 @@ class ExchangeRatesSpec extends Specification {
 
         when: "Exchange Rates into another currency, from euros to euros, or for an unknown Settlement are configured"
         def wrongTarget = configuration.commands.dispatch(new ConfigureExchangeRate(id,
-            ExchangeRate.of(configuration.EUR, configuration.USD, BigDecimal.ONE), validity))
+                ExchangeRate.of(configuration.EUR, configuration.USD, BigDecimal.ONE), validity))
         def identity = configuration.commands.dispatch(new ConfigureExchangeRate(id,
-            ExchangeRate.of(configuration.EUR, configuration.EUR, BigDecimal.ONE), validity))
+                ExchangeRate.of(configuration.EUR, configuration.EUR, BigDecimal.ONE), validity))
         def missing = configuration.commands.dispatch(new ConfigureExchangeRate(configuration.UNKNOWN_ID,
-            rate("0.90"), validity))
+                rate("0.90"), validity))
 
         then: "each is rejected with its reason and the Settlement history is unchanged"
         wrongTarget.getFailure() == new ExchangeRateTargetMismatch(id, configuration.USD)
@@ -138,13 +138,13 @@ class ExchangeRatesSpec extends Specification {
         given: "a Settlement with one configured Exchange Rate that was later renamed to Journey"
         def id = configuration.openSettlement("Holiday")
         def first = configuration.commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity))
-            .getSuccess().events().first().payload()
+                .getSuccess().events().first().payload()
         configuration.commands.dispatch(new RenameSettlement(id, new SettlementName("Journey")))
 
         when: "a second Exchange Rate from pounds is configured"
         def second = configuration.commands.dispatch(new ConfigureExchangeRate(id,
-            ExchangeRate.of(Monetary.getCurrency("GBP"), configuration.EUR, BigDecimal.ONE), validity))
-            .getSuccess().events().first().payload()
+                ExchangeRate.of(Monetary.getCurrency("GBP"), configuration.EUR, BigDecimal.ONE), validity))
+                .getSuccess().events().first().payload()
         def view = configuration.queries.dispatch(new GetSettlement(id)).getSuccess()
 
         then: "the view shows the new name and both versions in configuration order"
@@ -166,9 +166,9 @@ class ExchangeRatesSpec extends Specification {
         def baselineVersionId = new ComponentVersionId(new UUID(0L, 42L))
         def ids = [februaryVersionId, baselineVersionId].iterator()
         def commands = RegisteredCommandDispatcher.builder()
-            .register(ConfigureExchangeRate,
-                new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() }))
-            .build()
+                .register(ConfigureExchangeRate,
+                        new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() }))
+                .build()
         commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity)).getSuccess()
         commands.dispatch(new ConfigureExchangeRate(id, rate("0.80"), Validity.always())).getSuccess()
         def rebuilt = new SettlementProjector()
@@ -199,9 +199,9 @@ class ExchangeRatesSpec extends Specification {
         def laterId = new ComponentVersionId(new UUID(0L, 52L))
         def ids = [firstId, laterId].iterator()
         def commands = RegisteredCommandDispatcher.builder()
-            .register(ConfigureExchangeRate,
-                new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() }))
-            .build()
+                .register(ConfigureExchangeRate,
+                        new ConfigureExchangeRateHandler(configuration.repository, configuration.CLOCK, { ids.next() }))
+                .build()
         commands.dispatch(new ConfigureExchangeRate(id, rate("0.90"), validity)).getSuccess()
         commands.dispatch(new ConfigureExchangeRate(id, rate("0.95"), validity)).getSuccess()
         def liveVersions = configuration.queries.dispatch(new GetSettlement(id)).getSuccess().exchangeRates()

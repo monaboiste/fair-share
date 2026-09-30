@@ -33,7 +33,7 @@ class RepaymentReplaySpec extends Specification {
         given: "a recorded Repayment and a copied history with an inconsistent later event"
         def settlement = withParticipants()
         configuration.commands.dispatch(
-            new RecordRepayment(settlement, REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")))
+                new RecordRepayment(settlement, REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")))
         def copied = new InMemoryEventStore()
         def pending = history(settlement).collect {
             new PendingEvent<SettlementEvent>(it.eventId(), it.payload(), it.occurredAt())
@@ -42,8 +42,8 @@ class RepaymentReplaySpec extends Specification {
         copied.append(settlement, 0, pending)
         def rebuilt = new SettlementProjector()
         def commands = RegisteredCommandDispatcher.builder()
-            .register(RecordRepayment, new RecordRepaymentHandler(
-                new EventSourcedSettlementRepository(copied, configuration.CLOCK))).build()
+                .register(RecordRepayment, new RecordRepaymentHandler(
+                        new EventSourcedSettlementRepository(copied, configuration.CLOCK))).build()
 
         when: "the saved history is replayed"
         if (route == "projection") {
@@ -57,27 +57,27 @@ class RepaymentReplaySpec extends Specification {
         rebuilt.findById(settlement).isEmpty()
 
         where:
-        caseName           | inconsistent | route
-        "zero amount"      | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.zero("EUR")) | "projection"
-        "zero amount"      | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.zero("EUR")) | "command"
-        "negative amount"  | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(-1, "EUR")) | "projection"
-        "negative amount"  | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(-1, "EUR")) | "command"
-        "foreign currency" | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1, "USD")) | "projection"
-        "foreign currency" | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1, "USD")) | "command"
-        "excess precision" | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1.001, "EUR")) | "projection"
-        "excess precision" | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1.001, "EUR")) | "command"
-        "duplicate"        | new RepaymentRecorded(REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")) | "projection"
-        "duplicate"        | new RepaymentRecorded(REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR")) | "command"
-        "unknown payer"    | new RepaymentRecorded(repayment(22), DATE, UNKNOWN, ADA, Money.of(1, "EUR")) | "projection"
-        "unknown payer"    | new RepaymentRecorded(repayment(22), DATE, UNKNOWN, ADA, Money.of(1, "EUR")) | "command"
+        caseName            | inconsistent                                                                 | route
+        "zero amount"       | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.zero("EUR"))      | "projection"
+        "zero amount"       | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.zero("EUR"))      | "command"
+        "negative amount"   | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(-1, "EUR"))    | "projection"
+        "negative amount"   | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(-1, "EUR"))    | "command"
+        "foreign currency"  | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1, "USD"))     | "projection"
+        "foreign currency"  | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1, "USD"))     | "command"
+        "excess precision"  | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1.001, "EUR")) | "projection"
+        "excess precision"  | new RepaymentRecorded(repayment(22), DATE, BOB, ADA, Money.of(1.001, "EUR")) | "command"
+        "duplicate"         | new RepaymentRecorded(REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR"))        | "projection"
+        "duplicate"         | new RepaymentRecorded(REPAYMENT, DATE, BOB, ADA, Money.of(15, "EUR"))        | "command"
+        "unknown payer"     | new RepaymentRecorded(repayment(22), DATE, UNKNOWN, ADA, Money.of(1, "EUR")) | "projection"
+        "unknown payer"     | new RepaymentRecorded(repayment(22), DATE, UNKNOWN, ADA, Money.of(1, "EUR")) | "command"
         "unknown recipient" | new RepaymentRecorded(repayment(22), DATE, BOB, UNKNOWN, Money.of(1, "EUR")) | "projection"
         "unknown recipient" | new RepaymentRecorded(repayment(22), DATE, BOB, UNKNOWN, Money.of(1, "EUR")) | "command"
-        "self-directed"    | new RepaymentRecorded(repayment(22), DATE, BOB, BOB, Money.of(1, "EUR")) | "projection"
-        "self-directed"    | new RepaymentRecorded(repayment(22), DATE, BOB, BOB, Money.of(1, "EUR")) | "command"
-        "payer removed"    | new ParticipantRemoved(BOB) | "projection"
-        "payer removed"    | new ParticipantRemoved(BOB) | "command"
-        "recipient removed" | new ParticipantRemoved(ADA) | "projection"
-        "recipient removed" | new ParticipantRemoved(ADA) | "command"
+        "self-directed"     | new RepaymentRecorded(repayment(22), DATE, BOB, BOB, Money.of(1, "EUR"))     | "projection"
+        "self-directed"     | new RepaymentRecorded(repayment(22), DATE, BOB, BOB, Money.of(1, "EUR"))     | "command"
+        "payer removed"     | new ParticipantRemoved(BOB)                                                  | "projection"
+        "payer removed"     | new ParticipantRemoved(BOB)                                                  | "command"
+        "recipient removed" | new ParticipantRemoved(ADA)                                                  | "projection"
+        "recipient removed" | new ParticipantRemoved(ADA)                                                  | "command"
     }
 
     private def withParticipants() {
