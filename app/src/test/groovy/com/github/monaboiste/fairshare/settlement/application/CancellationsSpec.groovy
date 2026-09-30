@@ -195,6 +195,58 @@ class CancellationsSpec extends Specification {
         result.repayments()*.status() == [RepaymentView.Status.CANCELLED, RepaymentView.Status.ACTIVE]
     }
 
+    def "cancelling a later Expense removes only its distinct contribution"() {
+        given: "two Expenses owed by Bob to Ada with different amounts"
+        def settlement = settlementWithParticipants()
+        def later = new ExpenseId(new UUID(0, 22))
+        configuration.commands.dispatch(expense(settlement, ORIGINAL, 10))
+        configuration.commands.dispatch(expense(settlement, later, 7))
+
+        when: "the later Expense is cancelled"
+        def commit = configuration.commands.dispatch(new CancelExpense(settlement, later)).getSuccess()
+        def current = view(settlement)
+        def rebuilt = new SettlementProjector()
+        rebuilt.rebuild(configuration.store)
+
+        then: "only the first Expense contributes, with both records and ordered events preserved"
+        commit.events()*.payload() == [new ExpenseCancelled(later)]
+        current.expenses()*.id() == [ORIGINAL, later]
+        current.expenses()*.status() == [ExpenseView.Status.ACTIVE, ExpenseView.Status.CANCELLED]
+        current.obligations()*.amount() == [Money.of(10, "EUR")]
+        current.balances()[ADA] == Money.of(10, "EUR")
+        current.balances()[BOB] == Money.of(-10, "EUR")
+        history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
+            "ParticipantAdded", "ExpenseRecorded", "ExpenseRecorded", "ExpenseCancelled"]
+        history(settlement).last().payload() == new ExpenseCancelled(later)
+        rebuilt.findById(settlement).orElseThrow() == current
+    }
+
+    def "cancelling a later Repayment removes only its distinct contribution"() {
+        given: "two Repayments from Bob to Ada with different amounts"
+        def settlement = settlementWithParticipants()
+        def later = new RepaymentId(new UUID(0, 32))
+        configuration.commands.dispatch(repayment(settlement, REPAYMENT, 4))
+        configuration.commands.dispatch(repayment(settlement, later, 3))
+
+        when: "the later Repayment is cancelled"
+        def commit = configuration.commands.dispatch(new CancelRepayment(settlement, later)).getSuccess()
+        def current = view(settlement)
+        def rebuilt = new SettlementProjector()
+        rebuilt.rebuild(configuration.store)
+
+        then: "only the first Repayment contributes, with both transfers and ordered events preserved"
+        commit.events()*.payload() == [new RepaymentCancelled(later)]
+        current.repayments()*.id() == [REPAYMENT, later]
+        current.repayments()*.status() == [RepaymentView.Status.ACTIVE, RepaymentView.Status.CANCELLED]
+        current.obligations()*.amount() == [Money.of(4, "EUR")]
+        current.balances()[ADA] == Money.of(-4, "EUR")
+        current.balances()[BOB] == Money.of(4, "EUR")
+        history(settlement)*.payload()*.class*.simpleName == ["SettlementOpened", "ParticipantAdded",
+            "ParticipantAdded", "RepaymentRecorded", "RepaymentRecorded", "RepaymentCancelled"]
+        history(settlement).last().payload() == new RepaymentCancelled(later)
+        rebuilt.findById(settlement).orElseThrow() == current
+    }
+
     private def settlementWithParticipants() {
         def id = configuration.openSettlement("Holiday")
         [ADA, BOB].each { participant ->
