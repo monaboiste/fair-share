@@ -24,9 +24,11 @@ import com.github.monaboiste.fairshare.settlement.application.command.handler.Re
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RemoveParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
+import com.github.monaboiste.fairshare.settlement.application.query.GetProposedRepayments
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementQuery
+import com.github.monaboiste.fairshare.settlement.application.query.handler.GetProposedRepaymentsHandler
 import com.github.monaboiste.fairshare.settlement.application.query.handler.GetSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.query.handler.GetSettlementHistoryHandler
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
@@ -75,6 +77,7 @@ class SettlementTestConfiguration {
     final RegisteredQueryDispatcher queries = RegisteredQueryDispatcher.builder()
             .register(GetSettlement, viewHandler)
             .register(GetSettlementHistory, historyHandler)
+            .register(GetProposedRepayments, new GetProposedRepaymentsHandler(projector))
             .requireHandlersFor(SettlementQuery).build()
 
     SettlementTestConfiguration() {
