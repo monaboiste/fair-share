@@ -9,6 +9,8 @@ import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 public sealed interface SettlementCommand
         extends Command<SettlementRejection, CommitResult<SettlementId, SettlementEvent>>
         permits OpenSettlement,
+                CloseSettlement,
+                ReopenSettlement,
                 RenameSettlement,
                 AddParticipant,
                 RenameParticipant,

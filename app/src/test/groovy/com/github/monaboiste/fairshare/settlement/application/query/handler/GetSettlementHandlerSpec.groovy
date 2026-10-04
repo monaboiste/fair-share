@@ -8,6 +8,7 @@ import com.github.monaboiste.fairshare.settlement.application.query.GetSettlemen
 import com.github.monaboiste.fairshare.settlement.application.query.SettlementView
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementNotFound
+import com.github.monaboiste.fairshare.settlement.domain.SettlementStatus
 import com.github.monaboiste.fairshare.settlement.infrastructure.SettlementProjector
 import spock.lang.Specification
 
@@ -22,7 +23,7 @@ class GetSettlementHandlerSpec extends Specification {
         def result = configuration.viewHandler.handle(new GetSettlement(id))
 
         then: "its view shows the name, currency and version, with no Participants, Expenses, Obligations or Balances"
-        result.getSuccess() == new SettlementView(id, "Holiday", EUR, 1, [], [], [], [], [:], [])
+        result.getSuccess() == new SettlementView(id, "Holiday", EUR, 1, [], [], [], [], [:], [], SettlementStatus.OPEN)
     }
 
     def "querying an unknown Settlement rejects with not found"() {

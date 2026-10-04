@@ -6,6 +6,7 @@ import com.github.monaboiste.fairshare.common.queries.RegisteredQueryDispatcher
 import com.github.monaboiste.fairshare.settlement.application.command.AddParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.CancelExpense
 import com.github.monaboiste.fairshare.settlement.application.command.CancelRepayment
+import com.github.monaboiste.fairshare.settlement.application.command.CloseSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.ConfigureExchangeRate
 import com.github.monaboiste.fairshare.settlement.application.command.OpenSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.RecordExpense
@@ -13,10 +14,12 @@ import com.github.monaboiste.fairshare.settlement.application.command.RecordRepa
 import com.github.monaboiste.fairshare.settlement.application.command.RemoveParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameParticipant
 import com.github.monaboiste.fairshare.settlement.application.command.RenameSettlement
+import com.github.monaboiste.fairshare.settlement.application.command.ReopenSettlement
 import com.github.monaboiste.fairshare.settlement.application.command.SettlementCommand
 import com.github.monaboiste.fairshare.settlement.application.command.handler.AddParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.CancelExpenseHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.CancelRepaymentHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.CloseSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.ConfigureExchangeRateHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.OpenSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RecordExpenseHandler
@@ -24,6 +27,7 @@ import com.github.monaboiste.fairshare.settlement.application.command.handler.Re
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RemoveParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameParticipantHandler
 import com.github.monaboiste.fairshare.settlement.application.command.handler.RenameSettlementHandler
+import com.github.monaboiste.fairshare.settlement.application.command.handler.ReopenSettlementHandler
 import com.github.monaboiste.fairshare.settlement.application.query.GetProposedRepayments
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlement
 import com.github.monaboiste.fairshare.settlement.application.query.GetSettlementHistory
@@ -64,6 +68,8 @@ class SettlementTestConfiguration {
     final GetSettlementHistoryHandler historyHandler = new GetSettlementHistoryHandler(store)
     final RegisteredCommandDispatcher commands = RegisteredCommandDispatcher.builder()
             .register(OpenSettlement, openHandler)
+            .register(CloseSettlement, new CloseSettlementHandler(repository))
+            .register(ReopenSettlement, new ReopenSettlementHandler(repository))
             .register(RenameSettlement, renameHandler)
             .register(AddParticipant, addHandler)
             .register(RenameParticipant, renameParticipantHandler)
