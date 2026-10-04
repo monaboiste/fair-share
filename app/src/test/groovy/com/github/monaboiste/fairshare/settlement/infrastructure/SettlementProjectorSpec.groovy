@@ -13,6 +13,7 @@ import com.github.monaboiste.fairshare.settlement.domain.ExpenseId
 import com.github.monaboiste.fairshare.settlement.domain.ParticipantId
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentId
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId
+import com.github.monaboiste.fairshare.settlement.domain.SettlementStatus
 import com.github.monaboiste.fairshare.settlement.domain.Share
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseRecorded
@@ -279,7 +280,7 @@ class SettlementProjectorSpec extends Specification {
     }
 
     private static SettlementView emptySettlementView(SettlementId id, String name, long version) {
-        new SettlementView(id, name, EUR, version, [], [], [], [], [:], [])
+        new SettlementView(id, name, EUR, version, [], [], [], [], [:], [], SettlementStatus.OPEN)
     }
 
     private static PendingEvent<SettlementEvent> pending(SettlementEvent payload) {

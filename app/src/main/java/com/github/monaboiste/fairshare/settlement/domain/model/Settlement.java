@@ -3,6 +3,8 @@ package com.github.monaboiste.fairshare.settlement.domain.model;
 import com.github.monaboiste.fairshare.common.Result;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateFactory;
 import com.github.monaboiste.fairshare.common.eventsourcing.AggregateRoot;
+import com.github.monaboiste.fairshare.netting.Obligation;
+import com.github.monaboiste.fairshare.netting.Obligations;
 import com.github.monaboiste.fairshare.pricing.component.ComponentVersionId;
 import com.github.monaboiste.fairshare.pricing.component.Validity;
 import com.github.monaboiste.fairshare.quantity.money.Money;
@@ -28,9 +30,13 @@ import com.github.monaboiste.fairshare.settlement.domain.RepaymentId;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentIdentifierConflict;
 import com.github.monaboiste.fairshare.settlement.domain.RepaymentNotFound;
 import com.github.monaboiste.fairshare.settlement.domain.SelfDirectedRepayment;
+import com.github.monaboiste.fairshare.settlement.domain.SettlementAlreadyOpen;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementId;
+import com.github.monaboiste.fairshare.settlement.domain.SettlementIsClosed;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementName;
+import com.github.monaboiste.fairshare.settlement.domain.SettlementNotSettled;
 import com.github.monaboiste.fairshare.settlement.domain.SettlementRejection;
+import com.github.monaboiste.fairshare.settlement.domain.SettlementStatus;
 import com.github.monaboiste.fairshare.settlement.domain.ShareAllocation;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExchangeRateConfigured;
 import com.github.monaboiste.fairshare.settlement.domain.event.ExpenseCancelled;
@@ -40,9 +46,11 @@ import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRemove
 import com.github.monaboiste.fairshare.settlement.domain.event.ParticipantRenamed;
 import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentCancelled;
 import com.github.monaboiste.fairshare.settlement.domain.event.RepaymentRecorded;
+import com.github.monaboiste.fairshare.settlement.domain.event.SettlementClosed;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementEvent;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementOpened;
 import com.github.monaboiste.fairshare.settlement.domain.event.SettlementRenamed;
+import com.github.monaboiste.fairshare.settlement.domain.event.SettlementReopened;
 import com.github.monaboiste.fairshare.valuation.ExchangeRate;
 import com.github.monaboiste.fairshare.valuation.ExchangeRateOverride;
 import com.github.monaboiste.fairshare.valuation.ExchangeRateVersion;
@@ -51,8 +59,10 @@ import com.github.monaboiste.fairshare.valuation.Valuation;
 import com.github.monaboiste.fairshare.valuation.ValuationEngine;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -63,6 +73,7 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     private final SettlementId id;
     private @Nullable String name;
     private @Nullable CurrencyUnit currency;
+    private SettlementStatus status = SettlementStatus.OPEN;
     private final Map<ParticipantId, Participant> participants = new HashMap<>();
     private final Map<ExpenseId, ExpenseRecorded> expenses = new HashMap<>();
     private final Set<ExpenseId> cancelledExpenses = new HashSet<>();
@@ -85,14 +96,62 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
         return settlement;
     }
 
+    public Result<SettlementRejection, SettlementId> close() {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
+        if (!fullySettled()) {
+            return Result.failure(new SettlementNotSettled(id));
+        }
+        register(new SettlementClosed());
+        return Result.success(id);
+    }
+
+    public Result<SettlementRejection, SettlementId> reopen() {
+        if (status == SettlementStatus.OPEN) {
+            return Result.failure(new SettlementAlreadyOpen(id));
+        }
+        register(new SettlementReopened());
+        return Result.success(id);
+    }
+
+    private boolean fullySettled() {
+        Set<ParticipantId> roster = new HashSet<>();
+        participants.forEach((participantId, participant) -> {
+            if (participant.isActive()) {
+                roster.add(participantId);
+            }
+        });
+        List<Obligation<ParticipantId>> obligations = new ArrayList<>();
+        expenses.forEach((expenseId, expense) -> {
+            if (!cancelledExpenses.contains(expenseId)) {
+                expense.shares().forEach(share -> {
+                    if (!share.participantId().equals(expense.payer())) {
+                        obligations.add(new Obligation<>(share.participantId(), expense.payer(), share.amount()));
+                    }
+                });
+            }
+        });
+        repayments.forEach((repaymentId, repayment) -> {
+            if (!cancelledRepayments.contains(repaymentId)) {
+                obligations.add(new Obligation<>(repayment.recipient(), repayment.payer(), repayment.amount()));
+            }
+        });
+        return Obligations.of(roster, obligations, settlementCurrency()).signedBalances().values().stream()
+                .allMatch(Money::isZero);
+    }
+
     public void rename(SettlementName name) {
         if (!name.value().equals(this.name)) {
             register(new SettlementRenamed(name.value()));
         }
     }
 
-    public Result<ParticipantIdentifierConflict, ParticipantId> addParticipant(
+    public Result<SettlementRejection, ParticipantId> addParticipant(
             ParticipantId participantId, ParticipantName name) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         Participant participant = participants.get(participantId);
         if (participant != null) {
             return participant.isAddedAs(name)
@@ -116,6 +175,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, ParticipantId> removeParticipant(ParticipantId participantId) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         Participant participant = participants.get(participantId);
         if (participant == null || !participant.isActive()) {
             return Result.failure(new ParticipantNotFound(id, participantId));
@@ -138,6 +200,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
 
     public Result<SettlementRejection, ComponentVersionId> configureExchangeRate(
             ExchangeRate exchangeRate, Validity validity, ComponentVersionId versionId, LocalDateTime definedAt) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         if (!exchangeRate.targetCurrency().equals(settlementCurrency())) {
             return Result.failure(new ExchangeRateTargetMismatch(id, exchangeRate.targetCurrency()));
         }
@@ -156,6 +221,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
 
     public Result<SettlementRejection, ExpenseId> recordExpense(
             ExpenseDetails expense, @Nullable ExchangeRateOverride override, ValuationEngine engine) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         ExchangeRate overrideRate = override == null ? null : override.rate();
         if (expenses.containsKey(expense.expenseId())) {
             return Result.failure(new ExpenseIdentifierConflict(id, expense.expenseId()));
@@ -173,6 +241,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, RepaymentId> recordRepayment(RepaymentDetails repayment) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         if (repayments.containsKey(repayment.repaymentId())) {
             return Result.failure(new RepaymentIdentifierConflict(id, repayment.repaymentId()));
         }
@@ -199,6 +270,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, RepaymentId> cancelRepayment(RepaymentId repaymentId) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         if (!repayments.containsKey(repaymentId)) {
             return Result.failure(new RepaymentNotFound(id, repaymentId));
         }
@@ -210,6 +284,9 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
     }
 
     public Result<SettlementRejection, ExpenseId> cancelExpense(ExpenseId expenseId) {
+        if (status == SettlementStatus.CLOSED) {
+            return Result.failure(new SettlementIsClosed(id));
+        }
         if (!expenses.containsKey(expenseId)) {
             return Result.failure(new ExpenseNotFound(id, expenseId));
         }
@@ -324,6 +401,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 applyParticipantRenamed(participantId, participantName);
             case ParticipantRemoved(var participantId) -> applyParticipantRemoved(participantId);
             case SettlementRenamed(var newName) -> applySettlementRenamed(newName);
+            case SettlementClosed _ -> status = SettlementStatus.CLOSED;
+            case SettlementReopened _ -> status = SettlementStatus.OPEN;
         }
     }
 

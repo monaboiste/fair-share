@@ -64,5 +64,6 @@ A Settlement that accepts changes to its Participants, Exchange Rates, Expenses,
 _Avoid_: Draft, active
 
 **Closed Settlement**:
-A zero-balance Settlement that does not accept financial or membership changes unless reopened.
+A Settlement whose Participants all have exactly zero Balances and whose financial and membership changes require
+explicit reopening. Settlement and Participant names can still be corrected while closed.
 _Avoid_: Archived, deleted
