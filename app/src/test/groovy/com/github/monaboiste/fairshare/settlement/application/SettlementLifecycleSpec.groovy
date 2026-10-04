@@ -47,14 +47,14 @@ class SettlementLifecycleSpec extends Specification {
     def configuration = new SettlementTestConfiguration()
 
     def "an empty Settlement can close without altering its financial state"() {
-        given:
+        given: "an Open Settlement with no Participants or financial entries"
         def settlement = configuration.openSettlement("Holiday")
         def opened = view(settlement)
 
-        when:
+        when: "the organizer closes the empty Settlement"
         def result = configuration.commands.dispatch(new CloseSettlement(settlement))
 
-        then:
+        then: "closing records its own event and preserves the empty Balances"
         opened.status() == SettlementStatus.OPEN
         result.success()
         result.getSuccess().version() == 2
@@ -68,16 +68,16 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "one unsettled minor unit prevents closing in #currency"() {
-        given:
+        given: "an Expense leaving each Participant one minor unit from zero"
         def settlement = withParticipants(currency)
         configuration.commands.dispatch(expense(settlement, amount, currency))
         def before = view(settlement)
         def recorded = history(settlement)
 
-        when:
+        when: "the organizer attempts to close the unsettled Settlement"
         def result = configuration.commands.dispatch(new CloseSettlement(settlement))
 
-        then:
+        then: "the nonzero Balances prevent closing without changing state or history"
         result.getFailure() == new SettlementNotSettled(settlement)
         before.balances()[ADA] == Money.of(amount, currency)
         before.balances()[BOB] == Money.of(-amount, currency)
@@ -92,7 +92,7 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "a Settlement closes using only active financial facts: #settledBy"() {
-        given:
+        given: "an Expense settled by a Repayment or excluded through Cancellation"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, 10))
         if (settledBy == "Repayment") {
@@ -106,10 +106,10 @@ class SettlementLifecycleSpec extends Specification {
         }
         def before = view(settlement)
 
-        when:
+        when: "the organizer closes the fully settled Settlement"
         def result = configuration.commands.dispatch(new CloseSettlement(settlement))
 
-        then:
+        then: "closing records its own event without rewriting financial facts"
         result.success()
         result.getSuccess().events()*.payload() == [new SettlementClosed()]
         view(settlement).status() == SettlementStatus.CLOSED
@@ -123,7 +123,7 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "a Closed Settlement rejects #change before duplicate, no-op or validation decisions"() {
-        given:
+        given: "a Closed Settlement with settled financial entries and a configured Exchange Rate"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, 10))
         configuration.commands.dispatch(repayment(settlement, 10))
@@ -132,10 +132,10 @@ class SettlementLifecycleSpec extends Specification {
         def before = view(settlement)
         def recorded = history(settlement)
 
-        when:
+        when: "a forbidden change is requested while closed"
         def result = configuration.commands.dispatch(mutation(settlement))
 
-        then:
+        then: "Closed status takes priority and leaves state and history unchanged"
         result.getFailure() == new SettlementIsClosed(settlement)
         view(settlement) == before
         history(settlement) == recorded
@@ -144,7 +144,7 @@ class SettlementLifecycleSpec extends Specification {
         configuration = replayed(settlement)
         def replayedResult = configuration.commands.dispatch(mutation(settlement))
 
-        then:
+        then: "replayed Closed status enforces the same restriction without new events"
         replayedResult.getFailure() == new SettlementIsClosed(settlement)
         view(settlement) == before
         history(settlement) == recorded
@@ -172,7 +172,7 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "explicit reopening preserves settled financial facts and records its own event"() {
-        given:
+        given: "a Closed Settlement whose Expense has been fully repaid"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, 10))
         configuration.commands.dispatch(repayment(settlement, 10))
@@ -180,10 +180,10 @@ class SettlementLifecycleSpec extends Specification {
         def before = view(settlement)
         def recorded = history(settlement)
 
-        when:
+        when: "the organizer explicitly reopens the Settlement"
         def result = configuration.commands.dispatch(new ReopenSettlement(settlement))
 
-        then:
+        then: "reopening records its own event and preserves settled financial facts"
         result.success()
         result.getSuccess().version() == before.version() + 1
         result.getSuccess().events()*.payload() == [new SettlementReopened()]
@@ -197,35 +197,35 @@ class SettlementLifecycleSpec extends Specification {
         new SettlementReopened().type() == "SettlementReopened"
         new SettlementReopened().schemaVersion() == 1
 
-        when:
+        when: "the organizer repeats the reopening command"
         def retry = configuration.commands.dispatch(new ReopenSettlement(settlement))
 
-        then:
+        then: "the already Open Settlement rejects the retry without another event"
         retry.getFailure() == new SettlementAlreadyOpen(settlement)
         history(settlement).size() == recorded.size() + 1
         view(settlement).version() == before.version() + 1
     }
 
     def "an Open Settlement rejects reopening without a new event"() {
-        given:
+        given: "an Open Settlement and its unchanged history"
         def settlement = withParticipants()
         def before = view(settlement)
         def recorded = history(settlement)
 
-        when:
+        when: "the organizer requests reopening without first closing"
         def result = configuration.commands.dispatch(new ReopenSettlement(settlement))
 
-        then:
+        then: "the already Open Settlement rejects reopening without changing state or history"
         result.getFailure() == new SettlementAlreadyOpen(settlement)
         view(settlement) == before
         history(settlement) == recorded
     }
 
     def "lifecycle transitions reject an unknown Settlement: #transition"() {
-        when:
+        when: "a lifecycle transition is requested for an unknown Settlement"
         def result = configuration.commands.dispatch(command(configuration.UNKNOWN_ID))
 
-        then:
+        then: "the transition reports the missing Settlement without creating a history"
         result.getFailure() == new SettlementNotFound(configuration.UNKNOWN_ID)
         configuration.queries.dispatch(new GetSettlementHistory(configuration.UNKNOWN_ID)).getFailure() ==
                 new SettlementNotFound(configuration.UNKNOWN_ID)
@@ -237,7 +237,7 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "Closed Settlement and Participant names can be corrected without changing financial facts"() {
-        given:
+        given: "a Closed Settlement with harmless name corrections to make"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, 10))
         configuration.commands.dispatch(repayment(settlement, 10))
@@ -247,11 +247,11 @@ class SettlementLifecycleSpec extends Specification {
         def renameSettlement = new RenameSettlement(settlement, new SettlementName("Summer Holiday"))
         def renameParticipant = new RenameParticipant(settlement, ADA, new ParticipantName("Adeline"))
 
-        when:
+        when: "the organizer corrects the Settlement and Participant names"
         def settlementRename = configuration.commands.dispatch(renameSettlement)
         def participantRename = configuration.commands.dispatch(renameParticipant)
 
-        then:
+        then: "both corrections are recorded while Closed status and financial facts remain unchanged"
         settlementRename.getSuccess().events().size() == 1
         participantRename.getSuccess().events().size() == 1
         view(settlement).name() == "Summer Holiday"
@@ -270,7 +270,7 @@ class SettlementLifecycleSpec extends Specification {
         def unchangedSettlement = configuration.commands.dispatch(renameSettlement)
         def unchangedParticipant = configuration.commands.dispatch(renameParticipant)
 
-        then:
+        then: "replay preserves the corrections and identical renames produce no new events"
         view(settlement) == corrected
         unchangedSettlement.getSuccess().events().empty
         unchangedParticipant.getSuccess().events().empty
@@ -282,7 +282,7 @@ class SettlementLifecycleSpec extends Specification {
         configuration.commands.dispatch(new RenameSettlement(settlement, new SettlementName("Summer")))
         configuration.commands.dispatch(new RenameParticipant(settlement, ADA, new ParticipantName("Ada")))
 
-        then:
+        then: "further name corrections remain allowed without reopening or changing Balances"
         view(settlement).name() == "Summer"
         view(settlement).participants()*.name() == ["Ada", "Bob"]
         view(settlement).status() == SettlementStatus.CLOSED
@@ -290,7 +290,7 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "reopening restores #change even after fresh replay"() {
-        given:
+        given: "a Closed Settlement explicitly reopened and reconstructed from history"
         def settlement = withParticipants()
         def cal = new ParticipantId(new UUID(0, 13))
         configuration.commands.dispatch(new AddParticipant(settlement, cal, new ParticipantName("Cal")))
@@ -304,10 +304,10 @@ class SettlementLifecycleSpec extends Specification {
         def recorded = history(settlement)
         configuration = replayed(settlement)
 
-        when:
+        when: "a previously forbidden change is requested after reopening"
         def result = configuration.commands.dispatch(mutation(settlement))
 
-        then:
+        then: "the change succeeds with a new event while retaining the earlier history"
         reopened.status() == SettlementStatus.OPEN
         result.success()
         result.getSuccess().events().size() == 1
@@ -328,7 +328,7 @@ class SettlementLifecycleSpec extends Specification {
     }
 
     def "closed cancellations take priority over already cancelled entries"() {
-        given:
+        given: "a Closed Settlement containing an already cancelled Expense and Repayment"
         def settlement = withParticipants()
         configuration.commands.dispatch(expense(settlement, 10))
         configuration.commands.dispatch(repayment(settlement, 3))
@@ -338,11 +338,11 @@ class SettlementLifecycleSpec extends Specification {
         def before = view(settlement)
         def recorded = history(settlement)
 
-        when:
+        when: "the organizer repeats both cancellations while closed"
         def expenseResult = configuration.commands.dispatch(new CancelExpense(settlement, EXPENSE))
         def repaymentResult = configuration.commands.dispatch(new CancelRepayment(settlement, REPAYMENT))
 
-        then:
+        then: "Closed status takes priority over repeated Cancellation without changing state or history"
         expenseResult.getFailure() == new SettlementIsClosed(settlement)
         repaymentResult.getFailure() == new SettlementIsClosed(settlement)
         view(settlement) == before
