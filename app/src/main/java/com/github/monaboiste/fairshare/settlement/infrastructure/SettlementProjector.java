@@ -50,6 +50,11 @@ public final class SettlementProjector
     }
 
     @Override
+    public synchronized Optional<SettlementView> findById(SettlementId id) {
+        return Optional.ofNullable(projections.get(id)).map(Projection::view);
+    }
+
+    @Override
     public synchronized void accept(List<EventEnvelope<SettlementId, SettlementEvent>> events) {
         project(projections, events);
     }
@@ -108,9 +113,9 @@ public final class SettlementProjector
                                 SettlementStatus.OPEN),
                         retired);
             }
-            case SettlementClosed ignored ->
+            case SettlementClosed _ ->
                 new Projection(withStatus(requireSettlement(previous), event, SettlementStatus.CLOSED), retired);
-            case SettlementReopened ignored ->
+            case SettlementReopened _ ->
                 new Projection(withStatus(requireSettlement(previous), event, SettlementStatus.OPEN), retired);
             case ExpenseRecorded recorded -> recordExpense(requireSettlement(previous), retired, event, recorded);
             case ExpenseCancelled(var expenseId) ->
@@ -118,10 +123,10 @@ public final class SettlementProjector
             case RepaymentRecorded recorded -> recordRepayment(requireSettlement(previous), retired, event, recorded);
             case RepaymentCancelled(var repaymentId) ->
                 cancelRepayment(requireSettlement(previous), retired, event, repaymentId);
-            case ExchangeRateConfigured configured -> {
+            case ExchangeRateConfigured(var version) -> {
                 SettlementView view = requireSettlement(previous);
                 List<ExchangeRateVersion> rates = new ArrayList<>(view.exchangeRates());
-                rates.add(configured.version());
+                rates.add(version);
                 yield new Projection(
                         new SettlementView(
                                 event.streamId(),
@@ -282,6 +287,15 @@ public final class SettlementProjector
         recorded.allocation()
                 .recipients()
                 .forEach(recipient -> requireParticipant(previous, recipient, "Expense recipient missing"));
+        List<ExpenseView> expenses = recreateExpenses(previous, recorded);
+        List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
+        obligations.addAll(expenseContributions(recorded.payer(), recorded.shares()));
+        return new Projection(
+                updated(previous, event, previous.participants(), List.copyOf(expenses), List.copyOf(obligations)),
+                retired);
+    }
+
+    private static List<ExpenseView> recreateExpenses(SettlementView previous, ExpenseRecorded recorded) {
         List<ExpenseView> expenses = new ArrayList<>(previous.expenses());
         expenses.add(new ExpenseView(
                 recorded.expenseId(),
@@ -295,11 +309,7 @@ public final class SettlementProjector
                 recorded.valuation(),
                 recorded.shares(),
                 ExpenseView.Status.ACTIVE));
-        List<Obligation<ParticipantId>> obligations = new ArrayList<>(previous.obligations());
-        obligations.addAll(expenseContributions(recorded.payer(), recorded.shares()));
-        return new Projection(
-                updated(previous, event, previous.participants(), List.copyOf(expenses), List.copyOf(obligations)),
-                retired);
+        return expenses;
     }
 
     private static Projection cancelExpense(
@@ -440,11 +450,6 @@ public final class SettlementProjector
     private static boolean containsParticipant(SettlementView view, ParticipantId participantId) {
         return view.participants().stream()
                 .anyMatch(participant -> participant.id().equals(participantId));
-    }
-
-    @Override
-    public synchronized Optional<SettlementView> findById(SettlementId id) {
-        return Optional.ofNullable(projections.get(id)).map(Projection::view);
     }
 
     private record Projection(SettlementView view, Set<ParticipantId> retiredParticipantIds) {}
