@@ -401,8 +401,8 @@ public final class Settlement extends AggregateRoot<SettlementId, SettlementEven
                 applyParticipantRenamed(participantId, participantName);
             case ParticipantRemoved(var participantId) -> applyParticipantRemoved(participantId);
             case SettlementRenamed(var newName) -> applySettlementRenamed(newName);
-            case SettlementClosed ignored -> status = SettlementStatus.CLOSED;
-            case SettlementReopened ignored -> status = SettlementStatus.OPEN;
+            case SettlementClosed _ -> status = SettlementStatus.CLOSED;
+            case SettlementReopened _ -> status = SettlementStatus.OPEN;
         }
     }
 
