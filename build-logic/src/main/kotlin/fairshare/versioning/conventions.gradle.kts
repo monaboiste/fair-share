@@ -1,12 +1,12 @@
-package placeholder.versioning
+package fairshare.versioning
 
-import placeholder.buildlogic.PrintTask
+import fairshare.buildlogic.PrintTask
 import pl.allegro.tech.build.axion.release.domain.VersionConfig
 import pl.allegro.tech.build.axion.release.domain.VersionService
 
 if (project != rootProject) {
     throw GradleException(
-        "placeholder.versioning-conventions must be applied to the root project only."
+        "fairshare.versioning-conventions must be applied to the root project only."
     )
 }
 

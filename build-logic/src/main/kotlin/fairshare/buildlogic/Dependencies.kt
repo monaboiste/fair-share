@@ -1,4 +1,4 @@
-package placeholder.buildlogic
+package fairshare.buildlogic
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project

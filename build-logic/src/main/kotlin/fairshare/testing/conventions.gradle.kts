@@ -1,10 +1,10 @@
-package placeholder.testing
+package fairshare.testing
 
-import placeholder.buildlogic.library
-import placeholder.buildlogic.libs
+import fairshare.buildlogic.library
+import fairshare.buildlogic.libs
 
 plugins {
-    id("placeholder.kotlin.jvm-conventions")
+    id("fairshare.kotlin.jvm-conventions")
 }
 
 dependencies {
@@ -17,7 +17,7 @@ dependencies {
     testImplementation(libs.library("kotest-property"))
 }
 
-pluginManager.withPlugin("placeholder.spring.application-conventions") {
+pluginManager.withPlugin("fairshare.spring.application-conventions") {
     dependencies {
         testImplementation(libs.library("kotest-extensions-spring"))
         testImplementation("org.springframework.boot:spring-boot-test")

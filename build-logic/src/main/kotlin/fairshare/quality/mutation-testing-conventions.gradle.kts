@@ -1,14 +1,14 @@
-package placeholder.quality
+package fairshare.quality
 
-import placeholder.buildlogic.library
-import placeholder.buildlogic.libs
-import placeholder.buildlogic.printAfter
-import placeholder.buildlogic.version
+import fairshare.buildlogic.library
+import fairshare.buildlogic.libs
+import fairshare.buildlogic.printAfter
+import fairshare.buildlogic.version
 import info.solidsoft.gradle.pitest.PitestTask
 import java.io.OutputStream
 
 plugins {
-    id("placeholder.testing.conventions")
+    id("fairshare.testing.conventions")
     id("info.solidsoft.pitest")
 }
 

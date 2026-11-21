@@ -1,7 +1,7 @@
-package placeholder.kotlin
+package fairshare.kotlin
 
-import placeholder.buildlogic.libs
-import placeholder.buildlogic.version
+import fairshare.buildlogic.libs
+import fairshare.buildlogic.version
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {

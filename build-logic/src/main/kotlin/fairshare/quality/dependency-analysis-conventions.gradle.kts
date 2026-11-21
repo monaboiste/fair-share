@@ -1,7 +1,7 @@
-package placeholder.quality
+package fairshare.quality
 
 import com.autonomousapps.DependencyAnalysisSubExtension
-import placeholder.buildlogic.printAfter
+import fairshare.buildlogic.printAfter
 
 plugins {
     id("com.autonomousapps.dependency-analysis")

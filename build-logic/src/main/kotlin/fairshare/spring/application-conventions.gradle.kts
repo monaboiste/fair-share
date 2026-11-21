@@ -1,11 +1,11 @@
-package placeholder.spring
+package fairshare.spring
 
-import placeholder.buildlogic.implementation
-import placeholder.buildlogic.library
-import placeholder.buildlogic.libs
+import fairshare.buildlogic.implementation
+import fairshare.buildlogic.library
+import fairshare.buildlogic.libs
 
 plugins {
-    id("placeholder.spring.kotlin-conventions")
+    id("fairshare.spring.kotlin-conventions")
     id("org.springframework.boot")
 }
 

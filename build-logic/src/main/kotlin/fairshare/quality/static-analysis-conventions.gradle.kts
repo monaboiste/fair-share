@@ -1,12 +1,12 @@
-package placeholder.quality
+package fairshare.quality
 
 import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.extensions.FailOnSeverity
-import placeholder.buildlogic.printAfter
+import fairshare.buildlogic.printAfter
 
 plugins {
-    id("placeholder.kotlin.jvm-conventions")
+    id("fairshare.kotlin.jvm-conventions")
     id("dev.detekt")
 }
 

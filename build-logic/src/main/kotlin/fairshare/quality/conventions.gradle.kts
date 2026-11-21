@@ -1,11 +1,11 @@
-package placeholder.quality
+package fairshare.quality
 
 plugins {
-    id("placeholder.quality.formatting-conventions")
-    id("placeholder.quality.static-analysis-conventions")
-    id("placeholder.quality.coverage-conventions")
-    id("placeholder.quality.mutation-testing-conventions")
-    id("placeholder.quality.dependency-analysis-conventions")
+    id("fairshare.quality.formatting-conventions")
+    id("fairshare.quality.static-analysis-conventions")
+    id("fairshare.quality.coverage-conventions")
+    id("fairshare.quality.mutation-testing-conventions")
+    id("fairshare.quality.dependency-analysis-conventions")
 }
 
 tasks.register("verify") {

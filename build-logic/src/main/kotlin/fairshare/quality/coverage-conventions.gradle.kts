@@ -1,6 +1,6 @@
-package placeholder.quality
+package fairshare.quality
 
-import placeholder.buildlogic.printAfter
+import fairshare.buildlogic.printAfter
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 
 plugins {

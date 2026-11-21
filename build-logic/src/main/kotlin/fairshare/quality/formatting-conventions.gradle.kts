@@ -1,8 +1,8 @@
-package placeholder.quality
+package fairshare.quality
 
 import com.diffplug.gradle.spotless.SpotlessExtension
-import placeholder.buildlogic.libs
-import placeholder.buildlogic.version
+import fairshare.buildlogic.libs
+import fairshare.buildlogic.version
 
 plugins {
     id("com.diffplug.spotless")

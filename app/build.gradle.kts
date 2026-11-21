@@ -1,8 +1,8 @@
 plugins {
-    id("placeholder.spring.application-conventions")
-    id("placeholder.observability.tracing-conventions")
-    id("placeholder.observability.logging-conventions")
-    id("placeholder.testing.conventions")
+    id("fairshare.spring.application-conventions")
+    id("fairshare.observability.tracing-conventions")
+    id("fairshare.observability.logging-conventions")
+    id("fairshare.testing.conventions")
 
-    id("placeholder.quality.conventions")
+    id("fairshare.quality.conventions")
 }

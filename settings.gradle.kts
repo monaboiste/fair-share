@@ -25,6 +25,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "placeholder"
+rootProject.name = "fair-share"
 
 include("app")

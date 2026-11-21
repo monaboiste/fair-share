@@ -1,3 +1,3 @@
 plugins {
-    id("placeholder.versioning.conventions")
+    id("fairshare.versioning.conventions")
 }
