@@ -1,0 +1,63 @@
+[versions]
+
+# Core
+java = "25"
+kotlin = "2.4.20"
+spring-boot = "4.1.1"
+
+# Logging
+slf4j = "2.0.20"
+
+# Testing
+junit = "6.1.3"
+kotest = "6.2.5"
+
+# Quality
+spotless = "8.10.3"
+ktlint = "1.8.0"
+detekt = "2.0.0-alpha.6"
+kover = "0.9.11"
+pitest = "1.19.0"
+pitest-engine = "1.30.0"
+pitest-junit = "1.2.3"
+dependency-analysis = "3.19.2"
+
+# Versioning
+axion = "1.21.4"
+
+[plugins]
+# Intentionally empty. Version catalog plugin aliases cannot be used in the `plugins {}` block
+# of precompiled script plugins. External plugins must instead be added to `build-logic`
+# as implementation dependencies and then applied by plugin ID.
+# https://docs.gradle.org/current/userguide/custom_plugins.html#applying_external_plugins_in_precompiled_script_plugins
+
+
+[libraries]
+
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+
+slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+kotest-bom = { module = "io.kotest:kotest-bom", version.ref = "kotest" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core" }
+kotest-property = { module = "io.kotest:kotest-property" }
+kotest-extensions-spring = { module = "io.kotest:kotest-extensions-spring" }
+kotest-extensions-pitest = { module = "io.kotest:kotest-extensions-pitest" }
+
+spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+detekt-gradle-plugin = { module = "dev.detekt:dev.detekt.gradle.plugin", version.ref = "detekt" }
+kover-gradle-plugin = { module = "org.jetbrains.kotlinx.kover:org.jetbrains.kotlinx.kover.gradle.plugin", version.ref = "kover" }
+pitest-gradle-plugin = { module = "info.solidsoft.pitest:info.solidsoft.pitest.gradle.plugin", version.ref = "pitest" }
+dependency-analysis-gradle-plugin = { module = "com.autonomousapps.dependency-analysis:com.autonomousapps.dependency-analysis.gradle.plugin", version.ref = "dependency-analysis" }
+
+axion-gradle-plugin = { module = "pl.allegro.tech.build:axion-release-plugin", version.ref = "axion" }
+
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlin-spring-gradle-plugin = { module = "org.jetbrains.kotlin.plugin.spring:org.jetbrains.kotlin.plugin.spring.gradle.plugin", version.ref = "kotlin" }
+spring-boot-gradle-plugin = { module = "org.springframework.boot:org.springframework.boot.gradle.plugin", version.ref = "spring-boot" }
+spring-boot-bom = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies" }
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }

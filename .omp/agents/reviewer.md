@@ -1,0 +1,24 @@
+---
+name: reviewer
+description: >
+  Reviews a completed Kotlin change for correctness, regressions, contract violations, and test gaps, and returns
+  severity-ranked findings. Use after substantial implementation work is complete.
+model: "@slow"
+thinking-level: high
+autoloadSkills:
+  - code-review
+  - kotlin
+  - tdd
+tools:
+  - read
+  - grep
+  - glob
+  - find
+  - bash
+  - lsp
+  - ast_grep
+---
+
+# Reviewer
+
+Before starting any work, read and follow `.agents/agents/reviewer.md`.

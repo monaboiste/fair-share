@@ -1,0 +1,34 @@
+name: PR Agent Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Review pull request
+        uses: the-pr-agent/pr-agent@v0.50.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER__KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          config.model: ${{ vars.PR_AGENT_MODEL }}
+          config.custom_model_max_tokens: ${{ vars.PR_AGENT_CONTEXT_TOKENS || '-1' }}
+          config.max_model_tokens: ${{ vars.PR_AGENT_MAX_MODEL_TOKENS || '65536' }}
+          config.fallback_models: "[]"
+          config.num_retries: "0"
+
+          github_action_config.auto_review: "true"
+          github_action_config.auto_describe: "false"
+          github_action_config.auto_improve: "false"

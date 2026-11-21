@@ -1,0 +1,150 @@
+name: PR Quality
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+concurrency:
+  group: pr-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: liberica
+          java-version: "25"
+          cache: gradle
+
+      - name: Build and verify
+        id: verify
+        run: >-
+          ./gradlew --continue
+          assemble
+          check
+          verify
+          dependencyAnalysisCheck
+          coverageCheck
+
+      - name: Summarize quality checks
+        if: ${{ !cancelled() }}
+        run: |
+          GITHUB_STEP_SUMMARY="$PWD/verify-summary.md" \
+            python3 .github/scripts/quality_pr_summary.py verify
+          cat verify-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verification summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-quality-summary-verify
+          path: verify-summary.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload quality reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: quality-reports
+          path: |
+            **/build/reports/**
+            **/build/test-results/**
+          if-no-files-found: warn
+          retention-days: 14
+
+  mutation:
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: liberica
+          java-version: "25"
+          cache: gradle
+
+      - name: Mutation testing
+        id: mutation
+        run: ./gradlew mutationCheck
+
+      - name: Summarize mutation testing
+        if: ${{ !cancelled() }}
+        run: |
+          GITHUB_STEP_SUMMARY="$PWD/mutation-summary.md" \
+            python3 .github/scripts/quality_pr_summary.py mutation
+          cat mutation-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload mutation summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-quality-summary-mutation
+          path: mutation-summary.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload mutation reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-reports
+          path: "**/build/reports/pitest/**"
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    needs: [verify, mutation]
+    if: >-
+      ${{ always() && !cancelled() &&
+          github.event.pull_request.draft == false &&
+          github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Download available summaries
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: pr-quality-summary-*
+          path: quality-summaries
+          merge-multiple: true
+
+      - name: Publish or update PR comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          MUTATION_RESULT: ${{ needs.mutation.result }}
+        run: python3 .github/scripts/publish_pr_quality.py

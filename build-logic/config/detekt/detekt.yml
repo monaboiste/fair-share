@@ -1,0 +1,72 @@
+config:
+  validation: true
+  warningsAsErrors: true
+
+complexity:
+  LongMethod:
+    active: true
+    allowedLines: 40
+
+  LongParameterList:
+    active: true
+    allowedFunctionParameters: 6
+    allowedConstructorParameters: 7
+
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 10
+
+  TooManyFunctions:
+    active: true
+    allowedFunctionsPerFile: 10
+    allowedFunctionsPerClass: 10
+    allowedFunctionsPerInterface: 10
+    allowedFunctionsPerObject: 10
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+
+  TooGenericExceptionThrown:
+    active: true
+
+  SwallowedException:
+    active: true
+
+potential-bugs:
+  UnreachableCode:
+    active: true
+
+  UnconditionalJumpStatementInLoop:
+    active: true
+
+style:
+  ForbiddenComment:
+    active: true
+    severity: warning
+    comments:
+      - value: "TODO:"
+        reason: "TODO comments should be resolved."
+
+  ReturnCount:
+    active: true
+    max: 2
+
+  ThrowsCount:
+    active: true
+    max: 2
+
+  UnusedPrivateClass:
+    active: true
+
+  UnusedPrivateFunction:
+    active: true
+
+  UnusedPrivateProperty:
+    active: true
+
+  UnusedParameter:
+    active: true
+
+  UnusedVariable:
+    active: true
