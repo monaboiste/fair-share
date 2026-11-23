@@ -28,6 +28,10 @@ The part of an Expense assigned to one Participant.
 **Settlement currency**:
 The currency in which a group's balances are expressed.
 
+**Participant balance**:
+A Participant's net credits minus debits in the group's Settlement currency. A positive balance means the Participant
+is owed money; a negative balance means they owe money.
+
 **Rate snapshot**:
 The currency pair and exchange rate used to value a foreign-currency Expense in the group's Settlement currency.
 
