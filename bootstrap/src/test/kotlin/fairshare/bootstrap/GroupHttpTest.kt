@@ -22,7 +22,7 @@ class GroupHttpTest :
                     "fair-share.database-url" to "jdbc:sqlite:$database",
                     "fair-share.problem-origin" to "https://reference.example.test",
                 )
-                fun start() = SpringApplicationBuilder(MainApplication::class.java).properties(config).run()
+                fun start() = SpringApplicationBuilder(FairShareApplication::class.java).properties(config).run()
 
                 HttpClient.newHttpClient().use { client ->
                     val (location, changed) = start().use { backend ->

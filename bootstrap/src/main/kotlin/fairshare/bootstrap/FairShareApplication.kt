@@ -9,9 +9,9 @@ import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 
 @SpringBootApplication(scanBasePackages = ["fairshare.bootstrap", "fairshare.infrastructure.http"])
-internal class MainApplication {
+internal class FairShareApplication {
     @Bean
-    fun groupStore(@Value("\${fair-share.database-url:jdbc:sqlite:fair-share.db}") jdbcUrl: String): GroupStore =
+    fun groupStore(@Value($$"${fair-share.database-url:jdbc:sqlite:fair-share.db}") jdbcUrl: String): GroupStore =
         SqliteGroupStore(jdbcUrl)
 
     @Bean
@@ -20,5 +20,5 @@ internal class MainApplication {
 
 @Suppress("SpreadOperator")
 internal fun main(args: Array<String>) {
-    runApplication<MainApplication>(*args)
+    runApplication<FairShareApplication>(*args)
 }

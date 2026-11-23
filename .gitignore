@@ -8,7 +8,6 @@ build/
 
 # Local backend database
 /fair-share.db*
-/bootstrap/fair-share.db*
 
 # IDEs
 .idea/
