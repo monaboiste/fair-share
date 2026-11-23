@@ -40,3 +40,4 @@ bin/
 # Agents
 .agents/plans
 .claude/worktrees
+.pi/tasks
