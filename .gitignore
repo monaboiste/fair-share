@@ -6,6 +6,10 @@ build/
 !**/src/test/**/build/
 .kotlin
 
+# Local backend database
+/fair-share.db*
+/bootstrap/fair-share.db*
+
 # IDEs
 .idea/
 *.iws
