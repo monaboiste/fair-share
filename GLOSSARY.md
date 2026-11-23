@@ -13,6 +13,9 @@ receive a Share on new Expenses.
 **Expense**: A described outlay incurred on a specified date, paid by exactly one Participant, and allocated among one
 or more Participants. The payer does not have to receive a Share.
 
+**Split method**:
+The rule for dividing an Expense among the Participants who receive Shares.
+
 **Share**:
 The part of an Expense assigned to one Participant.
 
