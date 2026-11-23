@@ -13,6 +13,12 @@ receive a Share on new Expenses.
 **Expense**: A described outlay incurred on a specified date, paid by exactly one Participant, and allocated among one
 or more Participants. The payer does not have to receive a Share.
 
+**Expense reversal**: An accounting action that cancels a recorded Expense's effect by negating its original postings
+without erasing the Expense.
+_Avoid_: Deletion, refund
+
+**Replacement Expense**: A new Expense that corrects a reversed Expense and links back to it.
+
 **Split method**:
 The rule for dividing an Expense among the Participants who receive Shares.
 
