@@ -20,7 +20,10 @@ The rule for dividing an Expense among the Participants who receive Shares.
 The part of an Expense assigned to one Participant.
 
 **Settlement currency**:
-The currency in which balances are expressed.
+The currency in which a group's balances are expressed.
+
+**Rate snapshot**:
+The currency pair and exchange rate used to value a foreign-currency Expense in the group's Settlement currency.
 
 **Settlement proposal**:
 A suggested set of payments between Participants to clear their outstanding balances. It does not record payments made.
