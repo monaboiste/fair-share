@@ -39,3 +39,11 @@ sufficient unless another applicable instruction requires more.
 - Declare every dependency the code uses directly; do not rely on transitively available dependencies.
 - Before adding or promoting a dependency, check the existing conventions in `build-logic/` and
   `gradle/libs.versions.toml`.
+
+## Issue tracker
+
+Issues and specs live in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+## Domain docs
+
+This is a single-context repository. See `docs/agents/domain.md`.
