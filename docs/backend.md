@@ -1,21 +1,49 @@
-# Backend boundaries
+# Fair Share backend
 
-- `domain`: Group settings, invariants, and domain events. No project dependencies.
-- `application`: Group commands and queries, revision checks, and persistence port. Depends on `domain` only.
-- `infrastructure`: REST adapter (`GroupApi`, controller, wire models and global Problem Details advice) and the
-  SQLite Group Store. Depends on `application` and `domain`.
-- `bootstrap`: Spring Boot startup and separate REST and persistence configurations. Depends on `application` and
-  `infrastructure`.
-- `acceptance-tests`: boots actual backend instances against a shared local database and exercises the public HTTP API.
+## Group API
 
-The Rules archetype's explicit predicates become typed Group Name and Settlement currency values and a named Group
-revision precondition. Bean Validation handles required request fields; business rules remain in the Group slice.
-The Accounting archetype's transaction boundary is one Group: check the revision before changing settings and compare
-it again when committing an ordered, nonempty batch of events. Either the whole batch commits or none does. The current
-commands emit one named event each. No Accounts or postings exist in this slice. Settlement currency is always unlocked
-until Expense recording adds the permanent lock.
+| Operation                          | Input                               | Successful response      |
+| ---------------------------------- | ----------------------------------- | ------------------------ |
+| `POST /groups`                     | `displayName`, `settlementCurrency` | `201`, `Location`, Group |
+| `GET /groups/{groupId}`            | Opaque Group ID                     | `200`, Group             |
+| `PATCH /groups/{groupId}/currency` | `settlementCurrency`, `If-Match`    | `200`, updated Group     |
 
-## Storage
+Every successful response includes a strong opaque Group `ETag`. Send exactly one strong tag in `If-Match` when changing
+currency. On a stale tag, refresh the Group before deciding whether to resubmit. A Group ID identifies a resource, not
+an account or credential.
+
+```json
+{
+  "groupId": "some-group-id",
+  "displayName": "Weekend trip",
+  "settlementCurrency": "PLN",
+  "participants": []
+}
+```
+
+Currency changes are permitted in this slice because Expense recording does not exist yet. #16 will prohibit changes
+from the first successfully recorded Expense onward, even if that Expense is later reversed. The decision will use
+recorded Expense history, not the currently effective Expense list or a separate setting or event.
+
+## Boundaries
+
+- `domain`: Group state, value objects, business rules, and domain events. The Rules archetype is visible in
+  `SettlementCurrencyRule`: Settlement requires a supported uppercase currency code with standard minor units from
+  Joda-Money. `GroupName` rejects blank names. Both invariants hold at construction.
+- `application`: command use cases load recorded events, check the expected revision, reconstruct the Group and append
+  domain events under that revision. Revision checking is an application precondition, not a business rule. The query
+  use case uses a separate Group view port and does not replay the aggregate.
+- `infrastructure`: Spring MVC request binding, validation and Problem Details; SQLite event store and Group view
+  adapters. The view validates recorded history and derives data and the revision in a single database snapshot.
+- `bootstrap`: application wiring, validated external properties, REST JSON customization and startup schema
+  initialization.
+- `acceptance-tests`: runs the current packaged `bootJar` in a separate JVM and tests organizer journeys through HTTP.
+  It does not compile against production modules. Technical HTTP and SQLite behavior are tested at their own boundaries.
+
+The Group is the consistency boundary for future Accounting operations. Event storage and its SQL transaction are not
+Accounting transactions. This slice does not model Accounts, Postings, Balances or Accounting transaction constraints.
+
+## SQLite
 
 | Property                                            | Default                     | Purpose                                      |
 | --------------------------------------------------- | --------------------------- | -------------------------------------------- |
@@ -23,40 +51,49 @@ until Expense recording adds the permanent lock.
 | `fair-share.persistence.sqlite.busy-timeout-millis` | `5000`                      | Maximum wait for SQLite locks                |
 | `fair-share.persistence.sqlite.synchronous`         | `EXTRA`                     | Durable SQLite sync mode (`EXTRA` or `FULL`) |
 
-Prefer `fair-share.persistence.sqlite.jdbc-url`. On upgrade, `fair-share.database-url` remains a fallback when the
-new setting is absent. Set all backend processes to the same absolute database path on a local filesystem with
-SQLite-compatible locks. Independent files, network filesystems and multiple hosts are not supported. Preserve the file
-across restarts. Each read replays one committed stream directly from SQLite; there is no cache. SQLite serializes write
-transactions; revisions and event order are scoped to each Group.
+All backend instances must share the same durable local SQLite database file with SQLite-compatible locking. Separate
+files, network filesystems and multiple hosts are unsupported. Preserve the database file across restarts.
 
-Stop old backend processes before upgrading; the new schema does not support old writers. Startup migrates the
-legacy unversioned table to schema 1 in one transaction, preserving Group IDs, event positions,
-and revisions. Failed migrations and unsupported schema versions prevent startup. Rows carry a stable event type ID
-and format version independent of Kotlin class names. An unsupported event kind or format makes that stream unreadable;
-the backend never skips recorded events. See the [SQLite ADR](adr/0001-sqlite-for-group-event-storage.md).
+The schema initializer creates the current table idempotently before serving requests. Development schemas are not
+backward compatible: incompatible files fail startup rather than being migrated or replaced. To start fresh, configure
+a new database path. Liquibase is preferred for future schema management but deferred beyond #14. See
+[ADR 0001](adr/0001-sqlite-for-group-event-storage.md).
+
+Events have stable unique IDs, per-Group sequence numbers, recorded timestamps and a Group revision. Sequence, not
+timestamp, controls replay order. A successful conditional append advances the Group revision and commits the whole
+batch together. Events in that batch share the new revision but keep separate IDs. A read starting after success sees
+that commit or a newer one, including on a different instance. No write is retried against a newer revision
+automatically.
+
+Stable event types `group-created` and `settlement-currency-changed` use encoding version `1`. Encoding versions are not
+database schema versions. Unsupported encodings and invalid recorded history fail reads rather than yielding partial
+data.
 
 ## Problem Details
 
-Set `fair-share.rest.problem-origin` to the stable public documentation origin, for example `https://api.example.org`
-(replaces `fair-share.problem-origin`). The local default is `http://localhost:8080`. Route `/problems/*` at that origin
-to the backend so clients can dereference type URIs. Request headers do not affect the URIs. Responses use
-`application/problem+json`; branch on `type` and field `code`, not `detail`.
+Set `fair-share.rest.problem-origin` to the stable public HTTP or HTTPS documentation origin, for example
+`https://api.example.org`. The local default is `http://localhost:8080`. Route `/problems/*` at that origin to the
+backend so clients can dereference type URIs. Incoming hosts do not affect the URIs. Clients receive
+`application/problem+json` and should branch on `type` and field `code`, not `detail`.
 
-| Status | Type path                          | Meaning                                                                                                         |
-| ------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| 400    | `/problems/invalid-request`        | Malformed or unsupported JSON shape, or `If-Match` is not one strong entity tag.                                |
-| 404    | `/problems/group-not-found`        | Addressed Group does not exist.                                                                                 |
-| 412    | `/problems/group-version-mismatch` | Tag does not match at load or append. This request did not commit.                                              |
-| 422    | `/problems/invalid-group`          | Structurally valid settings violate Group rules.                                                                |
-| 428    | `/problems/precondition-required`  | Supply the Group's current ETag in `If-Match`.                                                                  |
-| 500    | `/problems/internal-error`         | Internal failure or unknown write outcome. A write may have committed. Refresh and inspect before resubmitting. |
+| Status | Type path                          | Meaning                                                     |
+| ------ | ---------------------------------- | ----------------------------------------------------------- |
+| 400    | `/problems/invalid-request`        | Malformed or unsupported JSON or precondition.              |
+| 404    | `/problems/group-not-found`        | Addressed Group does not exist.                             |
+| 412    | `/problems/group-version-mismatch` | Tag mismatch at load or append; no write committed.         |
+| 422    | `/problems/invalid-group`          | Input violates Group business rules.                        |
+| 428    | `/problems/precondition-required`  | Required `If-Match` was absent.                             |
+| 500    | `/problems/internal-error`         | Internal failure, invalid history or unknown write outcome. |
 
-Field errors include `pointer`, `code`, and `detail`. Pointers are RFC 6901 URI fragments (`#/settlementCurrency`);
-missing fields point to the containing object (`#`). Stable codes for this slice:
+An unknown outcome or lost response may hide a committed write. Refresh and inspect before considering resubmission.
+
+Field errors include `pointer`, `code` and `detail`. Pointers are RFC 6901 URI fragments such as `#/settlementCurrency`.
+Missing fields point to the containing object (`#` at the root). Clients should not rely on error ordering or assume
+that a response lists every invalid field.
 
 - `INVALID_JSON`: body could not be read as exactly one JSON value with unique field names.
 - `REQUIRED_FIELD`: required body or field absent.
 - `INVALID_TYPE`: expected JSON object or string, not another type or explicit null.
 - `UNSUPPORTED_FIELD`: field not accepted by the operation.
 - `BLANK_DISPLAY_NAME`: display name contains no non-whitespace characters.
-- `INVALID_SETTLEMENT_CURRENCY`: use a supported uppercase ISO 4217 code with standard minor units.
+- `INVALID_SETTLEMENT_CURRENCY`: unsupported Settlement currency code.

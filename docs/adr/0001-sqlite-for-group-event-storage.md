@@ -9,7 +9,14 @@ appends a batch under one Group revision. All events in the batch become visible
 not expose SQLite concepts. Reconsider PostgreSQL when instances must run on separate hosts, measured write contention
 exceeds our latency or throughput targets, or we need database failover independent of the application host.
 
-Apply versioned, ordered schema migrations before serving requests. Preserve Group IDs, revisions, and replay order
-when migrating existing databases. Fail startup on a failed migration or an unsupported schema version. Persist stable
-event type identifiers and explicit encoding versions independent of Kotlin class names. Reject unsupported event types
-or versions rather than skipping them. Do not introduce an upcasting framework until a real evolution requires one.
+For #14, initialize the current schema idempotently before serving requests. Development schemas have no backward
+compatibility guarantee. Fail startup on incompatible schemas without migrating, deleting or replacing existing files.
+Liquibase is preferred for future schema management; its integration is deferred beyond #14.
+
+Persist stable event type identifiers and explicit encoding versions independent of Kotlin class names. Reject
+unsupported event types or versions rather than skipping them. Event encoding is independent of database schema
+management. Do not introduce an upcasting framework until a real evolution requires one.
+
+Each event has its own durable ID. Sequence orders events within a Group; timestamps do not determine replay order.
+The Group view adapter reads and validates the stored facts and derives the representation and revision in one committed
+snapshot without reconstructing the command aggregate.
