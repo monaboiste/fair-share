@@ -1,5 +1,6 @@
 package fairshare.infrastructure.rest.error
 
+import fairshare.infrastructure.rest.error.model.FieldError
 import fairshare.infrastructure.rest.example.ExampleProblemFixtureController
 import fairshare.infrastructure.rest.example.ExampleRequest
 import io.kotest.core.spec.style.ExpectSpec
