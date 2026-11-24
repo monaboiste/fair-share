@@ -10,7 +10,6 @@ plugins {
 }
 
 dependencies {
-    implementation(platform(libs.library("spring-boot-bom")))
     implementation(libs.library("spring-boot-starter"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 }

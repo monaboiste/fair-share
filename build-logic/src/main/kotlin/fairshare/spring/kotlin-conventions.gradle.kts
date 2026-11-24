@@ -9,8 +9,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.spring")
 }
 
-
 dependencies {
-    implementation(platform(libs.library("spring-boot-dependencies")))
+    implementation(platform(libs.library("spring-boot-bom")))
     implementation(libs.library("kotlin-reflect"))
 }
