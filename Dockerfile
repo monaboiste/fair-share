@@ -1,10 +1,10 @@
-FROM eclipse-temurin:25-jre
+FROM dhi.io/eclipse-temurin:25
 
 WORKDIR /app
-COPY bootstrap/build/libs/fair-share.jar /app/fair-share.jar
+COPY bootstrap/build/libs/fair-share.jar fair-share.jar
 
-RUN mkdir -p /data && chown 10001:10001 /data
-USER 10001:10001
+USER nonroot
+RUN mkdir -p /data
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/fair-share.jar"]
+ENTRYPOINT ["java", "-jar", "fair-share.jar"]
