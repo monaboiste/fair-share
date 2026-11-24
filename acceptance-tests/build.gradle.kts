@@ -1,3 +1,5 @@
+import org.gradle.process.CommandLineArgumentProvider
+
 plugins {
     id("fairshare.testing.conventions")
     id("fairshare.quality.conventions")
@@ -5,12 +7,22 @@ plugins {
 
 group = "fairshare.acceptance"
 
+val packagedApplication = configurations.create("packagedApplication") {
+    isCanBeConsumed = false
+}
+
 dependencies {
-    testImplementation(project(":bootstrap"))
+    add(packagedApplication.name, project(path = ":bootstrap", configuration = "packagedApplication"))
     testImplementation(platform(libs.spring.boot.bom))
-    testImplementation("org.springframework.boot:spring-boot")
-    testImplementation("org.springframework:spring-context")
-    testImplementation("org.springframework:spring-core")
     testImplementation("tools.jackson.core:jackson-databind")
-    testRuntimeOnly("org.xerial:sqlite-jdbc")
+}
+
+tasks.test {
+    jvmArgumentProviders.add(PackagedApplicationArgument(packagedApplication))
+}
+
+class PackagedApplicationArgument(
+    @get:InputFiles @get:PathSensitive(PathSensitivity.ABSOLUTE) val jar: FileCollection,
+) : CommandLineArgumentProvider {
+    override fun asArguments(): Iterable<String> = listOf("-Dfair-share.test.jar=${jar.singleFile.absolutePath}")
 }

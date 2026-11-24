@@ -1,8 +1,21 @@
 package fairshare.bootstrap
 
-import fairshare.infrastructure.persistence.SqliteGroupStoreSettings
+import jakarta.validation.constraints.Pattern
+import jakarta.validation.constraints.PositiveOrZero
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.bind.DefaultValue
+import org.springframework.validation.annotation.Validated
 
-@ConfigurationProperties("fair-share.persistence")
-internal data class PersistenceProperties(@param:DefaultValue val sqlite: SqliteGroupStoreSettings)
+@Validated
+@ConfigurationProperties("fair-share.persistence.sqlite")
+internal data class PersistenceProperties(
+    @field:Pattern(
+        regexp = "jdbc:sqlite:(?!file:|:memory:)(?=.*\\S)[^?]+",
+        message = "must be a SQLite JDBC URL with a plain database file path",
+    )
+    val jdbcUrl: String,
+    @field:PositiveOrZero
+    val busyTimeoutMillis: Int,
+    val synchronous: Synchronous,
+) {
+    enum class Synchronous { FULL, EXTRA }
+}

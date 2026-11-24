@@ -1,0 +1,10 @@
+package fairshare.infrastructure.rest.model
+
+internal data class GroupSettlementCurrencyChangedResponse(
+    val groupId: String,
+    val displayName: String,
+    val settlementCurrency: String,
+) {
+    @JvmField
+    val participants: List<Nothing> = emptyList()
+}
