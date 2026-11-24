@@ -16,7 +16,9 @@ necessary, agree on it and update the relevant issue first.
 
 - REST: use typed request DTOs, the shared Spring Boot Jackson mapper, and `@Valid` with Jakarta Validation. Reject
   malformed JSON, unknown fields, missing required fields, forbidden nulls and wrong types. Let deserialization fail on
-  the first error; do not build a custom parser to aggregate errors.
+  the first error; do not build a custom parser to aggregate errors. Where absent and explicit null require distinct
+  pointers, use a nullable DTO field defaulting to null with `@NotNull` and `@JsonSetter(nulls = Nulls.FAIL)`;
+  Jackson rejects explicit null and Bean Validation detects absence. Keep the domain value non-null.
 - Domain: enforce invariants even outside HTTP. Use a shared `InvalidInputException` with a typed error code and a
   diagnostic message for expected invalid input. Do not create one exception class per value object or rule.
 - Application: distinguish addressed-resource absence, current-state conflicts and stale revisions. Introduce a small
@@ -35,7 +37,7 @@ Use `error.<category>.<kebab-case-code>` for project-owned error identifiers and
 | ---------- | -------------------------------------------------------------------------- |
 | Validation | `error.validation.required-field`, `error.validation.unsupported-currency` |
 | Business   | `error.business.currency-blocked`, `error.business.revision-mismatch`      |
-| Internal   | `error.internal.unknown`, `error.internal.write-outcome-unknown`           |
+| Internal   | `error.internal.unknown`           |
 
 Reuse existing codes; centralize each identifier in its owning layer. Prefer enums with explicit stable string values
 where useful. Never derive wire values from enum names or exception class names. Do not duplicate domain codes in a REST
@@ -45,7 +47,7 @@ Use the same identifier as the `errors[].code` value and the `MessageSource` key
 failures, resolve the public detail using a namespaced key and let `type` identify the problem to clients. Do not add a
 top-level `code` to the response.
 
-Keep public messages in `bootstrap/src/main/resources/messages.properties` (English initially). Use safe arguments and a
+Keep public messages in `infrastructure/src/main/resources/messages.properties` (English initially). Use safe arguments and a
 safe default if a message is missing. Exception messages are diagnostic only; never copy them into public responses. Do
 not translate machine-readable codes, problem URIs or JSON pointers. Preserve Spring's own message resolution
 conventions for built-in exceptions where applicable.
@@ -76,12 +78,15 @@ corresponding problem type documentation. Do not invent a new type for each fiel
 | 428    | Required If-Match absent                                       |
 | 500    | Unexpected failure, invalid history or uncertain write outcome |
 
-Categories do not determine status by themselves: validation errors can be 400 or 422. Follow the actual operation
-contract. Preserve standard MVC statuses for other protocol failures.
+Classify by the meaning of the violated rule: validation covers structure, format, type and intrinsic single-value
+constraints; business covers cross-field, eligibility, temporal and current-state rules. Categories do not determine
+status by themselves: validation errors can be 400 or 422; business errors can be 404, 409, 412 or 422. Follow the
+operation contract and preserve standard MVC statuses for other protocol failures.
 
 Log unexpected failures with useful context using SLF4J. Return a safe public message; never expose exception messages,
-stack traces, SQL, or rejected secrets. For an unknown write outcome, tell the caller the write may have committed and
-to refresh before resubmitting. Do not catch `Throwable` or swallow fatal errors.
+stack traces, SQL, or rejected secrets. Use only `error.internal.unknown` for public 500 details. Return no field errors, top-level code or cause-specific
+detail. After any 500 for a write, the client must refresh and inspect state before considering resubmission; do not
+automatically retry. Preserve the diagnostic distinction in server-side logs. Do not catch `Throwable` or swallow fatal errors.
 
 Avoid custom request readers, manual Validator calls, feature-specific interceptors, error mapping registries, generic
 factories and redundant wrappers. Add helpers only when repetition warrants them. Do not introduce speculative error

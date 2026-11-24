@@ -1,6 +1,5 @@
-package fairshare.infrastructure.rest.api
+package fairshare.infrastructure.rest.example
 
-import fairshare.infrastructure.rest.example.ExampleController
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.matchers.shouldBe
 
