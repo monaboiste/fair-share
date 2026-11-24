@@ -1,3 +1,9 @@
 package fairshare.domain.group
 
-public data class GroupId(public val value: String)
+import java.util.UUID
+
+public data class GroupId(public val value: String) {
+    public companion object {
+        public fun random(): GroupId = GroupId("${UUID.randomUUID()}")
+    }
+}

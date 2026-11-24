@@ -1,18 +1,18 @@
 package fairshare.application.group
 
-import fairshare.domain.group.GroupCreated
-import fairshare.domain.group.GroupEvent
 import fairshare.domain.group.GroupName
-import fairshare.domain.group.GroupSettlementCurrencyChanged
 import fairshare.domain.group.SettlementCurrency
+import fairshare.domain.group.events.GroupCreated
+import fairshare.domain.group.events.GroupEvent
+import fairshare.domain.group.events.GroupSettlementCurrencyChanged
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.matchers.shouldBe
 
 class GroupEventBatchTest :
     ExpectSpec({
-        val name = checkNotNull(GroupName.parse("Trip"))
-        val pln = checkNotNull(SettlementCurrency.parse("PLN"))
+        val name = GroupName("Trip")
+        val pln = SettlementCurrency("PLN")
         val changed = GroupSettlementCurrencyChanged(pln)
         val created = GroupCreated(name, pln)
 

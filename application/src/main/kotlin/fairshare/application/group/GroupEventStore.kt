@@ -2,7 +2,7 @@ package fairshare.application.group
 
 import fairshare.domain.group.GroupId
 
-public interface GroupStore {
+public interface GroupEventStore {
     /** Read the latest committed stream in recorded order, or null if the Group does not exist. */
     public fun load(id: GroupId): GroupStream?
 

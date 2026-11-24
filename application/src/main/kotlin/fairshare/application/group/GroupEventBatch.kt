@@ -1,7 +1,7 @@
 package fairshare.application.group
 
-import fairshare.domain.group.GroupCreated
-import fairshare.domain.group.GroupEvent
+import fairshare.domain.group.events.GroupCreated
+import fairshare.domain.group.events.GroupEvent
 
 public class GroupEventBatch(events: List<GroupEvent>) {
     private val recordedEvents = events.toList()

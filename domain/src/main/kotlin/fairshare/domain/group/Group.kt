@@ -1,9 +1,10 @@
 package fairshare.domain.group
 
-public class Group private constructor(public val name: GroupName, public val settlementCurrency: SettlementCurrency) {
-    public val settlementCurrencyLocked: Boolean get() = false
-    public val participants: List<Nothing> get() = emptyList()
+import fairshare.domain.group.events.GroupCreated
+import fairshare.domain.group.events.GroupEvent
+import fairshare.domain.group.events.GroupSettlementCurrencyChanged
 
+public class Group private constructor(public val name: GroupName, public val settlementCurrency: SettlementCurrency) {
     public fun changeSettlementCurrency(currency: SettlementCurrency): GroupSettlementCurrencyChanged =
         GroupSettlementCurrencyChanged(currency)
 
