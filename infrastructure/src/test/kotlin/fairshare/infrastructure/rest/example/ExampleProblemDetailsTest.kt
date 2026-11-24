@@ -3,6 +3,7 @@ package fairshare.infrastructure.rest.example
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.extensions.spring.SpringExtension
+import org.hamcrest.Matchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -15,7 +16,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import java.util.Locale
+import java.util.*
 
 @SpringBootTest(
     classes = [ExampleMvcTestConfiguration::class],
@@ -154,23 +155,17 @@ class ExampleProblemDetailsTest : ExpectSpec() {
         expect("problem type documentation is available") {
             mvc.perform(get("/problems/invalid-request"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
-                .andExpect(
-                    content().string(
-                        "Invalid request (400). Correct the request before resubmitting. " +
-                            "Field errors identify invalid input.",
-                    ),
-                )
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_MARKDOWN_VALUE))
+                .andExpect(content().string(containsString("# Invalid Request (400)")))
+                .andExpect(content().string(containsString("Correct the request payload")))
+                .andExpect(content().string(containsString("field-level details")))
 
             mvc.perform(get("/problems/internal-error"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
-                .andExpect(
-                    content().string(
-                        "Internal server error (500). Refresh and inspect the current state " +
-                            "before considering resubmission of a write.",
-                    ),
-                )
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_MARKDOWN_VALUE))
+                .andExpect(content().string(containsString("# Internal Server Error (500)")))
+                .andExpect(content().string(containsString("inspect the current state")))
+                .andExpect(content().string(containsString("Safe/idempotent operations")))
         }
     }
 
