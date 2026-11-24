@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.Locale
 
 @SpringBootTest(
     classes = [ExampleMvcTestApplication::class],
@@ -67,6 +68,12 @@ class ExampleProblemDetailsTest : ExpectSpec() {
             }
         }
 
+        expect("an invalid array element points to its index") {
+            invalidRequest("""{"message":"test","tags":["valid",false]}""")
+                .andExpect(jsonPath("$.errors[0].pointer").value("#/tags/1"))
+                .andExpect(jsonPath("$.errors[0].code").value("error.validation.invalid-type"))
+        }
+
         expect("unknown field names use escaped JSON Pointer fragments") {
             val response = invalidRequest("""{"message":"test","a/b~c #":true}""")
 
@@ -102,6 +109,12 @@ class ExampleProblemDetailsTest : ExpectSpec() {
                 .andExpect(jsonPath("$.errors").doesNotExist())
         }
 
+        expect("a framework bad request replaces foreign problem details") {
+            mvc.perform(get("/example/framework-bad-request"))
+                .expectInvalidRequestProblem("/example/framework-bad-request")
+                .andExpect(jsonPath("$.errors").doesNotExist())
+        }
+
         expect("unsupported methods preserve the framework status and Allow header") {
             mvc.perform(post("/example"))
                 .andExpect(status().isMethodNotAllowed())
@@ -130,6 +143,12 @@ class ExampleProblemDetailsTest : ExpectSpec() {
                     .andExpect(jsonPath("$.code").doesNotExist())
                     .andExpect(jsonPath("$.errors").doesNotExist())
             }
+        }
+
+        expect("public details use the request locale") {
+            mvc.perform(get("/example/failure").locale(Locale.CANADA_FRENCH))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.detail").value("Une erreur inattendue est survenue."))
         }
 
         expect("problem type documentation is available") {
@@ -162,12 +181,13 @@ class ExampleProblemDetailsTest : ExpectSpec() {
             .content(body),
     ).expectInvalidRequestProblem()
 
-    private fun ResultActions.expectInvalidRequestProblem(): ResultActions = andExpect(status().isBadRequest())
-        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-        .andExpect(jsonPath("$.type").value("https://docs.example.org/problems/invalid-request"))
-        .andExpect(jsonPath("$.title").value("Invalid request"))
-        .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.detail").value("The request is invalid."))
-        .andExpect(jsonPath("$.instance").value("/example/echo"))
-        .andExpect(jsonPath("$.code").doesNotExist())
+    private fun ResultActions.expectInvalidRequestProblem(path: String = "/example/echo"): ResultActions =
+        andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("https://docs.example.org/problems/invalid-request"))
+            .andExpect(jsonPath("$.title").value("Invalid request"))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.detail").value("The request is invalid."))
+            .andExpect(jsonPath("$.instance").value(path))
+            .andExpect(jsonPath("$.code").doesNotExist())
 }

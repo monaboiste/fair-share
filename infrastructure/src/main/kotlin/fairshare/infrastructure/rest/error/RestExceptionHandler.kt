@@ -19,7 +19,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import tools.jackson.databind.exc.MismatchedInputException
 import tools.jackson.databind.exc.UnrecognizedPropertyException
 import java.net.URI
-import java.util.Locale
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
@@ -36,15 +35,20 @@ internal class RestExceptionHandler(
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        val problem = problem(ProblemType.INVALID_REQUEST, request.locale)
+        val problem = problem(ProblemType.INVALID_REQUEST, request)
         val cause = ex.cause
 
-        if (cause is MismatchedInputException && cause.path.isNotEmpty()) {
-            val segments = cause.path.map { it.propertyName ?: it.index.toString() }
-            val code = if (cause is UnrecognizedPropertyException) UNSUPPORTED_FIELD else INVALID_TYPE
-            val error = fieldError(segments, code, request.locale)
+        if (cause is MismatchedInputException) {
+            val segments = buildList {
+                for (reference in cause.path) {
+                    add(reference.propertyName ?: reference.index.toString())
+                }
+            }
 
-            problem.setProperty("errors", listOf(error))
+            if (segments.isNotEmpty()) {
+                val code = if (cause is UnrecognizedPropertyException) UNSUPPORTED_FIELD else INVALID_TYPE
+                problem.setProperty("errors", listOf(fieldError(segments, code, request)))
+            }
         }
 
         return handleExceptionInternal(ex, problem, headers, status, request)
@@ -56,22 +60,24 @@ internal class RestExceptionHandler(
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        val problem = problem(ProblemType.INVALID_REQUEST, request.locale)
-        val errors = ex.bindingResult.fieldErrors.map { error ->
-            val segments = FIELD_PATH.findAll(error.field).map { it.value }.toList()
+        val problem = problem(ProblemType.INVALID_REQUEST, request)
+        val errors = buildList {
+            for (error in ex.bindingResult.fieldErrors) {
+                val segments = FIELD_PATH.findAll(error.field).map { it.value }.toList()
 
-            if (error.code == "NotNull") {
-                fieldError(segments.dropLast(1), REQUIRED_FIELD, request.locale)
-            } else {
-                fieldError(segments, INVALID_VALUE, request.locale)
+                if (error.code == "NotNull") {
+                    add(fieldError(segments.dropLast(1), REQUIRED_FIELD, request))
+                } else {
+                    add(fieldError(segments, INVALID_VALUE, request))
+                }
+            }
+
+            repeat(ex.bindingResult.globalErrorCount) {
+                add(fieldError(emptyList(), INVALID_VALUE, request))
             }
         }
 
-        val objectErrors = ex.bindingResult.globalErrors.map {
-            fieldError(emptyList(), INVALID_VALUE, request.locale)
-        }
-
-        problem.setProperty("errors", errors + objectErrors)
+        problem.setProperty("errors", errors)
 
         return handleExceptionInternal(ex, problem, headers, status, request)
     }
@@ -90,11 +96,11 @@ internal class RestExceptionHandler(
         val responseBody = when (statusCode) {
             HttpStatus.BAD_REQUEST -> (body as? ProblemDetail)
                 ?.takeIf { it.type == problemOrigin.resolve(ProblemType.INVALID_REQUEST.path) }
-                ?: problem(ProblemType.INVALID_REQUEST, request.locale)
+                ?: problem(ProblemType.INVALID_REQUEST, request)
 
             HttpStatus.INTERNAL_SERVER_ERROR -> {
                 log.error("Unexpected REST failure", ex)
-                problem(ProblemType.INTERNAL_ERROR, request.locale)
+                problem(ProblemType.INTERNAL_ERROR, request)
             }
 
             else -> body
@@ -103,8 +109,8 @@ internal class RestExceptionHandler(
         return super.handleExceptionInternal(ex, responseBody, headers, statusCode, request)
     }
 
-    private fun problem(type: ProblemType, locale: Locale): ProblemDetail {
-        val detail = messages.getMessage(type.messageKey, null, type.defaultDetail, locale) ?: type.defaultDetail
+    private fun problem(type: ProblemType, request: WebRequest): ProblemDetail {
+        val detail = message(type.messageKey, type.defaultDetail, request)
         val problem = ProblemDetail.forStatusAndDetail(type.status, detail)
 
         problem.type = problemOrigin.resolve(type.path)
@@ -113,13 +119,16 @@ internal class RestExceptionHandler(
         return problem
     }
 
-    private fun fieldError(segments: List<String>, code: String, locale: Locale): FieldError {
+    private fun fieldError(segments: List<String>, code: String, request: WebRequest): FieldError {
         val pointer = segments.joinToString(separator = "") { "/" + it.replace("~", "~0").replace("/", "~1") }
         val fragment = URI(null, null, "", null, pointer).toASCIIString()
-        val detail = messages.getMessage(code, null, "Invalid request input.", locale) ?: "Invalid request input."
+        val detail = message(code, "Invalid request input.", request)
 
         return FieldError(fragment, code, detail)
     }
+
+    private fun message(code: String, fallback: String, request: WebRequest): String =
+        messages.getMessage(code, null, null, request.locale) ?: fallback
 
     private companion object {
         const val REQUIRED_FIELD = "error.validation.required-field"

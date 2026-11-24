@@ -10,4 +10,5 @@ internal data class ExampleRequest(
     @field:Size(min = 1)
     @param:JsonSetter(nulls = Nulls.FAIL)
     val message: String? = null,
+    val tags: List<String> = emptyList(),
 )
