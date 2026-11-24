@@ -24,7 +24,7 @@ import java.net.URI
 @RestControllerAdvice
 internal class RestExceptionHandler(
     private val messages: MessageSource,
-    @Value("\${fair-share.rest.problem-origin}")
+    @Value($$"${fair-share.rest.problem-origin}")
     private val problemOrigin: URI,
 ) : ResponseEntityExceptionHandler() {
     private val log = LoggerFactory.getLogger(RestExceptionHandler::class.java)

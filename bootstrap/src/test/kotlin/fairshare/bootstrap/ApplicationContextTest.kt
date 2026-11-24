@@ -5,7 +5,12 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension
 import org.springframework.boot.test.context.SpringBootTest
 
-@SpringBootTest
+@SpringBootTest(
+    properties = [
+        "fair-share.persistence.sqlite.jdbc-url=jdbc:sqlite::memory:",
+        "management.defaults.metrics.export.enabled=false",
+    ],
+)
 @ApplyExtension(SpringExtension::class)
 class ApplicationContextTest :
     BehaviorSpec({
