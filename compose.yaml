@@ -6,7 +6,4 @@ services:
     command:
       - "--fair-share.persistence.sqlite.jdbc-url=jdbc:sqlite:/data/fair-share.db"
     volumes:
-      - fair-share-data:/data
-
-volumes:
-  fair-share-data:
+      - ./.data:/data
