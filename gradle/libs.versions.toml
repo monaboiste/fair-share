@@ -4,6 +4,7 @@
 java = "25"
 kotlin = "2.4.20"
 spring-boot = "4.1.1"
+joda-money = "2.0.3"
 
 # Logging
 slf4j = "2.0.20"
@@ -37,6 +38,7 @@ axion = "1.21.4"
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 
 slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+joda-money = { module = "org.joda:joda-money", version.ref = "joda-money" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
@@ -59,5 +61,4 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 kotlin-spring-gradle-plugin = { module = "org.jetbrains.kotlin.plugin.spring:org.jetbrains.kotlin.plugin.spring.gradle.plugin", version.ref = "kotlin" }
 spring-boot-gradle-plugin = { module = "org.springframework.boot:org.springframework.boot.gradle.plugin", version.ref = "spring-boot" }
 spring-boot-bom = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
-spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
