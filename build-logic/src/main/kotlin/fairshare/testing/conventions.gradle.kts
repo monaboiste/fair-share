@@ -17,11 +17,13 @@ dependencies {
     testImplementation(libs.library("kotest-property"))
 }
 
-pluginManager.withPlugin("fairshare.spring.application-conventions") {
-    dependencies {
-        testImplementation(libs.library("kotest-extensions-spring"))
-        testImplementation("org.springframework.boot:spring-boot-test")
-        testImplementation("org.springframework.boot:spring-boot-test-autoconfigure")
+listOf("fairshare.spring.application-conventions", "fairshare.spring.library-conventions").forEach { pluginId ->
+    pluginManager.withPlugin(pluginId) {
+        dependencies {
+            testImplementation(libs.library("kotest-extensions-spring"))
+            testImplementation("org.springframework.boot:spring-boot-test")
+            testImplementation("org.springframework.boot:spring-boot-test-autoconfigure")
+        }
     }
 }
 

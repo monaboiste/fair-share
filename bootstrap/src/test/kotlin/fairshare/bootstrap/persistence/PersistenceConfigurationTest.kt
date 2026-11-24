@@ -21,6 +21,7 @@ class PersistenceConfigurationTest :
             dataSource.connection.use { connection ->
                 databaseFile.isFile shouldBe true
                 connection.createStatement().use { statement ->
+                    statement.readPragma("foreign_keys") shouldBe 1
                     statement.readPragma("busy_timeout") shouldBe 1234
                     statement.readPragma("synchronous") shouldBe 0
                 }

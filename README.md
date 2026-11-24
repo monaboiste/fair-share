@@ -22,12 +22,22 @@ The backend is organized into five Gradle modules:
 | `acceptance-tests` | Black-box HTTP tests of an externally running application |
 
 Keep the domain and application independent of Spring and persistence. Commands and queries have separate packages.
-Event payloads and their domain-level metadata will live under `domain/events` when event sourcing is implemented.
-Query ports should represent individual capabilities, rather than a generic repository interface.
+Event payloads and their domain metadata live under `fairshare.domain.events`. Load and append ports are on the command
+side because they reconstruct and commit state for commands. Query ports represent individual capabilities, rather than
+a generic repository interface.
 
-The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`.
-SQLite is configured as a JDBC DataSource. No business schema, event store or database migrations exist yet.
-Liquibase will be introduced separately.
+The SQLite event store claims revisions and appends nonempty batches in one transaction. Revisions count batches, with
+zero reserved for an expected missing stream; sequences count individual events within a stream. A revision mismatch
+writes nothing. Loads read metadata and ordered events in one database snapshot, return `null` only for missing streams,
+and reject invalid history. The store requires a file-backed SQLite database with rollback journaling or WAL and
+dedicated connections: closing before commit rolls back uncommitted writes. A commit exception is an unknown outcome,
+not a revision mismatch or a reason to retry.
+
+The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`. Bootstrap configures
+SQLite but does not initialize the event schema or wire the store yet. The first feature with real events must supply
+an event codec with explicit type and version mappings, independent of the REST mapper. A codec must reject unsupported
+formats and malformed payloads with `IllegalArgumentException` so replay identifies them as invalid history. SQLite
+schema initialization is idempotent; Liquibase will be introduced separately.
 
 ### Run locally
 

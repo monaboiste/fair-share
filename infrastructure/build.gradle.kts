@@ -7,6 +7,7 @@ group = "fairshare.infrastructure"
 
 dependencies {
     implementation(project(":application"))
+    implementation(project(":domain"))
     implementation(libs.slf4j)
     implementation("org.springframework:spring-beans")
     implementation("org.springframework:spring-context")
@@ -17,7 +18,6 @@ dependencies {
     implementation("tools.jackson.core:jackson-core")
     implementation("tools.jackson.core:jackson-databind")
 
-    testImplementation(libs.kotest.extensions.spring)
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
     testImplementation("jakarta.validation:jakarta.validation-api")
     testImplementation("org.springframework.boot:spring-boot")
@@ -26,6 +26,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework:spring-test")
+    testImplementation("org.xerial:sqlite-jdbc")
+    testImplementation("tools.jackson.module:jackson-module-kotlin")
     testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
-    testRuntimeOnly("tools.jackson.module:jackson-module-kotlin")
 }
