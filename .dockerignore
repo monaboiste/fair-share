@@ -1,0 +1,5 @@
+**
+!bootstrap/
+!bootstrap/build/
+!bootstrap/build/libs/
+!bootstrap/build/libs/fair-share.jar

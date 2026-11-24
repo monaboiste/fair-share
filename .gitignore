@@ -41,3 +41,9 @@ bin/
 .agents/plans
 .claude/worktrees
 .pi/tasks
+
+# Local SQLite data
+*.db
+*.db-journal
+*.db-shm
+*.db-wal

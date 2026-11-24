@@ -27,4 +27,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "fair-share"
 
-include("app")
+include("domain", "application", "infrastructure", "bootstrap", "acceptance-tests")
