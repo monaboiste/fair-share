@@ -10,7 +10,7 @@ class PersistenceConfigurationTest :
             val properties = PersistenceProperties(
                 jdbcUrl = "jdbc:sqlite::memory:",
                 busyTimeoutMillis = 5000,
-                synchronous = SQLiteConfig.SynchronousMode.EXTRA,
+                synchronous = SQLiteConfig.SynchronousMode.FULL,
             )
             val dataSource = PersistenceConfiguration().dataSource(properties)
 
