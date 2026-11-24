@@ -1,4 +1,4 @@
-package fairshare.infrastructure.rest.error
+package fairshare.infrastructure.rest.error.model
 
 import org.springframework.http.HttpStatus
 

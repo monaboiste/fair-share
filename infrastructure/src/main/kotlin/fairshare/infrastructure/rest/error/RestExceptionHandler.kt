@@ -1,5 +1,7 @@
 package fairshare.infrastructure.rest.error
 
+import fairshare.infrastructure.rest.error.model.FieldError
+import fairshare.infrastructure.rest.error.model.ProblemType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.MessageSource
