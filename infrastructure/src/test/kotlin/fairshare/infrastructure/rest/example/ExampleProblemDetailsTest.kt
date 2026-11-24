@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.Locale
 
 @SpringBootTest(
-    classes = [ExampleMvcTestApplication::class],
+    classes = [ExampleMvcTestConfiguration::class],
     properties = ["fair-share.rest.problem-origin=https://docs.example.org"],
 )
 @AutoConfigureMockMvc

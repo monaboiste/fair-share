@@ -16,4 +16,4 @@ import org.springframework.context.annotation.Import
     RestExceptionHandler::class,
     ProblemDocumentationController::class,
 )
-internal class ExampleMvcTestApplication
+internal class ExampleMvcTestConfiguration
