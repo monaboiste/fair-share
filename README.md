@@ -13,12 +13,12 @@ so that historical settlements remain consistent.
 
 The backend is organized into five Gradle modules:
 
-| Module | Responsibility |
-| --- | --- |
-| `domain` | Domain models, business rules and domain events |
-| `application` | Commands and queries, use cases and their required ports |
-| `infrastructure` | REST and persistence adapters |
-| `bootstrap` | Spring Boot startup, wiring and external configuration |
+| Module             | Responsibility                                            |
+| ------------------ | --------------------------------------------------------- |
+| `domain`           | Domain models, business rules and domain events           |
+| `application`      | Commands and queries, use cases and their required ports  |
+| `infrastructure`   | REST and persistence adapters                             |
+| `bootstrap`        | Spring Boot startup, wiring and external configuration    |
 | `acceptance-tests` | Black-box HTTP tests of an externally running application |
 
 Keep the domain and application independent of Spring and persistence. Commands and queries have separate packages.
