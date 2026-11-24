@@ -2,7 +2,7 @@ services:
   fair-share:
     build: .
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     command:
       - "--fair-share.persistence.sqlite.jdbc-url=jdbc:sqlite:/data/fair-share.db"
     volumes:
