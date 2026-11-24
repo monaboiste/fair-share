@@ -1,13 +1,15 @@
-package fairshare.infrastructure.http
+package fairshare.infrastructure.rest
 
+import fairshare.application.group.ChangeGroupSettlementCurrencyUseCase
+import fairshare.application.group.CreateGroupUseCase
+import fairshare.application.group.GetGroupUseCase
 import fairshare.application.group.GroupAppend
 import fairshare.application.group.GroupAppendOutcomeUnknown
-import fairshare.application.group.GroupId
+import fairshare.application.group.GroupEventBatch
 import fairshare.application.group.GroupRevision
 import fairshare.application.group.GroupStore
-import fairshare.application.group.GroupUseCases
-import fairshare.domain.group.GroupEvent
-import fairshare.infrastructure.persistence.SqliteGroupStore
+import fairshare.domain.group.GroupId
+import fairshare.infrastructure.persistence.store
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.datatest.withData
 import io.kotest.engine.spec.tempdir
@@ -22,15 +24,21 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
+import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
 import java.sql.SQLException
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
+import java.util.logging.Logger
 
 class GroupContractTest :
     BehaviorSpec({
         given("public Group configuration endpoints") {
             val db = tempdir().resolve("groups.db")
-            val mvc = groupApi(SqliteGroupStore("jdbc:sqlite:$db"))
+            val mvc = groupApi(store("jdbc:sqlite:$db"))
 
             then("Group snapshots expose only public JSON fields and a comparable strong tag") {
                 val initial = mvc.create()
@@ -113,6 +121,15 @@ class GroupContractTest :
                 mvc.perform(get(path)).andReturn().response.getHeader(HttpHeaders.ETAG) shouldBe tag
             }
 
+            then("Group problems keep their media type when a client advertises an unsupported charset") {
+                val request = post("/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept("application/json, application/problem+json;charset=ISO-8859-1")
+                    .content("{")
+                mvc.perform(request).andReturn().assertProblem(400, "invalid-request")
+                    .assertField("#", "INVALID_JSON")
+            }
+
             then("interpretable but invalid Group settings are business errors with field pointers") {
                 val invalid = mvc.create("""{"displayName":" \t","settlementCurrency":"zzz"}""")
                     .assertProblem(422, "invalid-group")
@@ -170,30 +187,34 @@ class GroupContractTest :
 
         given("a failure reported after a write may already have committed") {
             then("the public error is an unknown outcome, not a rollback or retry") {
-                val actual = SqliteGroupStore("jdbc:sqlite:${tempdir().resolve("outcome.db")}")
-                val groups = GroupUseCases(actual)
-                val group = groups.create("Trip", "PLN")
+                val actual = store("jdbc:sqlite:${tempdir().resolve("outcome.db")}")
+                val group = CreateGroupUseCase(actual).execute("Trip", "PLN")
                 var attempts = 0
                 val failing = object : GroupStore by actual {
-                    override fun append(id: GroupId, expected: GroupRevision?, event: GroupEvent): GroupAppend {
+                    override fun append(id: GroupId, expected: GroupRevision?, batch: GroupEventBatch): GroupAppend {
                         attempts++
-                        actual.append(id, expected, event)
+                        actual.append(id, expected, batch)
                         throw GroupAppendOutcomeUnknown(SQLException("private storage details"))
                     }
                 }
-                val response = groupApi(failing).change("/groups/${group.id.value}", "\"${group.revision.value}\"")
+                val response =
+                    withLoggedFailure("Group append outcome unknown", GroupAppendOutcomeUnknown::class.java) {
+                        groupApi(failing).change("/groups/${group.id.value}", "\"${group.revision.value}\"")
+                    }
                 response.assertProblem(500, "internal-error")["detail"].stringValue() shouldContain "may have committed"
                 response.response.contentAsString shouldNotContain "private storage details"
                 attempts shouldBe 1
-                groups.get(group.id).group.settlementCurrency.code shouldBe "EUR"
+                GetGroupUseCase(actual).execute(group.id).group.settlementCurrency.code shouldBe "EUR"
             }
 
             then("other internal failures also produce Problem Details without storage details") {
-                val actual = SqliteGroupStore("jdbc:sqlite:${tempdir().resolve("groups.db")}")
+                val actual = store("jdbc:sqlite:${tempdir().resolve("groups.db")}")
                 val failing = object : GroupStore by actual {
                     override fun load(id: GroupId) = error("private diagnostic data")
                 }
-                val response = groupApi(failing).perform(get("/groups/any")).andReturn()
+                val response = withLoggedFailure("Group request failed", IllegalStateException::class.java) {
+                    groupApi(failing).perform(get("/groups/any")).andReturn()
+                }
                 response.assertProblem(500, "internal-error")
                 response.response.contentAsString shouldNotContain "private diagnostic data"
             }
@@ -204,12 +225,21 @@ private data class InvalidJson(val description: String, val body: String, val po
 
 private const val VALID_CREATE = """{"displayName":"Trip","settlementCurrency":"PLN"}"""
 private const val ORIGIN = "https://docs.example.test"
-private val mapper = JsonMapper()
+private val mapper = JsonMapper.builder().enable(
+    DeserializationFeature.FAIL_ON_TRAILING_TOKENS,
+    DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY,
+).build()
+private val validator = LocalValidatorFactoryBean().apply { afterPropertiesSet() }
 
-private fun groupApi(store: GroupStore): MockMvc =
-    MockMvcBuilders.standaloneSetup(GroupController(GroupUseCases(store)), ProblemDocumentation())
-        .setControllerAdvice(GroupProblemAdvice(ORIGIN))
-        .build()
+private fun groupApi(store: GroupStore): MockMvc = MockMvcBuilders.standaloneSetup(
+    GroupController(
+        CreateGroupUseCase(store),
+        GetGroupUseCase(store),
+        ChangeGroupSettlementCurrencyUseCase(store),
+        GroupRequestReader(mapper, validator),
+    ),
+    ProblemDocumentation(),
+).setControllerAdvice(GroupProblemAdvice(RestSettings(ORIGIN))).build()
 
 private fun MockMvc.create(json: String = VALID_CREATE): MvcResult =
     perform(post("/groups").contentType(MediaType.APPLICATION_JSON).header("Host", "client-host.test").content(json))
@@ -245,4 +275,28 @@ private fun JsonNode.assertField(pointer: String, code: String) {
             it["code"].stringValue() == code &&
             it["detail"].stringValue().isNotBlank()
     } shouldBe true
+}
+
+private fun <T> withLoggedFailure(message: String, failureType: Class<out Throwable>, request: () -> T): T {
+    val logger = Logger.getLogger(GroupProblemAdvice::class.java.name)
+    val records = mutableListOf<LogRecord>()
+    val handler = object : Handler() {
+        override fun publish(record: LogRecord) {
+            records += record
+        }
+
+        override fun flush() = Unit
+        override fun close() = Unit
+    }
+    logger.addHandler(handler)
+    return try {
+        val result = request()
+        val log = records.single()
+        log.level shouldBe Level.SEVERE
+        log.message shouldBe message
+        log.thrown.javaClass shouldBe failureType
+        result
+    } finally {
+        logger.removeHandler(handler)
+    }
 }

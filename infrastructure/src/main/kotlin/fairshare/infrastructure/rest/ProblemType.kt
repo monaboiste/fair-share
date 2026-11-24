@@ -1,4 +1,4 @@
-package fairshare.infrastructure.http
+package fairshare.infrastructure.rest
 
 import org.springframework.http.HttpStatus
 
@@ -40,5 +40,3 @@ internal enum class ProblemType(val slug: String, val status: HttpStatus, val ti
         "The backend could not complete the request. If submitting a write, refresh the Group before resubmitting.",
     ),
 }
-
-internal data class FieldProblem(val pointer: String, val code: String, val detail: String)

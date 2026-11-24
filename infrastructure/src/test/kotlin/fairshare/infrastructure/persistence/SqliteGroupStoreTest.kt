@@ -1,106 +1,175 @@
 package fairshare.infrastructure.persistence
 
 import fairshare.application.group.GroupAppend
-import fairshare.application.group.GroupFailure
-import fairshare.application.group.GroupId
-import fairshare.application.group.GroupSnapshot
-import fairshare.application.group.GroupStore
+import fairshare.application.group.GroupAppendOutcomeUnknown
+import fairshare.application.group.GroupEventBatch
 import fairshare.application.group.GroupStoreUnavailable
-import fairshare.application.group.GroupStream
-import fairshare.application.group.GroupUseCases
-import fairshare.domain.group.GroupEvent
+import fairshare.domain.group.Group
+import fairshare.domain.group.GroupId
 import fairshare.domain.group.GroupName
+import fairshare.domain.group.GroupSettlementCurrencyChanged
 import fairshare.domain.group.SettlementCurrency
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.engine.spec.tempdir
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import java.util.concurrent.CyclicBarrier
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class SqliteGroupStoreTest :
     BehaviorSpec({
         given("two instances sharing a durable Group store") {
-            then("after both commands load the same revision only one conditional write commits") {
+            then("only one of two concurrent batches commits at the same revision, without interleaving") {
                 val url = "jdbc:sqlite:${tempdir().resolve("groups.db")}"
-                val firstStore = SqliteGroupStore(url)
-                val secondStore = SqliteGroupStore(url)
-                val first = GroupUseCases(firstStore)
-                val second = GroupUseCases(secondStore)
-                val group = first.create("Trip", "PLN")
-                val other = second.create("Other trip", "USD")
-                second.get(group.id).revision shouldBe group.revision
-                first.get(other.id).revision shouldBe other.revision
+                val first = store(url)
+                val second = store(url)
+                val other = GroupId("unrelated")
+                val opened = first.append(trip, null, opening).committed()
+                val otherOpened = second.append(other, null, opening).committed()
+                val batchA = changes("EUR", "JPY")
+                val batchB = changes("KWD", "USD")
 
                 val barrier = CyclicBarrier(2)
-                val firstWriter = GroupUseCases(firstStore.waitForOtherLoad(barrier))
-                val secondWriter = GroupUseCases(secondStore.waitForOtherLoad(barrier))
-                val id = group.id
-                val revision = group.revision
-                val committed = Executors.newFixedThreadPool(2).use { workers ->
-                    val eur = workers.submit<GroupSnapshot> { firstWriter.changeCurrency(id, revision, "EUR") }
-                    val jpy = workers.submit<GroupSnapshot> { secondWriter.changeCurrency(id, revision, "JPY") }
-                    listOf(eur, jpy).mapNotNull { future ->
-                        try {
-                            future.get(10, TimeUnit.SECONDS)
-                        } catch (failure: ExecutionException) {
-                            if (failure.cause !is GroupFailure.RevisionMismatch) throw failure
-                            null
+                val outcomes = Executors.newFixedThreadPool(2).use { workers ->
+                    listOf(first to batchA, second to batchB).map { (writer, batch) ->
+                        workers.submit<Pair<GroupEventBatch, GroupAppend>> {
+                            val expected = checkNotNull(writer.load(trip)).revision
+                            expected shouldBe opened.revision
+                            barrier.await(5, TimeUnit.SECONDS)
+                            batch to writer.append(trip, expected, batch)
                         }
-                    }.single()
+                    }.map { it.get(10, TimeUnit.SECONDS) }
                 }
-
-                val firstRead = first.get(group.id)
-                val secondRead = second.get(group.id)
-                firstRead.revision shouldBe committed.revision
-                secondRead.revision shouldBe committed.revision
-                secondRead.group.settlementCurrency shouldBe committed.group.settlementCurrency
-                val complete = second.changeCurrency(group.id, secondRead.revision, "KWD")
-                first.get(group.id).revision shouldBe complete.revision
-                first.get(group.id).group.settlementCurrency.code shouldBe "KWD"
-                first.get(other.id).revision shouldBe other.revision
-                first.get(other.id).group.settlementCurrency.code shouldBe "USD"
-                shouldThrow<GroupFailure.RevisionMismatch> { first.changeCurrency(other.id, complete.revision, "JPY") }
+                val (events, committed) = outcomes.single { it.second is GroupAppend.Committed }
+                outcomes.single { it.first !== events }.second shouldBe GroupAppend.RevisionMismatch
+                committed.committed().revision shouldNotBe opened.revision
+                val loaded = checkNotNull(first.load(trip))
+                loaded.revision shouldBe committed.committed().revision
+                loaded.events shouldBe opening.events + events.events
+                second.load(trip) shouldBe loaded
+                first.load(other)?.revision shouldBe otherOpened.revision
+                first.append(other, loaded.revision, batchA) shouldBe GroupAppend.RevisionMismatch
+                first.load(other)?.events shouldBe opening.events
             }
 
-            then("a confirmed write failure leaves the previously committed currency and revision intact") {
+            then("a late insert failure rolls back the entire batch, including an opening event") {
+                val url = "jdbc:sqlite:${tempdir().resolve("rollback.db")}"
+                val writer = SqliteGroupStore(SqliteGroupStoreSettings(jdbcUrl = url, busyTimeoutMillis = 0))
+                val reader = store(url)
+                val revision = writer.append(trip, null, opening).committed().revision
+                val absent = GroupId("absent")
+                val before = reader.load(trip)
+                database(url) { connection ->
+                    connection.createStatement().use { statement ->
+                        statement.execute(
+                            """
+                            CREATE TRIGGER refuse_usd BEFORE INSERT ON group_events
+                            WHEN NEW.currency = 'USD'
+                            BEGIN SELECT RAISE(IGNORE); END
+                            """.trimIndent(),
+                        )
+                    }
+                }
+                shouldThrow<GroupStoreUnavailable> { writer.append(trip, revision, changes("EUR", "USD")) }
+                reader.load(trip) shouldBe before
+                val failsInSecondRow = GroupEventBatch(opening.events + changes("USD").events)
+                shouldThrow<GroupStoreUnavailable> { writer.append(absent, null, failsInSecondRow) }
+                reader.load(absent) shouldBe null
+                writer.append(trip, revision, changes("JPY")).committed()
+                reader.load(trip)?.events shouldBe opening.events + changes("JPY").events
+            }
+
+            then("a failure at commit is an unknown outcome and releases the write transaction") {
+                val rawUrl = "jdbc:sqlite:${tempdir().resolve("commit-failure.db").toURI()}"
+                val writer = SqliteGroupStore(
+                    SqliteGroupStoreSettings(jdbcUrl = "$rawUrl?foreign_keys=on", busyTimeoutMillis = 0),
+                )
+                val before = writer.append(trip, null, opening).committed().revision
+                database(rawUrl) { connection ->
+                    connection.createStatement().use { statement ->
+                        statement.execute("CREATE TABLE parent (id INTEGER PRIMARY KEY)")
+                        statement.execute(
+                            """
+                            CREATE TABLE child (
+                                parent_id INTEGER REFERENCES parent(id) DEFERRABLE INITIALLY DEFERRED
+                            )
+                            """.trimIndent(),
+                        )
+                        statement.execute(
+                            """
+                            CREATE TRIGGER fail_at_commit AFTER INSERT ON group_events
+                            WHEN NEW.currency = 'USD'
+                            BEGIN INSERT INTO child VALUES (1); END
+                            """.trimIndent(),
+                        )
+                    }
+                }
+                shouldThrow<GroupAppendOutcomeUnknown> { writer.append(trip, before, changes("EUR", "USD")) }
+                writer.load(trip)?.revision shouldBe before
+                writer.load(trip)?.events shouldBe opening.events
+                writer.append(trip, before, changes("EUR")).committed()
+            }
+
+            then("a confirmed read-only write failure leaves the previously committed currency and revision intact") {
                 val database = tempdir().resolve("groups.db").toURI()
-                val writable = GroupUseCases(SqliteGroupStore("jdbc:sqlite:$database"))
-                val created = writable.create("Trip", "PLN")
-                val readOnly = GroupUseCases(SqliteGroupStore("jdbc:sqlite:$database?mode=ro"))
-                readOnly.get(created.id).revision shouldBe created.revision
-                shouldThrow<GroupStoreUnavailable> { readOnly.changeCurrency(created.id, created.revision, "EUR") }
-                val persisted = writable.get(created.id)
+                val writable = store("jdbc:sqlite:$database")
+                val created = writable.append(trip, null, opening).committed()
+                val readOnly = store("jdbc:sqlite:$database?mode=ro")
+                readOnly.load(trip)?.revision shouldBe created.revision
+                shouldThrow<GroupStoreUnavailable> { readOnly.append(trip, created.revision, changes("EUR")) }
+                val persisted = checkNotNull(writable.load(trip))
                 persisted.revision shouldBe created.revision
-                persisted.group.settlementCurrency.code shouldBe "PLN"
+                Group.replay(persisted.events).settlementCurrency.code shouldBe "PLN"
             }
 
             then("creation can only start an empty stream and a configured Group cannot be re-created") {
-                val store = SqliteGroupStore("jdbc:sqlite:${tempdir().resolve("groups.db")}")
-                val created = GroupUseCases(store).create("Trip", "PLN")
-                val event = GroupEvent.Created(checkNotNull(GroupName.parse("Other")), created.group.settlementCurrency)
-                store.append(created.id, null, event) shouldBe GroupAppend.RevisionMismatch
-                store.load(created.id)?.revision shouldBe created.revision
-                shouldThrow<IllegalArgumentException> { store.append(created.id, created.revision, event) }
+                val url = "jdbc:sqlite:${tempdir().resolve("groups.db")}"
+                val writer = store(url)
+                val batch = GroupEventBatch(opening.events + changes("EUR", "JPY").events)
+                val created = writer.append(trip, null, batch).committed()
+                writer.load(trip)?.events shouldBe batch.events
+                database(url) { connection ->
+                    connection.createStatement().use { statement ->
+                        statement.executeQuery(
+                            "SELECT kind, display_name, format_version FROM group_events ORDER BY position",
+                        )
+                            .use { rows ->
+                                buildList {
+                                    while (rows.next()) {
+                                        add(
+                                            Triple(rows.getString(1), rows.getString(2), rows.getInt(3)),
+                                        )
+                                    }
+                                } shouldBe listOf(
+                                    Triple("group-created", "Trip", 1),
+                                    Triple("settlement-currency-changed", null, 1),
+                                    Triple("settlement-currency-changed", null, 1),
+                                )
+                            }
+                    }
+                }
+                writer.append(trip, null, opening) shouldBe GroupAppend.RevisionMismatch
+                writer.load(trip)?.revision shouldBe created.revision
+                shouldThrow<IllegalArgumentException> { writer.append(trip, created.revision, opening) }
 
                 val absent = GroupId("absent")
-                store.append(
-                    absent,
-                    created.revision,
-                    GroupEvent.CurrencyChanged(checkNotNull(SettlementCurrency.parse("EUR"))),
-                ) shouldBe GroupAppend.RevisionMismatch
-                store.load(absent) shouldBe null
+                writer.append(absent, created.revision, changes("EUR")) shouldBe GroupAppend.RevisionMismatch
+                writer.load(absent) shouldBe null
+                shouldThrow<IllegalArgumentException> { writer.append(absent, null, changes("EUR")) }
             }
         }
     })
 
-private fun GroupStore.waitForOtherLoad(barrier: CyclicBarrier): GroupStore = object : GroupStore by this {
-    override fun load(id: GroupId): GroupStream {
-        val stream = this@waitForOtherLoad.load(id).shouldNotBeNull()
-        barrier.await(5, TimeUnit.SECONDS)
-        return stream
-    }
-}
+private val trip = GroupId("trip")
+private val opening = GroupEventBatch(
+    listOf(Group.create(checkNotNull(GroupName.parse("Trip")), checkNotNull(SettlementCurrency.parse("PLN")))),
+)
+
+private fun changes(vararg codes: String): GroupEventBatch =
+    GroupEventBatch(codes.map { GroupSettlementCurrencyChanged(checkNotNull(SettlementCurrency.parse(it))) })
+
+private fun GroupAppend.committed(): GroupAppend.Committed = this as GroupAppend.Committed
+
+internal fun store(url: String): SqliteGroupStore = SqliteGroupStore(SqliteGroupStoreSettings(jdbcUrl = url))

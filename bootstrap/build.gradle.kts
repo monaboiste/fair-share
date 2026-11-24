@@ -10,9 +10,12 @@ dependencies {
     implementation(project(":infrastructure"))
     implementation("org.springframework.boot:spring-boot")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
+    implementation("org.springframework.boot:spring-boot-jackson")
     runtimeOnly("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("org.springframework:spring-beans")
+    runtimeOnly("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework:spring-context")
+    implementation("tools.jackson.core:jackson-databind")
 
-    testImplementation("tools.jackson.core:jackson-databind")
+    testImplementation("org.springframework:spring-beans")
+    testImplementation("org.springframework:spring-core")
 }

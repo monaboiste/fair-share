@@ -1,20 +1,20 @@
-package fairshare.infrastructure.http
+package fairshare.infrastructure.rest
 
 import fairshare.application.group.GroupAppendOutcomeUnknown
 import fairshare.application.group.GroupFailure
 import fairshare.application.group.GroupInputViolation
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.CacheControl
+import fairshare.infrastructure.rest.model.FieldProblem
 import org.springframework.http.MediaType
 import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 import java.net.URI
 
-@RestControllerAdvice(assignableTypes = [GroupController::class])
-internal class GroupProblemAdvice(@Value("\${fair-share.problem-origin:http://localhost:8080}") publicOrigin: String) {
-    private val origin = publicOrigin.trimEnd('/')
+@RestControllerAdvice
+internal class GroupProblemAdvice(settings: RestSettings) : ResponseEntityExceptionHandler() {
+    private val origin = settings.problemOrigin.trimEnd('/')
 
     @ExceptionHandler
     fun request(failure: GroupRequestFailure): ResponseEntity<ProblemDetail> =
@@ -37,7 +37,7 @@ internal class GroupProblemAdvice(@Value("\${fair-share.problem-origin:http://lo
 
     @ExceptionHandler
     fun unknownAppend(failure: GroupAppendOutcomeUnknown): ResponseEntity<ProblemDetail> {
-        logger.log(System.Logger.Level.ERROR, "Group append outcome unknown", failure)
+        diagnostics.log(System.Logger.Level.ERROR, "Group append outcome unknown", failure)
         return problem(
             ProblemType.INTERNAL_ERROR,
             "The write may have committed. Refresh and inspect current Group state before resubmitting.",
@@ -46,7 +46,7 @@ internal class GroupProblemAdvice(@Value("\${fair-share.problem-origin:http://lo
 
     @ExceptionHandler
     fun unexpected(failure: RuntimeException): ResponseEntity<ProblemDetail> {
-        logger.log(System.Logger.Level.ERROR, "Group request failed", failure)
+        diagnostics.log(System.Logger.Level.ERROR, "Group request failed", failure)
         return problem(ProblemType.INTERNAL_ERROR)
     }
 
@@ -59,14 +59,12 @@ internal class GroupProblemAdvice(@Value("\${fair-share.problem-origin:http://lo
         body.title = type.title
         body.type = URI.create("$origin/problems/${type.slug}")
         if (errors.isNotEmpty()) body.setProperty("errors", errors)
-        return ResponseEntity.status(type.status)
-            .cacheControl(CacheControl.noStore())
-            .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-            .body(body)
+        val headers = noStoreHeaders().apply { contentType = MediaType.APPLICATION_PROBLEM_JSON }
+        return ResponseEntity(body, headers, type.status)
     }
 
     private companion object {
-        val logger: System.Logger = System.getLogger(GroupProblemAdvice::class.java.name)
+        val diagnostics: System.Logger = System.getLogger(GroupProblemAdvice::class.java.name)
     }
 }
 
