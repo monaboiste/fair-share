@@ -13,6 +13,7 @@ internal class PersistenceConfiguration {
     @Bean
     fun dataSource(properties: PersistenceProperties): DataSource {
         val config = SQLiteConfig()
+        config.enforceForeignKeys(true)
         config.setBusyTimeout(properties.busyTimeoutMillis)
         config.setSynchronous(properties.synchronous)
 

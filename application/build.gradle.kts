@@ -6,5 +6,5 @@ plugins {
 group = "fairshare.application"
 
 dependencies {
-    implementation(project(":domain"))
+    api(project(":domain"))
 }
