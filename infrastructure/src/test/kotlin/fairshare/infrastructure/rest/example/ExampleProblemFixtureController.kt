@@ -23,6 +23,13 @@ internal class ExampleProblemFixtureController {
     @GetMapping("/example/failure")
     fun failure(): ExampleResponse = error("Private database details")
 
+    @GetMapping("/example/framework-bad-request")
+    fun frameworkBadRequest(): ExampleResponse {
+        val problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Framework validation details")
+
+        throw ErrorResponseException(HttpStatus.BAD_REQUEST, problem, null)
+    }
+
     @GetMapping("/example/framework-failure")
     fun frameworkFailure(): ExampleResponse {
         val problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Private storage details")
