@@ -4,6 +4,15 @@ on:
   pull_request:
     branches: [master]
     types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "**"
+      - "!**/*.md"
+      - "!docs/**"
+      - "!LICENSE"
+      - "!.gitignore"
+      - "!.github/**"
+      - ".github/workflows/pr_quality.yml"
+      - ".github/actions/**"
 
 concurrency:
   group: pr-quality-${{ github.event.pull_request.number }}
