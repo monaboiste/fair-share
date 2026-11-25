@@ -8,27 +8,29 @@ import fairshare.domain.events.EventStream
 import fairshare.domain.events.PendingEvent
 import fairshare.domain.events.StreamId
 import fairshare.domain.events.StreamRevision
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.ResultSetExtractor
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.jdbc.datasource.SingleConnectionDataSource
-import java.sql.Connection
-import java.sql.SQLException
+import org.springframework.transaction.TransactionSystemException
+import org.springframework.transaction.support.TransactionSynchronizationManager
+import org.springframework.transaction.support.TransactionTemplate
+import java.sql.ResultSet
 import java.time.Instant
-import javax.sql.DataSource
 
-internal class SqliteEventStore(private val dataSource: DataSource, private val eventCodec: EventCodec) :
-    LoadEvents,
+internal class SqliteEventStore(
+    private val jdbc: NamedParameterJdbcTemplate,
+    private val transactions: TransactionTemplate,
+    private val eventCodec: EventCodec,
+) : LoadEvents,
     AppendEvents {
 
-    private val readJdbc = NamedParameterJdbcTemplate(dataSource)
-
-    override fun load(streamId: StreamId): EventStream? = readJdbc.query(
-        SqliteEventQueries.LOAD,
-        mapOf("streamId" to streamId.value),
-        ResultSetExtractor { rows -> readEventStream(streamId, rows, eventCodec) },
-    )
+    override fun load(streamId: StreamId): EventStream? {
+        val parameters = mapOf("streamId" to streamId.value)
+        return jdbc.query(
+            SqliteEventQueries.LOAD,
+            parameters,
+            ResultSetExtractor { rows -> readEventStream(streamId, rows, eventCodec) },
+        )
+    }
 
     override fun append(
         streamId: StreamId,
@@ -37,112 +39,68 @@ internal class SqliteEventStore(private val dataSource: DataSource, private val 
     ): AppendResult {
         val batch = events.toList()
         require(batch.isNotEmpty()) { "An event append must not be empty" }
+        check(!TransactionSynchronizationManager.isActualTransactionActive()) {
+            "SQLite event append does not support an ambient transaction"
+        }
         val encoded = batch.map { EncodedPendingEvent(it.eventId, it.recordedAt, eventCodec.encode(it.payload)) }
 
-        var committed: AppendResult.Committed? = null
-        return try {
-            dataSource.connection.use { connection ->
-                appendBatch(connection, streamId, expectedRevision, encoded).also { result ->
-                    if (result is AppendResult.Committed) committed = result
+        val revision = try {
+            transactions.execute { status ->
+                check(status.isNewTransaction) { "SQLite event append requires a new physical transaction" }
+                val position = claim(streamId, expectedRevision, encoded.size)
+                if (position == null) {
+                    status.setRollbackOnly()
+                } else {
+                    insertEvents(streamId, position, encoded)
                 }
+                position?.revision
             }
-        } catch (failure: SQLException) {
-            val result = committed ?: throw failure
-            logger.warn("Could not close SQLite connection after committing stream {}", streamId.value, failure)
-            result
+        } catch (rollback: TransactionSystemException) {
+            val original = rollback.applicationException ?: throw rollback
+            original.addSuppressed(rollback.cause ?: rollback)
+            throw original
         }
+        return revision?.let(AppendResult::Committed) ?: AppendResult.RevisionMismatch
     }
 
-    private fun appendBatch(
-        connection: Connection,
-        streamId: StreamId,
-        expectedRevision: StreamRevision,
-        batch: List<EncodedPendingEvent>,
-    ): AppendResult {
-        val position = runCatching {
-            connection.autoCommit = false
-            val jdbc = NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true))
-            claim(jdbc, streamId, expectedRevision, batch.size)?.also {
-                insertEvents(jdbc, streamId, it, batch)
-                commit(connection, streamId)
-            }
-        }.onFailure { failure ->
-            runCatching { connection.rollback() }.exceptionOrNull()?.let(failure::addSuppressed)
-        }.getOrThrow()
-
-        return if (position == null) {
-            connection.rollback()
-            AppendResult.RevisionMismatch
-        } else {
-            AppendResult.Committed(position.revision)
-        }
-    }
-
-    private fun claim(
-        jdbc: NamedParameterJdbcTemplate,
-        streamId: StreamId,
-        expectedRevision: StreamRevision,
-        batchSize: Int,
-    ): ClaimedPosition? {
+    private fun claim(streamId: StreamId, expectedRevision: StreamRevision, batchSize: Int): ClaimedPosition? {
         val creating = expectedRevision == StreamRevision.INITIAL
         val sql = if (creating) SqliteEventQueries.CREATE else SqliteEventQueries.ADVANCE
-        return jdbc.query(
-            sql,
-            mapOf(
-                "streamId" to streamId.value,
-                "expectedRevision" to expectedRevision.value,
-                "batchSize" to batchSize,
-            ),
-            ResultSetExtractor { rows ->
-                if (rows.next()) {
-                    ClaimedPosition(
-                        StreamRevision(rows.getLong("revision")),
-                        rows.getLong("last_sequence") - batchSize + 1,
-                    )
-                } else {
-                    null
-                }
-            },
+        val parameters = mapOf(
+            "streamId" to streamId.value,
+            "expectedRevision" to expectedRevision.value,
+            "batchSize" to batchSize,
+        )
+        return jdbc.query(sql, parameters, ResultSetExtractor { rows -> readClaimedPosition(rows, batchSize) })
+    }
+
+    private fun readClaimedPosition(rows: ResultSet, batchSize: Int): ClaimedPosition? {
+        if (!rows.next()) return null
+        return ClaimedPosition(
+            StreamRevision(rows.getLong("revision")),
+            rows.getLong("last_sequence") - batchSize + 1,
         )
     }
 
-    private fun insertEvents(
-        jdbc: NamedParameterJdbcTemplate,
-        streamId: StreamId,
-        position: ClaimedPosition,
-        events: List<EncodedPendingEvent>,
-    ) {
+    private fun insertEvents(streamId: StreamId, position: ClaimedPosition, events: List<EncodedPendingEvent>) {
         for ((index, event) in events.withIndex()) {
-            val affected = jdbc.update(
-                SqliteEventQueries.INSERT,
-                mapOf(
-                    "eventId" to event.eventId.value.toString(),
-                    "streamId" to streamId.value,
-                    "sequence" to position.firstSequence + index,
-                    "revision" to position.revision.value,
-                    "recordedAt" to event.recordedAt.toString(),
-                    "eventType" to event.encoded.type,
-                    "eventVersion" to event.encoded.version,
-                    "payload" to event.encoded.payload,
-                ),
+            val parameters = mapOf(
+                "eventId" to event.eventId.value.toString(),
+                "streamId" to streamId.value,
+                "sequence" to position.firstSequence + index,
+                "revision" to position.revision.value,
+                "recordedAt" to event.recordedAt.toString(),
+                "eventType" to event.encoded.type,
+                "eventVersion" to event.encoded.version,
+                "payload" to event.encoded.payload,
             )
-            check(affected == 1) { "An event insert must persist exactly one row" }
-        }
-    }
-
-    private fun commit(connection: Connection, streamId: StreamId) {
-        try {
-            connection.commit()
-        } catch (failure: SQLException) {
-            throw UnknownEventCommitException("Commit outcome unknown for stream ${streamId.value}", failure)
+            check(jdbc.update(SqliteEventQueries.INSERT, parameters) == 1) {
+                "An event insert must persist exactly one row"
+            }
         }
     }
 
     private class ClaimedPosition(val revision: StreamRevision, val firstSequence: Long)
 
     private class EncodedPendingEvent(val eventId: EventId, val recordedAt: Instant, val encoded: EncodedEvent)
-
-    private companion object {
-        val logger: Logger = LoggerFactory.getLogger(SqliteEventStore::class.java)
-    }
 }

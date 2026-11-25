@@ -1,5 +1,6 @@
 package fairshare.infrastructure.persistence.sqlite.config
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
@@ -31,6 +32,49 @@ class SqliteConfigurationTest :
                     }
                 }
                 databaseFile.isFile shouldBe true
+            }
+        }
+
+        expect("explicit DELETE switches a WAL database to rollback journaling on every connection") {
+            val databaseFile = tempdir().resolve("configured.db")
+            val properties = SqliteProperties(
+                jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
+                busyTimeoutMillis = 1234,
+                synchronous = SQLiteConfig.SynchronousMode.FULL,
+            )
+            val configuration = SqliteConfiguration()
+            configuration.dataSource(properties).connection.use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.readPragma("journal_mode") shouldBe "wal"
+                }
+            }
+
+            val dataSource = configuration.dataSource(properties.copy(journalMode = SQLiteConfig.JournalMode.DELETE))
+            repeat(2) {
+                dataSource.connection.use { connection ->
+                    connection.createStatement().use { statement ->
+                        statement.readPragma("journal_mode") shouldBe "delete"
+                    }
+                }
+            }
+        }
+
+        val unsupportedJournalModes = listOf(
+            SQLiteConfig.JournalMode.TRUNCATE,
+            SQLiteConfig.JournalMode.PERSIST,
+            SQLiteConfig.JournalMode.MEMORY,
+            SQLiteConfig.JournalMode.OFF,
+        )
+        unsupportedJournalModes.forEach { journalMode ->
+            expect("SQLite configuration rejects $journalMode journaling") {
+                shouldThrow<IllegalArgumentException> {
+                    SqliteProperties(
+                        jdbcUrl = "jdbc:sqlite:configured.db",
+                        busyTimeoutMillis = 1234,
+                        synchronous = SQLiteConfig.SynchronousMode.FULL,
+                        journalMode = journalMode,
+                    )
+                }
             }
         }
     })

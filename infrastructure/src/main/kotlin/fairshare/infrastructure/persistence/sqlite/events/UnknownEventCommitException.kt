@@ -1,5 +1,6 @@
 package fairshare.infrastructure.persistence.sqlite.events
 
-import java.sql.SQLException
+import org.springframework.transaction.TransactionSystemException
 
-internal class UnknownEventCommitException(message: String, cause: SQLException) : RuntimeException(message, cause)
+internal class UnknownEventCommitException(message: String, cause: Throwable) :
+    TransactionSystemException(message, cause)

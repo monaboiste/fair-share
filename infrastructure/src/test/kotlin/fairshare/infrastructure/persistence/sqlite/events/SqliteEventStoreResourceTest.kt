@@ -24,7 +24,7 @@ class SqliteEventStoreResourceTest :
         expect("schema initialization, successful appends, mismatches, and loads close their JDBC resources") {
             val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
             val tracked = TrackedDataSource(database.dataSource)
-            val store = SqliteEventStore(tracked, TestEventCodec())
+            val store = database.store(tracked)
             val created = pending(TestCreated("original"))
 
             SqliteEventSchema.initialize(tracked)
@@ -45,7 +45,7 @@ class SqliteEventStoreResourceTest :
         expect("a failed event insert closes the Spring JDBC resources and its dedicated connection") {
             val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
             val tracked = TrackedDataSource(database.dataSource)
-            val store = SqliteEventStore(tracked, TestEventCodec())
+            val store = database.store(tracked)
             val duplicate = pending(TestCreated("duplicate"))
 
             shouldThrow<DataAccessException> {
@@ -67,7 +67,7 @@ class SqliteEventStoreResourceTest :
             val unsupported = pending(object : DomainEvent {})
             val batch = listOf(pending(TestRenamed("valid first event")), unsupported)
             val tracked = TrackedDataSource(database.dataSource)
-            val store = SqliteEventStore(tracked, TestEventCodec())
+            val store = database.store(tracked)
 
             shouldThrow<IllegalArgumentException> {
                 store.append(missingStreamId, StreamRevision.INITIAL, emptyList())
@@ -106,7 +106,7 @@ class SqliteEventStoreResourceTest :
                     return delegate.encode(event)
                 }
             }
-            val store = SqliteEventStore(tracked, codec)
+            val store = database.store(tracked, codec)
 
             store.append(streamId, StreamRevision.INITIAL, batch) shouldBe AppendResult.Committed(StreamRevision(1))
             encoded shouldBe listOf(created.payload, renamed.payload)
@@ -118,7 +118,7 @@ class SqliteEventStoreResourceTest :
         expect("a JDBC close exception after successful commit does not change the append result") {
             val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
             val tracked = TrackedDataSource(database.dataSource, failOnClose = true)
-            val store = SqliteEventStore(tracked, TestEventCodec())
+            val store = database.store(tracked)
             val created = pending(TestCreated("original"))
 
             store.append(streamId, StreamRevision.INITIAL, listOf(created)) shouldBe
