@@ -38,7 +38,7 @@ jobs:
           assemble
           check
           verify
-          dependencyAnalysisCheck
+          :dependencyAnalysisCheck
           coverageCheck
 
       - name: Summarize quality checks
