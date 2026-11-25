@@ -3,12 +3,13 @@ package fairshare.infrastructure.persistence.sqlite.events
 import fairshare.domain.events.DomainEvent
 
 /**
- * Serializes persisted events independently of REST serialization.
- * Event type identifiers and format versions must be explicit and stable.
- * Reject unsupported event types, unsupported versions, and malformed payloads with [IllegalArgumentException].
+ * Serializes events independently of REST. Type identifiers and format versions must be explicit and stable,
+ * and decoding an encoded event must recover its original domain data.
  */
 internal interface EventCodec {
+    /** Encodes an event for storage, or throws [IllegalArgumentException] if its type is unsupported. */
     fun encode(event: DomainEvent): EncodedEvent
 
+    /** Decodes recorded data, throwing [IllegalArgumentException] if the type, version, or payload is invalid. */
     fun decode(event: EncodedEvent): DomainEvent
 }

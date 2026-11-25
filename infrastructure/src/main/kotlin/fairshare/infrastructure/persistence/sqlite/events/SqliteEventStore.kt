@@ -8,6 +8,7 @@ import fairshare.domain.events.EventStream
 import fairshare.domain.events.PendingEvent
 import fairshare.domain.events.StreamId
 import fairshare.domain.events.StreamRevision
+import fairshare.infrastructure.persistence.sqlite.UnknownCommitOutcomeException
 import org.springframework.jdbc.core.ResultSetExtractor
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.TransactionSystemException
@@ -16,6 +17,10 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.sql.ResultSet
 import java.time.Instant
 
+/**
+ * SQLite event persistence on unpooled connections. Each append owns its transaction and rejects
+ * ambient transactions. Commit failures with uncertain durability throw [UnknownCommitOutcomeException].
+ */
 internal class SqliteEventStore(
     private val jdbc: NamedParameterJdbcTemplate,
     private val transactions: TransactionTemplate,
@@ -63,6 +68,10 @@ internal class SqliteEventStore(
         return revision?.let(AppendResult::Committed) ?: AppendResult.RevisionMismatch
     }
 
+    /**
+     * Reserves a contiguous sequence range at the next revision within the append transaction.
+     * Returns `null` without changing stream metadata if the expected revision does not match.
+     */
     private fun claim(streamId: StreamId, expectedRevision: StreamRevision, batchSize: Int): ClaimedPosition? {
         val creating = expectedRevision == StreamRevision.INITIAL
         val sql = if (creating) SqliteEventQueries.CREATE else SqliteEventQueries.ADVANCE
