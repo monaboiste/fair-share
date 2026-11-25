@@ -15,6 +15,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot")
     implementation("org.springframework:spring-beans")
     implementation("org.springframework:spring-core")
+    implementation("org.springframework:spring-jdbc")
 
     implementation("org.springframework:spring-web")
     implementation("org.springframework:spring-webmvc")
@@ -28,6 +29,7 @@ dependencies {
     runtimeOnly("tools.jackson.module:jackson-module-kotlin")
 
     testImplementation("org.springframework:spring-test")
+    testImplementation("org.springframework:spring-tx")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.hamcrest:hamcrest")

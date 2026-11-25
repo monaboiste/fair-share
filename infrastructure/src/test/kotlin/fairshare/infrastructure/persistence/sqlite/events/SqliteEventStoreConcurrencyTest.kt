@@ -52,7 +52,6 @@ class SqliteEventStoreConcurrencyTest :
 
         expect("an in-progress load sees one snapshot while a WAL writer commits a new batch") {
             val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
-            database.executeSql("PRAGMA journal_mode = WAL")
             val created = pending(TestCreated("original"))
             val renamed = pending(TestRenamed("first rename"))
             val appendedDuringRead = pending(TestRenamed("concurrent rename"))

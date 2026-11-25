@@ -8,28 +8,34 @@ import java.sql.Statement
 
 class SqliteConfigurationTest :
     ExpectSpec({
-        val databaseFile = tempdir().resolve("configured.db")
+        val synchronousModes = mapOf(SQLiteConfig.SynchronousMode.FULL to "2", SQLiteConfig.SynchronousMode.OFF to "0")
 
-        expect("SQLite opens the configured database with the configured connection settings") {
-            val properties = SqliteProperties(
-                jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
-                busyTimeoutMillis = 1234,
-                synchronous = SQLiteConfig.SynchronousMode.OFF,
-            )
-            val dataSource = SqliteConfiguration().dataSource(properties)
+        synchronousModes.forEach { (synchronous, pragmaValue) ->
+            expect("each SQLite connection uses WAL with foreign keys, a busy timeout and synchronous $synchronous") {
+                val databaseFile = tempdir().resolve("configured.db")
+                val properties = SqliteProperties(
+                    jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
+                    busyTimeoutMillis = 1234,
+                    synchronous = synchronous,
+                )
+                val dataSource = SqliteConfiguration().dataSource(properties)
 
-            dataSource.connection.use { connection ->
-                databaseFile.isFile shouldBe true
-                connection.createStatement().use { statement ->
-                    statement.readPragma("foreign_keys") shouldBe 1
-                    statement.readPragma("busy_timeout") shouldBe 1234
-                    statement.readPragma("synchronous") shouldBe 0
+                repeat(2) {
+                    dataSource.connection.use { connection ->
+                        connection.createStatement().use { statement ->
+                            statement.readPragma("journal_mode") shouldBe "wal"
+                            statement.readPragma("foreign_keys") shouldBe "1"
+                            statement.readPragma("busy_timeout") shouldBe "1234"
+                            statement.readPragma("synchronous") shouldBe pragmaValue
+                        }
+                    }
                 }
+                databaseFile.isFile shouldBe true
             }
         }
     })
 
-private fun Statement.readPragma(name: String): Int = executeQuery("PRAGMA $name").use { rows ->
+private fun Statement.readPragma(name: String): String = executeQuery("PRAGMA $name").use { rows ->
     rows.next() shouldBe true
-    rows.getInt(1)
+    rows.getString(1)
 }

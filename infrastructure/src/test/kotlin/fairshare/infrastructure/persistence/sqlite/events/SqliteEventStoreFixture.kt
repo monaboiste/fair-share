@@ -11,7 +11,11 @@ import org.sqlite.SQLiteDataSource
 import java.io.File
 import java.time.Instant
 
-internal class SqliteEventStoreFixture(private val databaseFile: File, private val busyTimeoutMillis: Int = 5_000) {
+internal class SqliteEventStoreFixture(
+    private val databaseFile: File,
+    private val busyTimeoutMillis: Int = 5_000,
+    private val journalMode: SQLiteConfig.JournalMode = SQLiteConfig.JournalMode.WAL,
+) {
     val dataSource = openDataSource()
     val store = SqliteEventStore(dataSource, TestEventCodec())
 
@@ -31,6 +35,7 @@ internal class SqliteEventStoreFixture(private val databaseFile: File, private v
 
     private fun openDataSource(): SQLiteDataSource {
         val config = SQLiteConfig().apply {
+            setJournalMode(journalMode)
             setSynchronous(SQLiteConfig.SynchronousMode.FULL)
             setBusyTimeout(busyTimeoutMillis)
             enforceForeignKeys(true)
