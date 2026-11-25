@@ -16,6 +16,8 @@
 ## Build and verification
 
 - Run Gradle through the wrapper: `./gradlew`.
+- Shared checkout: name one Gradle owner in the delegation. Other agents hand off their check commands to that owner.
+  Use separate worktrees when agents need independent build loops.
 - Run verification only when modifying source code, tests, build logic, or build configuration, unless explicitly
   requested otherwise.
 - Do not run verification for read-only tasks (reviews, investigations, grilling, planning) or documentation-only
