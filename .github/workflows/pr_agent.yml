@@ -29,7 +29,7 @@ jobs:
           config.custom_model_max_tokens: ${{ vars.PR_AGENT_CONTEXT_TOKENS || '-1' }}
           config.max_model_tokens: ${{ vars.PR_AGENT_MAX_MODEL_TOKENS || '65536' }}
           config.fallback_models: ${{ vars.PR_AGENT_FALLBACK_MODELS || '[]' }}
-          config.num_retries: "0"
+          config.num_retries: ${{ vars.PR_AGENT_NUM_RETRIES || '1' }}
 
           # Automation
           github_action_config.auto_describe: "false"
