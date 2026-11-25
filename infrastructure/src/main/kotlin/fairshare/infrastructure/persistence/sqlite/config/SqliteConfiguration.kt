@@ -14,6 +14,7 @@ internal class SqliteConfiguration {
     @Bean
     fun dataSource(properties: SqliteProperties): DataSource {
         val config = SQLiteConfig()
+        config.setJournalMode(SQLiteConfig.JournalMode.WAL)
         config.enforceForeignKeys(true)
         config.setBusyTimeout(properties.busyTimeoutMillis)
         config.setSynchronous(properties.synchronous)
