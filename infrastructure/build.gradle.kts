@@ -33,4 +33,6 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest")
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
+
+    testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }
