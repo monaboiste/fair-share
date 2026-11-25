@@ -28,6 +28,11 @@ A substantial code change includes new behavior, a bug fix, a non-trivial refact
 or changes spanning multiple code files. For small, localized code changes, `verify` plus the relevant focused tests is
 sufficient unless another applicable instruction requires more.
 
+## Review handoff
+
+- Before reporting completion after a delegated review, account for every finding: fix it, refute it with evidence, or
+  report it as deferred with the remaining risk and reason.
+
 ## Quality rules
 
 - Fix the code or tests when a check fails. Keep compiler, formatting, static-analysis, coverage, mutation, and
