@@ -148,26 +148,38 @@ def detekt_summary() -> list[str]:
 
 def dependencies_summary() -> list[str]:
     lines = ["## Dependency analysis", ""]
-    reports = report_files("**/build/reports/dependency-analysis/project-health-report.txt")
-    if not reports:
-        print("::warning::No dependency-analysis reports found")
+    report = Path(
+        "build/reports/dependency-analysis/build-health-report.txt"
+    )
+
+    if not report.is_file():
+        print("::warning::No build-health report found")
         return lines + ["No dependency-analysis report found.", ""]
-    for report in reports:
-        module = project_name(report)
-        content = report.read_text(encoding="utf-8", errors="replace").strip()
-        if not content:
-            lines.append(f"- `{module}`: report is empty (no advice).")
-            continue
-        limit = 10000
-        text = content[:limit]
-        if len(content) > limit:
-            text += "\n... truncated; see artifact for full report"
-        # Triple-tilde fences are unlikely to occur in a plain-text health report.
-        lines += [
-            f"<details><summary>Dependency advice for {module}</summary>",
-            "", "~~~text", text, "~~~", "", "</details>", "",
-        ]
-    return lines + [""]
+
+    content = report.read_text(
+        encoding="utf-8",
+        errors="replace",
+    ).strip()
+
+    if not content:
+        return lines + ["No dependency advice.", ""]
+
+    limit = 10000
+    text = content[:limit]
+
+    if len(content) > limit:
+        text += "\n... truncated; see artifact for full report"
+
+    return lines + [
+        "<details><summary>Dependency advice</summary>",
+        "",
+        "~~~text",
+        text,
+        "~~~",
+        "",
+        "</details>",
+        "",
+    ]
 
 
 @dataclass
