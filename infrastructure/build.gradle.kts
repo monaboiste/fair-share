@@ -21,9 +21,11 @@ dependencies {
     implementation("tools.jackson.core:jackson-core")
     implementation("tools.jackson.core:jackson-databind")
 
+    implementation("org.xerial:sqlite-jdbc")
+
     implementation("jakarta.validation:jakarta.validation-api")
 
-    implementation("org.xerial:sqlite-jdbc")
+    runtimeOnly("tools.jackson.module:jackson-module-kotlin")
 
     testImplementation("org.springframework:spring-test")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
@@ -31,6 +33,4 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest")
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
-
-    testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }

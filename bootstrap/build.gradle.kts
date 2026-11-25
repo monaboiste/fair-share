@@ -11,7 +11,6 @@ dependencies {
 
     runtimeOnly("org.springframework.boot:spring-boot-starter-webmvc")
     runtimeOnly("org.springframework.boot:spring-boot-starter-validation")
-    runtimeOnly("tools.jackson.module:jackson-module-kotlin")
 }
 
 tasks.bootJar {
