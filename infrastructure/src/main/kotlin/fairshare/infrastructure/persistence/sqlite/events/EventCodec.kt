@@ -7,9 +7,27 @@ import fairshare.domain.events.DomainEvent
  * and decoding an encoded event must recover its original domain data.
  */
 internal interface EventCodec {
-    /** Encodes an event for storage, or throws [IllegalArgumentException] if its type is unsupported. */
+    /**
+     * Encodes persisted domain events.
+     *
+     * **Implementation requirements:**
+     *
+     * - Use explicit and stable event type identifiers and format versions.
+     * - Keep event serialization independent of REST serialization.
+     * - Reject unsupported formats and malformed payloads with
+     *   [IllegalArgumentException].
+     */
     fun encode(event: DomainEvent): EncodedEvent
 
-    /** Decodes recorded data, throwing [IllegalArgumentException] if the type, version, or payload is invalid. */
+    /**
+     * Decodes persisted domain events.
+     *
+     * **Implementation requirements:**
+     *
+     * - Use explicit and stable event type identifiers and format versions.
+     * - Keep event serialization independent of REST serialization.
+     * - Reject unsupported formats and malformed payloads with
+     *   [IllegalArgumentException].
+     */
     fun decode(event: EncodedEvent): DomainEvent
 }
