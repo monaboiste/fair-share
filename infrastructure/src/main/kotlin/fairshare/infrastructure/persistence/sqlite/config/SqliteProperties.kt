@@ -1,4 +1,4 @@
-package fairshare.bootstrap.persistence
+package fairshare.infrastructure.persistence.sqlite.config
 
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.PositiveOrZero
@@ -8,7 +8,7 @@ import org.sqlite.SQLiteConfig
 
 @Validated
 @ConfigurationProperties("fair-share.persistence.sqlite")
-internal data class PersistenceProperties(
+internal data class SqliteProperties(
     @field:Pattern(regexp = "^jdbc:sqlite:.+")
     val jdbcUrl: String,
     @field:PositiveOrZero
