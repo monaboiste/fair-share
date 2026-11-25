@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2026-11-25-create-event-schema
+      author: fair-share
+      dbms: sqlite
+      runInTransaction: true
+      preConditions:
+        - onFail: HALT
+        - onFailMessage: Unmanaged event tables already exist; use a new or empty SQLite database.
+        - sqlCheck:
+            expectedResult: "0"
+            sql: SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name COLLATE NOCASE IN ('event_stream', 'event')
+      changes:
+        - sqlFile:
+            path: changes/2026-11-25-create-event-schema.sql
+            relativeToChangelogFile: true

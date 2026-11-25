@@ -50,6 +50,9 @@ jobs:
           :dependencyAnalysisCheck
           coverageCheck
 
+      - name: Verify SQLite migration task
+        run: python3 infrastructure/src/test/python/migration_task_test.py
+
       - name: Summarize quality checks
         if: ${{ !cancelled() }}
         run: |

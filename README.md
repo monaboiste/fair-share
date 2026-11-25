@@ -43,8 +43,7 @@ mode, the writable database directory must accommodate the adjacent `-wal` and `
 
 The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`. Bootstrap configures
 the SQLite data source and persistence templates but does not wire the event store, initialize its schema, or provide
-a production codec before real event types exist. The idempotent schema initializer is test-only; Liquibase will be
-introduced separately.
+a production codec before real event types exist.
 The first feature with real events must supply a codec with explicit type and version mappings, independent of the
 REST mapper. A codec must reject unsupported formats and malformed payloads with `IllegalArgumentException` so replay
 identifies them as invalid history.
@@ -58,6 +57,31 @@ python3 .github/scripts/quality_pr_summary.py mutation-triage --module :infrastr
 ```
 
 Omit `--module` to include all modules. Triage does not rerun Gradle.
+
+### Provision the SQLite event database
+
+Stop all backend processes using the database. Using the JDK specified in `.sdkmanrc`, run:
+
+```bash
+database="$HOME/.fair-share/events.db"
+mkdir -p "$(dirname "$database")"
+./gradlew :infrastructure:migrateDatabase -PdatabasePath="$database"
+```
+
+`databasePath` must be an absolute path to a local SQLite file. Migration creates a missing file or provisions an
+existing empty file. Running it again preserves committed event history and the schema version. It refuses to adopt
+unmanaged event tables. Liquibase runs only for migration and tests, not at application startup.
+
+To use the provisioned file locally, set `fair-share.persistence.sqlite.jdbc-url` to the JDBC URL below. Use the encoded
+`file:` URI so characters like `?` are treated as part of the filename. Keep the database directory writable for
+SQLite's journal files.
+
+```bash
+python3 -c 'from pathlib import Path; import sys; print("jdbc:sqlite:" + Path(sys.argv[1]).as_uri())' "$database"
+```
+
+Run the migration task regression tests with `python3 infrastructure/src/test/python/migration_task_test.py`
+(Python with SQLite 3.37 or later, and the same JDK).
 
 ### Run locally
 
