@@ -38,13 +38,13 @@ private fun readEvent(eventId: String, rows: ResultSet, codec: EventCodec): Even
     val uuid = UUID.fromString(eventId)
     require(uuid.toString() == eventId) { "Event ID is not a canonical UUID" }
 
-    val version = rows.getInt("event_version")
+    val version = rows.getLong("event_version")
     require(version in 1L..Int.MAX_VALUE.toLong()) {
         "Event format version is out of range"
     }
     val encoded = EncodedEvent(
         type = rows.getString("event_type"),
-        version = version,
+        version = version.toInt(),
         payload = rows.getString("payload"),
     )
     return EventEnvelope(
