@@ -30,6 +30,5 @@ dependencies {
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
-    testImplementation("jakarta.validation:jakarta.validation-api")
     testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }
