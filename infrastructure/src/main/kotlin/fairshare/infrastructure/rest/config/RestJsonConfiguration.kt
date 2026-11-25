@@ -1,4 +1,4 @@
-package fairshare.infrastructure.rest
+package fairshare.infrastructure.rest.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

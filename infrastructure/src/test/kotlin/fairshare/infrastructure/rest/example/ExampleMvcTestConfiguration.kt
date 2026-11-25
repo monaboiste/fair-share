@@ -1,6 +1,6 @@
 package fairshare.infrastructure.rest.example
 
-import fairshare.infrastructure.rest.RestJsonConfiguration
+import fairshare.infrastructure.rest.config.RestJsonConfiguration
 import fairshare.infrastructure.rest.error.ProblemDocumentationController
 import fairshare.infrastructure.rest.error.RestExceptionHandler
 import org.springframework.boot.SpringBootConfiguration
