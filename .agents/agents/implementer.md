@@ -12,8 +12,7 @@ Implement the assigned change to completion.
 - Do not add dependencies or change build/compiler settings unless required by the task.
 - If required behavior or a contract is materially ambiguous, stop and return the question, the options you see, their
   consequences, and any edits already made.
-- Commit coherent, verified increments at useful checkpoints. Prefer commits when the relevant tests are green.
-- Before committing, inspect the diff and include only changes belonging to the task.
+- Hand verified changes back to the caller for the `commit` skill's approval flow.
 - Do not push, rewrite history, amend existing commits, or commit unrelated changes unless explicitly requested.
 
 ## Tool use
