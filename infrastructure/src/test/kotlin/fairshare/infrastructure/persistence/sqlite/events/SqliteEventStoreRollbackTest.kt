@@ -12,6 +12,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.springframework.dao.DataAccessException
 import org.springframework.transaction.TransactionSystemException
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.sqlite.SQLiteConfig
 import org.sqlite.SQLiteErrorCode
 import org.sqlite.SQLiteException
@@ -224,14 +225,47 @@ class SqliteEventStoreRollbackTest :
             val commitError = LinkageError("Commit did not execute")
             val probe = AppendConnectionProbe(database.dataSource, beforeCommitFailure = commitError)
             val store = testEventStore(probe)
+            val resourcesBefore = TransactionSynchronizationManager.getResourceMap().toMap()
 
             val failure = shouldThrow<LinkageError> {
                 store.append(streamId, StreamRevision.INITIAL, listOf(pending(TestCreated("original"))))
             }
 
             (failure === commitError) shouldBe true
+            TransactionSynchronizationManager.getResourceMap() shouldBe resourcesBefore
             probe.calls shouldBe listOf("open", "autoCommit=false", "commit", "rollback", "close")
             testEventStore(database.newDataSource()).load(streamId) shouldBe null
+        }
+
+        listOf(
+            "a SQL exception" to { _: Error -> SQLException("Rollback failed") },
+            "a different JVM error" to { _: Error -> LinkageError("Rollback failed") },
+            "the same JVM error" to { commitError: Error -> commitError },
+        ).forEach { (scenario, createRollbackFailure) ->
+            expect("the JVM error thrown after a real commit survives rollback throwing $scenario") {
+                val database = TestSqliteDatabase(tempdir().resolve("events.db"))
+                val created = pending(TestCreated("original"))
+                val commitError = LinkageError("Commit acknowledgement failed")
+                val rollbackFailure = createRollbackFailure(commitError)
+                val probe = AppendConnectionProbe(
+                    database.dataSource,
+                    afterCommitFailure = commitError,
+                    rollbackFailure = rollbackFailure,
+                )
+                val store = testEventStore(probe)
+                val resourcesBefore = TransactionSynchronizationManager.getResourceMap().toMap()
+
+                val failure = shouldThrow<LinkageError> {
+                    store.append(streamId, StreamRevision.INITIAL, listOf(created))
+                }
+
+                (failure === commitError) shouldBe true
+                failure.suppressed.toList() shouldBe listOf(rollbackFailure).filterNot { it === commitError }
+                TransactionSynchronizationManager.getResourceMap() shouldBe resourcesBefore
+                probe.calls shouldBe listOf("open", "autoCommit=false", "commit", "rollback", "close")
+                testEventStore(database.newDataSource()).load(streamId).shouldNotBeNull().events shouldBe
+                    listOf(created.envelope(streamId, 1, 1))
+            }
         }
 
         expect("a JVM error from mismatch rollback escapes unchanged and cleanup does not restore auto-commit") {
@@ -286,7 +320,7 @@ class SqliteEventStoreRollbackTest :
 
 private class AppendConnectionProbe(
     private val delegate: DataSource,
-    private val afterCommitFailure: SQLException? = null,
+    private val afterCommitFailure: Throwable? = null,
     private val rollbackFailure: Throwable? = null,
     private val beforeCommitFailure: Throwable? = null,
 ) : DataSource by delegate {
