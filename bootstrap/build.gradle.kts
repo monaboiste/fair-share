@@ -1,7 +1,6 @@
 plugins {
     id("fairshare.spring.application-conventions")
     id("fairshare.observability.tracing-conventions")
-    id("fairshare.observability.logging-conventions")
     id("fairshare.quality.conventions")
 }
 
@@ -11,8 +10,8 @@ dependencies {
     runtimeOnly(project(":infrastructure"))
 
     runtimeOnly("org.springframework.boot:spring-boot-starter-webmvc")
-
-    testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
+    runtimeOnly("org.springframework.boot:spring-boot-starter-validation")
+    runtimeOnly("tools.jackson.module:jackson-module-kotlin")
 }
 
 tasks.bootJar {
