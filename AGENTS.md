@@ -39,6 +39,11 @@ sufficient unless another applicable instruction requires more.
 - Declare every dependency the code uses directly; do not rely on transitively available dependencies.
 - Before adding or promoting a dependency, check the existing conventions in `build-logic/` and
   `gradle/libs.versions.toml`.
+- Keep production Spring Boot starters in `bootstrap`. Library modules should depend on the specific libraries
+  and Spring modules they use. Test starters may be declared in the modules that need them.
+- Prefer `runtimeOnly` for dependencies required at runtime but not used directly by source code.
+- Use dependency analysis bundles for cohesive sets of artifacts, such as Spring Boot starters and framework
+  internals. Keep exclusions narrow and justified.
 
 ## Issue tracker
 
