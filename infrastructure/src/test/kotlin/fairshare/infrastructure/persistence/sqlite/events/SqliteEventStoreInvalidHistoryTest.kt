@@ -40,20 +40,21 @@ class SqliteEventStoreInvalidHistoryTest :
         )
         corruptions.forEach { (description, commands) ->
             expect("loading rejects $description instead of returning a partial or missing history") {
-                val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
-                database.store.append(
+                val database = TestSqliteDatabase(tempdir().resolve("events.db"))
+                val store = testEventStore(database.dataSource)
+                store.append(
                     streamId,
                     StreamRevision.INITIAL,
                     listOf(pending(TestCreated("original")), pending(TestRenamed("second"))),
                 ) shouldBe AppendResult.Committed(StreamRevision(1))
-                database.store.append(
+                store.append(
                     streamId,
                     StreamRevision(1),
                     listOf(pending(TestRenamed("third")), pending(TestRenamed("fourth"))),
                 ) shouldBe AppendResult.Committed(StreamRevision(2))
                 database.executeSql(*commands.toTypedArray())
 
-                shouldThrow<InvalidEventHistoryException> { database.store.load(streamId) }
+                shouldThrow<InvalidEventHistoryException> { store.load(streamId) }
             }
         }
     })

@@ -13,7 +13,8 @@ import javax.sql.DataSource
 /**
  * For unpooled SQLite connections only. Close the physical connection without restoring auto-commit,
  * which could commit unfinished writes after a failed rollback or commit. Handle commit failures here
- * so Spring cannot replace an unknown commit outcome with a rollback failure.
+ * so Spring cannot replace an unknown commit outcome with a rollback failure. JDBC wrappers can
+ * fail with unchecked exceptions too; handle those at the same boundaries as SQL failures.
  */
 internal class SqliteTransactionManager(dataSource: DataSource) : DataSourceTransactionManager(dataSource) {
     override fun doBegin(transaction: Any, definition: TransactionDefinition) {
@@ -23,18 +24,26 @@ internal class SqliteTransactionManager(dataSource: DataSource) : DataSourceTran
         super.doBegin(transaction, definition)
     }
 
+    @Suppress("TooGenericExceptionCaught")
     override fun doCommit(status: DefaultTransactionStatus) {
-        runCatching { super.doCommit(status) }.getOrElse { failure ->
+        try {
+            super.doCommit(status)
+        } catch (failure: RuntimeException) {
             val unknown = UnknownCommitOutcomeException("SQLite commit outcome unknown", jdbcFailure(failure))
-            runCatching { super.doRollback(status) }.exceptionOrNull()?.let { rollback ->
+            try {
+                super.doRollback(status)
+            } catch (rollback: RuntimeException) {
                 unknown.addSuppressed(jdbcFailure(rollback))
             }
             throw unknown
         }
     }
 
+    @Suppress("TooGenericExceptionCaught")
     override fun doRollback(status: DefaultTransactionStatus) {
-        runCatching { super.doRollback(status) }.getOrElse { failure ->
+        try {
+            super.doRollback(status)
+        } catch (failure: RuntimeException) {
             throw TransactionSystemException("SQLite rollback failed", jdbcFailure(failure))
         }
     }
@@ -46,5 +55,6 @@ internal class SqliteTransactionManager(dataSource: DataSource) : DataSourceTran
         holder.clear()
     }
 
-    private fun jdbcFailure(failure: Throwable): Throwable = (failure as? TransactionSystemException)?.cause ?: failure
+    private fun jdbcFailure(failure: RuntimeException): Throwable =
+        (failure as? TransactionSystemException)?.cause ?: failure
 }
