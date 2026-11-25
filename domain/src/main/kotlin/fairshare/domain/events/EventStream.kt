@@ -2,6 +2,11 @@ package fairshare.domain.events
 
 import java.util.Collections
 
+/**
+ * Complete, nonempty history of one stream. Events belong to [streamId], have unique IDs within the stream,
+ * and are ordered by contiguous sequence starting at one. Batch revisions start at one, stay constant within
+ * a batch, and advance by one between batches. [revision] matches the last event's revision.
+ */
 public class EventStream(
     public val streamId: StreamId,
     public val revision: StreamRevision,

@@ -1,5 +1,6 @@
 package fairshare.domain.events
 
+/** Identifies a stream using a nonblank, well-formed Unicode string. */
 @JvmInline
 public value class StreamId(public val value: String) {
     init {

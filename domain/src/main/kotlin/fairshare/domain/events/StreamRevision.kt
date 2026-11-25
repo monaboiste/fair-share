@@ -1,5 +1,6 @@
 package fairshare.domain.events
 
+/** Counts committed batches within a stream, starting at one. Zero denotes a stream not yet created. */
 @JvmInline
 public value class StreamRevision(public val value: Long) {
     init {
@@ -7,6 +8,7 @@ public value class StreamRevision(public val value: Long) {
     }
 
     public companion object {
+        /** Expected revision when creating a stream. */
         public val INITIAL: StreamRevision = StreamRevision(0)
     }
 }
