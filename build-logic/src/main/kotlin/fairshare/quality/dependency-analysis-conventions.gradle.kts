@@ -95,13 +95,18 @@ if (isRootProject) {
                 includeDependency("io.micrometer:micrometer-registry-otlp")
                 includeDependency("io.opentelemetry:opentelemetry-exporter-otlp")
             }
+            bundle("kotest") {
+                includeDependency("io.kotest:kotest-runner-junit5")
+                includeDependency("io.kotest:kotest-framework-engine")
+                includeDependency("io.kotest:kotest-assertions-core")
+                includeDependency("io.kotest:kotest-assertions-shared")
+                includeDependency("io.kotest:kotest-common")
+            }
         }
     }
 } else {
     extensions.configure<DependencyAnalysisSubExtension> {
         issues {
-            ignoreSourceSet("test")
-
             onAny {
                 severity("warn")
             }
