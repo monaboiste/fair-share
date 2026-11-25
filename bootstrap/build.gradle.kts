@@ -11,6 +11,10 @@ dependencies {
 
     runtimeOnly("org.springframework.boot:spring-boot-starter-webmvc")
     runtimeOnly("org.springframework.boot:spring-boot-starter-validation")
+
+    testImplementation("org.springframework:spring-jdbc")
+    testImplementation("org.springframework:spring-test")
+    testImplementation("org.springframework:spring-tx")
 }
 
 tasks.bootJar {

@@ -14,4 +14,11 @@ internal data class SqliteProperties(
     @field:PositiveOrZero
     val busyTimeoutMillis: Int,
     val synchronous: SQLiteConfig.SynchronousMode,
-)
+    val journalMode: SQLiteConfig.JournalMode = SQLiteConfig.JournalMode.WAL,
+) {
+    init {
+        require(journalMode == SQLiteConfig.JournalMode.WAL || journalMode == SQLiteConfig.JournalMode.DELETE) {
+            "SQLite journal mode must be WAL or DELETE; got $journalMode"
+        }
+    }
+}

@@ -8,6 +8,7 @@ import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import org.springframework.transaction.TransactionDefinition
 import java.time.Instant
 
 class SqliteEventStoreTest :
@@ -105,6 +106,38 @@ class SqliteEventStoreTest :
                 revision shouldBe StreamRevision(1)
                 events shouldBe listOf(created.envelope(streamId, 1, 1))
             }
+        }
+
+        expect("append rejects an ambient transaction without joining it or committing independently") {
+            val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
+            val created = pending(TestCreated("original"))
+
+            database.transactions.executeWithoutResult { status ->
+                val failure = shouldThrow<IllegalStateException> {
+                    database.store.append(streamId, StreamRevision.INITIAL, listOf(created))
+                }
+                failure.message shouldBe "SQLite event append does not support an ambient transaction"
+                database.store.load(streamId) shouldBe null
+                database.reopen().load(streamId) shouldBe null
+                status.setRollbackOnly()
+            }
+
+            database.store.load(streamId) shouldBe null
+            database.store.append(streamId, StreamRevision.INITIAL, listOf(created)) shouldBe
+                AppendResult.Committed(StreamRevision(1))
+        }
+
+        expect("an append cannot write when the template does not start a physical transaction") {
+            val database = SqliteEventStoreFixture(tempdir().resolve("events.db"))
+            val created = pending(TestCreated("original"))
+            database.transactions.propagationBehavior = TransactionDefinition.PROPAGATION_SUPPORTS
+
+            val failure = shouldThrow<IllegalStateException> {
+                database.store.append(streamId, StreamRevision.INITIAL, listOf(created))
+            }
+
+            failure.message shouldBe "SQLite event append requires a new physical transaction"
+            database.reopen().load(streamId) shouldBe null
         }
 
         expect("a new store instance can read and append to persisted history") {

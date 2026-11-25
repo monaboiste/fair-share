@@ -6,42 +6,47 @@ import fairshare.domain.events.EventId
 import fairshare.domain.events.PendingEvent
 import fairshare.domain.events.StreamId
 import fairshare.domain.events.StreamRevision
+import fairshare.infrastructure.persistence.sqlite.config.SqliteConfiguration
+import fairshare.infrastructure.persistence.sqlite.config.SqliteProperties
+import org.springframework.transaction.support.TransactionTemplate
 import org.sqlite.SQLiteConfig
-import org.sqlite.SQLiteDataSource
 import java.io.File
 import java.time.Instant
+import javax.sql.DataSource
 
 internal class SqliteEventStoreFixture(
-    private val databaseFile: File,
-    private val busyTimeoutMillis: Int = 5_000,
-    private val journalMode: SQLiteConfig.JournalMode = SQLiteConfig.JournalMode.WAL,
+    databaseFile: File,
+    busyTimeoutMillis: Int = 5_000,
+    journalMode: SQLiteConfig.JournalMode = SQLiteConfig.JournalMode.WAL,
 ) {
-    val dataSource = openDataSource()
-    val store = SqliteEventStore(dataSource, TestEventCodec())
+    private val configuration = SqliteConfiguration()
+    private val properties = SqliteProperties(
+        jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
+        busyTimeoutMillis = busyTimeoutMillis,
+        synchronous = SQLiteConfig.SynchronousMode.FULL,
+        journalMode = journalMode,
+    )
+    val dataSource = configuration.dataSource(properties)
+    val transactions = configuration.transactionTemplate(configuration.transactionManager(dataSource))
+    val store = store(transactions = transactions)
 
     init {
         SqliteEventSchema.initialize(dataSource)
     }
 
-    fun reopen(): SqliteEventStore = SqliteEventStore(openDataSource(), TestEventCodec())
+    fun reopen(): SqliteEventStore = store(configuration.dataSource(properties))
+
+    fun store(
+        source: DataSource = dataSource,
+        codec: EventCodec = TestEventCodec(),
+        transactions: TransactionTemplate = configuration.transactionTemplate(configuration.transactionManager(source)),
+    ): SqliteEventStore = SqliteEventStore(configuration.namedParameterJdbcTemplate(source), transactions, codec)
 
     fun executeSql(vararg commands: String) {
         dataSource.connection.use { connection ->
             connection.createStatement().use { statement ->
                 commands.forEach { statement.execute(it) }
             }
-        }
-    }
-
-    private fun openDataSource(): SQLiteDataSource {
-        val config = SQLiteConfig().apply {
-            setJournalMode(journalMode)
-            setSynchronous(SQLiteConfig.SynchronousMode.FULL)
-            setBusyTimeout(busyTimeoutMillis)
-            enforceForeignKeys(true)
-        }
-        return SQLiteDataSource(config).apply {
-            url = "jdbc:sqlite:${databaseFile.absolutePath}"
         }
     }
 }

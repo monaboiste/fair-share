@@ -26,20 +26,25 @@ Event payloads and their domain metadata live under `fairshare.domain.events`. L
 side because they reconstruct and commit state for commands. Query ports represent individual capabilities, rather than
 a generic repository interface.
 
-The SQLite event store uses named JDBC parameters. It encodes each nonempty batch before opening a dedicated connection,
-then claims the revision and inserts all events in one explicit transaction. Revisions count batches, with zero
-reserved for an expected missing stream; sequences count individual events within a stream. The store rolls back on a
-revision mismatch or pre-commit failure. If commit throws a `SQLException`, the store raises
-`UnknownEventCommitException` even if cleanup succeeds. It never retries an append automatically. Loads read metadata
-and ordered events in one database snapshot, return `null` only for missing streams, and reject invalid history.
+The SQLite event store uses Spring's named JDBC and transaction templates. It encodes each nonempty batch before
+starting a transaction, rejects ambient transactions, and reports success only after physical commit. Revisions count
+batches, with zero reserved for an expected missing stream; sequences count individual events within a stream. A
+revision mismatch or pre-commit failure rolls back the batch. A failed commit raises `UnknownEventCommitException`
+even if rollback succeeds. The store never retries an append automatically. Loads read metadata and ordered events
+in one database snapshot, return `null` only for missing streams, and reject invalid history.
 
-The supported deployment uses local, file-backed SQLite with WAL enabled and `synchronous=FULL` by default. The
-writable database directory must accommodate the adjacent `-wal` and `-shm` files. The store requires a data source
-that supplies a dedicated physical connection per append, not a connection bound to a caller's transaction.
+The SQLite transaction manager requires unpooled physical connections. It closes them without restoring auto-commit:
+restoring it after a failed rollback could commit partial writes. Rollback failures are suppressed on the original
+write or commit failure.
+
+The supported deployment uses local, file-backed SQLite with `synchronous=FULL` by default.
+`fair-share.persistence.sqlite.journal-mode` defaults to `WAL`; `DELETE` is the only supported alternative. In WAL
+mode, the writable database directory must accommodate the adjacent `-wal` and `-shm` files.
 
 The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`. Bootstrap configures
-the SQLite data source but does not wire the event store, initialize its schema, or provide a production codec before
-real event types exist. The idempotent schema initializer is test-only; Liquibase will be introduced separately.
+the SQLite data source and persistence templates but does not wire the event store, initialize its schema, or provide
+a production codec before real event types exist. The idempotent schema initializer is test-only; Liquibase will be
+introduced separately.
 The first feature with real events must supply a codec with explicit type and version mappings, independent of the
 REST mapper. A codec must reject unsupported formats and malformed payloads with `IllegalArgumentException` so replay
 identifies them as invalid history.

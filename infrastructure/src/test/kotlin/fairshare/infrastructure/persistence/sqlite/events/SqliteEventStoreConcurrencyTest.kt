@@ -57,7 +57,7 @@ class SqliteEventStoreConcurrencyTest :
             val appendedDuringRead = pending(TestRenamed("concurrent rename"))
             database.store.append(streamId, StreamRevision.INITIAL, listOf(created, renamed))
             val codec = PausingReadCodec()
-            val reader = SqliteEventStore(database.dataSource, codec)
+            val reader = database.store(codec = codec)
 
             val snapshot = Executors.newSingleThreadExecutor().use { executor ->
                 val future = executor.submit<EventStream?> { reader.load(streamId) }
