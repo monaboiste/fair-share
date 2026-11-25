@@ -3,6 +3,7 @@ package fairshare.infrastructure.persistence.sqlite.events
 import fairshare.application.commands.ports.AppendResult
 import fairshare.domain.events.StreamId
 import fairshare.domain.events.StreamRevision
+import fairshare.infrastructure.persistence.sqlite.UnknownCommitOutcomeException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.engine.spec.tempdir
@@ -149,7 +150,7 @@ class SqliteEventStoreRollbackTest :
             val probe = AppendConnectionProbe(database.dataSource, commitFailure, rollbackFailure)
             val store = database.store(probe)
 
-            val failure = shouldThrow<UnknownEventCommitException> {
+            val failure = shouldThrow<UnknownCommitOutcomeException> {
                 store.append(streamId, StreamRevision(1), listOf(renamed, renamedAgain))
             }
 
@@ -181,7 +182,7 @@ class SqliteEventStoreRollbackTest :
                     )
                     val store = database.store(probe)
 
-                    val failure = shouldThrow<UnknownEventCommitException> {
+                    val failure = shouldThrow<UnknownCommitOutcomeException> {
                         store.append(streamId, StreamRevision.INITIAL, listOf(created))
                     }
 
@@ -211,7 +212,7 @@ class SqliteEventStoreRollbackTest :
                     }
                 }
 
-                val failure = shouldThrow<UnknownEventCommitException> {
+                val failure = shouldThrow<UnknownCommitOutcomeException> {
                     database.store.append(streamId, StreamRevision(1), listOf(renamed))
                 }
                 failure.cause.shouldBeInstanceOf<SQLiteException>().resultCode shouldBe SQLiteErrorCode.SQLITE_BUSY

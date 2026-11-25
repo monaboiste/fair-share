@@ -29,7 +29,7 @@ a generic repository interface.
 The SQLite event store uses Spring's named JDBC and transaction templates. It encodes each nonempty batch before
 starting a transaction, rejects ambient transactions, and reports success only after physical commit. Revisions count
 batches, with zero reserved for an expected missing stream; sequences count individual events within a stream. A
-revision mismatch or pre-commit failure rolls back the batch. A failed commit raises `UnknownEventCommitException`
+revision mismatch or pre-commit failure rolls back the batch. A failed commit raises `UnknownCommitOutcomeException`
 even if rollback succeeds. The store never retries an append automatically. Loads read metadata and ordered events
 in one database snapshot, return `null` only for missing streams, and reject invalid history.
 

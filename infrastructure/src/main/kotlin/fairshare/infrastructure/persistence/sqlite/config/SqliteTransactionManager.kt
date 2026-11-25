@@ -1,6 +1,6 @@
 package fairshare.infrastructure.persistence.sqlite.config
 
-import fairshare.infrastructure.persistence.sqlite.events.UnknownEventCommitException
+import fairshare.infrastructure.persistence.sqlite.UnknownCommitOutcomeException
 import org.springframework.jdbc.datasource.ConnectionHolder
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.jdbc.datasource.DataSourceUtils
@@ -25,7 +25,7 @@ internal class SqliteTransactionManager(dataSource: DataSource) : DataSourceTran
 
     override fun doCommit(status: DefaultTransactionStatus) {
         runCatching { super.doCommit(status) }.getOrElse { failure ->
-            val unknown = UnknownEventCommitException("SQLite commit outcome unknown", jdbcFailure(failure))
+            val unknown = UnknownCommitOutcomeException("SQLite commit outcome unknown", jdbcFailure(failure))
             runCatching { super.doRollback(status) }.exceptionOrNull()?.let { rollback ->
                 unknown.addSuppressed(jdbcFailure(rollback))
             }
