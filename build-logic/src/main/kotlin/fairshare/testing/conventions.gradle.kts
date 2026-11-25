@@ -14,7 +14,6 @@ dependencies {
     testImplementation(platform(libs.library("kotest-bom")))
     testImplementation(libs.library("kotest-runner-junit5"))
     testImplementation(libs.library("kotest-assertions-core"))
-    testImplementation(libs.library("kotest-property"))
 }
 
 pluginManager.withPlugin("fairshare.spring.kotlin-conventions") {
