@@ -1,6 +1,6 @@
 package fairshare.observability
 
-import fairshare.buildlogic.implementation
+import fairshare.buildlogic.runtimeOnly
 
 if (!pluginManager.hasPlugin("fairshare.spring.application-conventions")) {
     throw GradleException(
@@ -9,5 +9,5 @@ if (!pluginManager.hasPlugin("fairshare.spring.application-conventions")) {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+    runtimeOnly("org.springframework.boot:spring-boot-starter-opentelemetry")
 }
