@@ -13,7 +13,7 @@ val isRootProject = project == rootProject
 if (isRootProject) {
     extensions.configure<DependencyAnalysisExtension> {
 
-        // Dependency bundles must be declared in the root project only
+        // Dependency bundles must be declared in the root project only.
         structure {
             bundle("spring-boot-core") {
                 includeDependency("org.springframework.boot:spring-boot-starter")
@@ -59,6 +59,8 @@ if (isRootProject) {
                 includeDependency("org.springframework.boot:spring-boot-resttestclient")
 
                 includeDependency("org.springframework:spring-test")
+
+                includeDependency("org.apache.tomcat.embed:tomcat-embed-core")
             }
 
             bundle("jackson") {
@@ -110,8 +112,13 @@ if (isRootProject) {
             onAny {
                 severity("warn")
             }
+            sourceSet("test") {
+                onUsedTransitiveDependencies {
+                    // Kotest inline assertions reference coroutine classes.
+                    exclude("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+                }
+            }
         }
-
     }
 }
 
