@@ -38,7 +38,7 @@ jobs:
 
           # Repository context
           config.use_repo_settings_file: "false"
-          config.repo_context_files: '["AGENTS.md", "docs/adr/*.md"]'
+          config.repo_context_files: '["AGENTS.md", "GLOSSARY.md", "docs/agents/domain.md", "docs/adr/*.md"]'
           config.repo_context_max_lines: "500"
           config.repo_context_max_glob_matches: "20"
           config.repo_context_from_default_branch: "true"
