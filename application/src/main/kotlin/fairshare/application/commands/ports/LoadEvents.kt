@@ -6,8 +6,13 @@ import fairshare.domain.events.StreamId
 /** Reads recorded event history. */
 public fun interface LoadEvents {
     /**
-     * Returns one complete, sequence-ordered snapshot, or `null` if the stream does not exist.
-     * Invalid recorded history fails the load rather than returning a partial snapshot.
+     * Returns the complete event history, or `null` if the stream does not exist.
+     *
+     * **Implementation requirements:**
+     *
+     * - Read stream metadata and events from a consistent snapshot.
+     * - Return events in sequence order.
+     * - Reject invalid history instead of returning partial results.
      */
     public fun load(streamId: StreamId): EventStream?
 }

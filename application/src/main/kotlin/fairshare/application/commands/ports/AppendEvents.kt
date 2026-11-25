@@ -7,9 +7,16 @@ import fairshare.domain.events.StreamRevision
 /** Writes event batches with optimistic concurrency control. */
 public fun interface AppendEvents {
     /**
-     * Atomically records a nonempty batch in input order and advances the stream revision once.
-     * [StreamRevision.INITIAL] requires a missing stream; any other expected revision must match an existing stream.
-     * A mismatch writes nothing. An unconfirmed commit is reported as a failure, but the batch may be durable.
+     * Atomically records a nonempty batch at the expected stream revision.
+     *
+     * **Implementation requirements:**
+     *
+     * - Persist all events or none.
+     * - Preserve event order and metadata.
+     * - Advance the stream revision exactly once per batch.
+     * - Return [AppendResult.Committed] only after a durable commit.
+     * - Leave persisted state unchanged on revision mismatch.
+     * - Never automatically retry an append.
      *
      * @throws IllegalArgumentException if [events] is empty.
      */
