@@ -49,6 +49,16 @@ The first feature with real events must supply a codec with explicit type and ve
 REST mapper. A codec must reject unsupported formats and malformed payloads with `IllegalArgumentException` so replay
 identifies them as invalid history.
 
+### Triage mutation failures
+
+After a PIT run, list surviving and uncovered mutations from the existing reports:
+
+```bash
+python3 .github/scripts/quality_pr_summary.py mutation-triage --module :infrastructure --limit 20
+```
+
+Omit `--module` to include all modules. Triage does not rerun Gradle.
+
 ### Run locally
 
 Use the JDK specified in `.sdkmanrc` and the Gradle wrapper.

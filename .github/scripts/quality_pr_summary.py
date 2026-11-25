@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write Gradle quality reports to GitHub Actions job summaries."""
+"""Summarize Gradle quality reports for GitHub Actions and local triage."""
 
 import argparse
 import os
@@ -219,9 +219,13 @@ class Mutations:
         return percentage(self.killed, self.killed + self.survived)
 
 
+def mutation_reports() -> list[Path]:
+    return report_files("**/build/reports/pitest/mutations.xml")
+
+
 def mutations_summary() -> list[str]:
     lines = ["## Mutation testing (PIT)", ""]
-    reports = report_files("**/build/reports/pitest/mutations.xml")
+    reports = mutation_reports()
     if not reports:
         print("::warning::No PIT XML reports found (possibly no mutations generated)")
         return lines + ["No PIT XML report found (possibly no mutations generated).", ""]
@@ -272,10 +276,58 @@ def mutations_summary() -> list[str]:
     return lines + ["", "Other includes timed-out, invalid, or errored mutations.", ""]
 
 
+def mutation_triage(module: str | None, limit: int) -> None:
+    reports = [
+        report for report in mutation_reports()
+        if module is None or project_name(report).removeprefix(":") == module
+    ]
+    if not reports:
+        label = f" for {module}" if module else ""
+        print(f"No PIT XML reports found{label}. Run mutationCheck first.")
+        return
+
+    total = 0
+    parsed_reports = 0
+    for report in reports:
+        root = parse_xml(report)
+        if root is None:
+            continue
+        parsed_reports += 1
+        for mutation in root.findall("mutation"):
+            status = mutation.get("status")
+            if status not in {"SURVIVED", "NO_COVERAGE"}:
+                continue
+            total += 1
+            if total > limit:
+                continue
+            package = mutation.findtext("mutatedClass", "").rpartition(".")[0].replace(".", "/")
+            source = mutation.findtext("sourceFile") or "?"
+            location = f"{package}/{source}" if package else source
+            line = mutation.findtext("lineNumber") or "?"
+            mutator = mutation.findtext("mutator", "").rsplit(".", 1)[-1] or "?"
+            description = mutation.findtext("description", "")
+            print(f"{project_name(report)} {status} {location}:{line} {mutator} {description}".rstrip())
+
+    if parsed_reports:
+        print(f"Showing {min(total, limit)} of {total} survived or uncovered mutations.")
+    else:
+        print("No PIT XML reports could be parsed.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("kind", choices=["verify", "mutation"])
+    parser.add_argument("kind", choices=["verify", "mutation", "mutation-triage"])
+    parser.add_argument("--module", help="Gradle module path for mutation-triage, e.g. :infrastructure")
+    parser.add_argument("--limit", type=int, help="Maximum rows for mutation-triage (default: 20)")
     args = parser.parse_args()
+
+    if args.kind == "mutation-triage":
+        if args.limit is not None and args.limit < 1:
+            parser.error("--limit must be positive")
+        mutation_triage(args.module.removeprefix(":") if args.module else None, args.limit or 20)
+        return
+    if args.module is not None or args.limit is not None:
+        parser.error("--module and --limit require mutation-triage")
 
     parts = (
         coverage_summary() + detekt_summary() + dependencies_summary()
