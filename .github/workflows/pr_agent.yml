@@ -23,12 +23,157 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENROUTER__KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+          # Model
           config.model: ${{ vars.PR_AGENT_MODEL }}
           config.custom_model_max_tokens: ${{ vars.PR_AGENT_CONTEXT_TOKENS || '-1' }}
           config.max_model_tokens: ${{ vars.PR_AGENT_MAX_MODEL_TOKENS || '65536' }}
           config.fallback_models: ${{ vars.PR_AGENT_FALLBACK_MODELS || '[]' }}
           config.num_retries: "0"
 
-          github_action_config.auto_review: "true"
+          # Automation
           github_action_config.auto_describe: "false"
-          github_action_config.auto_improve: "false"
+          github_action_config.auto_review: "true"
+          github_action_config.auto_improve: "true"
+
+          # Repository context
+          config.use_repo_settings_file: "false"
+          config.repo_context_files: '["AGENTS.md", "docs/adr/*.md"]'
+          config.repo_context_max_lines: "500"
+          config.repo_context_max_glob_matches: "20"
+          config.repo_context_from_default_branch: "true"
+
+          # Diagnostics
+          config.output_run_details: "true"
+          config.output_relevant_configurations: "true"
+
+          # Review - assessment
+          pr_reviewer.require_score_review: "false"
+          pr_reviewer.require_tests_review: "true"
+          pr_reviewer.require_estimate_effort_to_review: "true"
+          pr_reviewer.require_can_be_split_review: "true"
+          pr_reviewer.require_security_review: "true"
+          pr_reviewer.require_ticket_analysis_review: "true"
+          pr_reviewer.require_risk_assessment: "true"
+          pr_reviewer.require_merge_recommendation: "true"
+          pr_reviewer.require_failure_modes: "true"
+          pr_reviewer.require_priority_files: "true"
+
+          # Review - findings and comments
+          pr_reviewer.num_max_findings: "10"
+          pr_reviewer.inline_key_issues: "true"
+          pr_reviewer.persistent_comment: "true"
+          pr_reviewer.persistent_finding_state: "true"
+          pr_reviewer.publish_output_no_suggestions: "true"
+          pr_reviewer.publish_error_details: "true"
+
+          # Review - large pull requests
+          pr_reviewer.enable_large_pr_chunking: "true"
+          pr_reviewer.enable_review_coverage_footer: "true"
+          pr_reviewer.max_number_of_calls: "3"
+
+          # Review - instructions
+          pr_reviewer.extra_instructions: |
+            Act as a senior software engineer performing a rigorous
+            production-grade code review.
+
+            Review the changes in the context of the repository's
+            architectural decisions, conventions and domain model.
+
+            Prioritize the following areas:
+
+            1. Correctness
+               - Business logic and domain invariants.
+               - Edge cases and invalid inputs.
+               - Regression risks and unintended behavior.
+               - Numerical precision, rounding and monetary calculations.
+
+            2. Architecture and design
+               - Domain model consistency.
+               - Module boundaries and dependency direction.
+               - Separation of responsibilities.
+               - Encapsulation and preservation of invariants.
+               - Unnecessary abstractions and accidental complexity.
+
+            3. Reliability and consistency
+               - Concurrency and race conditions.
+               - Transactional consistency and atomicity.
+               - Idempotency and retry behavior.
+               - Error handling and failure recovery.
+               - Consistency between write and read models.
+
+            4. Testing
+               - Missing scenarios and boundary conditions.
+               - Quality and correctness of assertions.
+               - Tests that could pass despite incorrect behavior.
+               - Coverage of domain invariants and failure paths.
+               - Tests coupled to implementation details.
+
+            5. Maintainability
+               - API contracts and backward compatibility.
+               - Java and Kotlin idiomatic practices.
+               - Resource management and performance.
+               - Unnecessary coupling and duplication.
+               - Clarity of responsibilities and naming.
+
+            For each finding:
+            - Explain the concrete problem and its consequences.
+            - Describe a realistic scenario that triggers it.
+            - Suggest a practical resolution.
+            - Identify missing tests when applicable.
+            - Distinguish confirmed defects from potential risks.
+            - Reference the relevant code location.
+
+            Review principles:
+            - Prioritize correctness over stylistic preferences.
+            - Do not report formatting or trivial linting issues
+              already covered by automated quality tools.
+            - Do not recommend speculative abstractions.
+            - Do not invent findings to fill the available quota.
+            - Do not assume that the presence of tests proves correctness.
+            - Do not treat undocumented assumptions as confirmed facts.
+            - Explicitly acknowledge limitations of the available diff.
+            - Identify important areas requiring manual verification.
+            - Follow documented architectural decisions unless there
+              is a concrete reason to challenge them.
+
+          # Improve - suggestions
+          pr_code_suggestions.committable_code_suggestions: "true"
+          pr_code_suggestions.focus_only_on_problems: "false"
+          pr_code_suggestions.num_code_suggestions_per_chunk: "5"
+          pr_code_suggestions.suggestions_score_threshold: "5"
+          pr_code_suggestions.max_number_of_calls: "3"
+          pr_code_suggestions.persistent_comment: "true"
+          pr_code_suggestions.enable_suggestions_coverage_footer: "true"
+          pr_code_suggestions.parallel_calls: "false"
+
+          # Improve - instructions
+          pr_code_suggestions.extra_instructions: |
+            Act as a senior Java and Kotlin software engineer.
+
+            Focus on meaningful and actionable improvements in:
+
+            - Functional correctness.
+            - Domain modeling and invariant protection.
+            - Architecture and module boundaries.
+            - Error handling and transactional consistency.
+            - Concurrency, idempotency and retry behavior.
+            - Test quality and missing test cases.
+            - Maintainability and readability.
+            - Performance and resource management.
+
+            Prefer simple solutions over additional abstractions.
+
+            Preserve existing behavior unless fixing an identified defect.
+            Respect the repository's architectural decisions and conventions.
+
+            Avoid:
+            - Cosmetic changes and formatting suggestions.
+            - Changes already enforced by automated quality tools.
+            - Speculative optimizations.
+            - Unnecessary design patterns.
+            - Unrelated refactoring.
+            - Suggestions without a concrete benefit.
+
+            Explain why each proposed change is beneficial.
+            Provide concrete, applicable code suggestions whenever possible.
