@@ -22,7 +22,6 @@ pluginManager.withPlugin("fairshare.spring.kotlin-conventions") {
         testImplementation("org.springframework.boot:spring-boot-autoconfigure")
         testImplementation("org.springframework.boot:spring-boot-test")
         testImplementation("org.springframework.boot:spring-boot-test-autoconfigure")
-        testImplementation("org.springframework:spring-test")
 
         testImplementation(libs.library("kotest-extensions-spring"))
     }

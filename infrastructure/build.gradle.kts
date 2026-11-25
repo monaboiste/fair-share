@@ -25,8 +25,10 @@ dependencies {
 
     implementation("org.xerial:sqlite-jdbc")
 
+    testImplementation("org.springframework:spring-test")
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.hamcrest:hamcrest")
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
