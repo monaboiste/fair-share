@@ -36,6 +36,9 @@ internal class SqliteTransactionManager(dataSource: DataSource) : DataSourceTran
                 unknown.addSuppressed(jdbcFailure(rollback))
             }
             throw unknown
+        } catch (failure: Error) {
+            TransactionSynchronizationManager.bindResource(status.transaction, failure)
+            throw failure
         }
     }
 
@@ -44,11 +47,23 @@ internal class SqliteTransactionManager(dataSource: DataSource) : DataSourceTran
         try {
             super.doRollback(status)
         } catch (failure: RuntimeException) {
-            throw TransactionSystemException("SQLite rollback failed", jdbcFailure(failure))
+            val cause = jdbcFailure(failure)
+            rethrowCommitErrorIfPresent(status, cause)
+            throw TransactionSystemException("SQLite rollback failed", cause)
+        } catch (failure: Error) {
+            rethrowCommitErrorIfPresent(status, failure)
+            throw failure
         }
     }
 
+    private fun rethrowCommitErrorIfPresent(status: DefaultTransactionStatus, rollbackFailure: Throwable) {
+        val commitError = TransactionSynchronizationManager.getResource(status.transaction) as? Error ?: return
+        commitError.addSuppressed(rollbackFailure)
+        throw commitError
+    }
+
     override fun doCleanupAfterCompletion(transaction: Any) {
+        TransactionSynchronizationManager.unbindResourceIfPossible(transaction)
         val dataSource = obtainDataSource()
         val holder = TransactionSynchronizationManager.unbindResource(dataSource) as ConnectionHolder
         DataSourceUtils.releaseConnection(holder.connection, dataSource)
