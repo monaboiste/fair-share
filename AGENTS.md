@@ -30,6 +30,11 @@ A substantial code change includes new behavior, a bug fix, a non-trivial refact
 or changes spanning multiple code files. For small, localized code changes, `verify` plus the relevant focused tests is
 sufficient unless another applicable instruction requires more.
 
+## Delegation
+
+- Fix localized test failures inline when the failing spec and intended behavior are clear. Delegate substantial work or
+  investigations that can proceed independently.
+
 ## Review handoff
 
 - Before reporting completion after a delegated review, account for every finding: fix it, refute it with evidence, or
