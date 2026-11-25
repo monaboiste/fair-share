@@ -1,7 +1,6 @@
 ---
 name: commit
-description: Propose and create logical git commits.
-disable-model-invocation: true
+description: Plan and create Git commits. Use when the user asks to commit changes, including a bare `commit`.
 ---
 
 # Commit
@@ -11,4 +10,4 @@ disable-model-invocation: true
 2. Inspect changes (`git status --short -uall`, `git diff`) and group related files into logical commits.
 3. Draft messages matching the detected convention. If none is clear, use imperative subjects ≤50 chars, 72-char body,
    and prefer lowercase.
-4. Show the commit plan for approval, then stage and commit approved groups.
+4. Show the commit plan and wait for explicit approval of the proposed groups. Stage and commit only approved groups.
