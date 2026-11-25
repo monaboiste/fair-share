@@ -33,6 +33,9 @@ sufficient unless another applicable instruction requires more.
 - Fix the code or tests when a check fails. Keep compiler, formatting, static-analysis, coverage, mutation, and
   dependency-analysis rules unchanged; do not weaken them to make a change pass.
 - Library modules use Kotlin explicit API mode. Declare the visibility and return types the compiler requires.
+- Document public API contracts with concise KDoc. Use an **Implementation requirements** section for nontrivial
+  obligations that every implementation must satisfy. Keep technology-specific implementation notes in concrete
+  implementations.
 
 ## Dependencies
 
