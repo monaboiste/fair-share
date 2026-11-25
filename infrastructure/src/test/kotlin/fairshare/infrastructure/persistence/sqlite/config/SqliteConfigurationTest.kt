@@ -1,4 +1,4 @@
-package fairshare.bootstrap.persistence
+package fairshare.infrastructure.persistence.sqlite.config
 
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.engine.spec.tempdir
@@ -6,17 +6,17 @@ import io.kotest.matchers.shouldBe
 import org.sqlite.SQLiteConfig
 import java.sql.Statement
 
-class PersistenceConfigurationTest :
+class SqliteConfigurationTest :
     ExpectSpec({
         val databaseFile = tempdir().resolve("configured.db")
 
         expect("SQLite opens the configured database with the configured connection settings") {
-            val properties = PersistenceProperties(
+            val properties = SqliteProperties(
                 jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
                 busyTimeoutMillis = 1234,
                 synchronous = SQLiteConfig.SynchronousMode.OFF,
             )
-            val dataSource = PersistenceConfiguration().dataSource(properties)
+            val dataSource = SqliteConfiguration().dataSource(properties)
 
             dataSource.connection.use { connection ->
                 databaseFile.isFile shouldBe true

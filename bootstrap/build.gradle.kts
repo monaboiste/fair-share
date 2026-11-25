@@ -8,11 +8,11 @@ plugins {
 group = "fairshare.bootstrap"
 
 dependencies {
-    implementation(project(":infrastructure"))
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.xerial:sqlite-jdbc")
-    runtimeOnly("tools.jackson.module:jackson-module-kotlin")
+    runtimeOnly(project(":infrastructure"))
+
+    runtimeOnly("org.springframework.boot:spring-boot-starter-webmvc")
+
+    testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }
 
 tasks.bootJar {

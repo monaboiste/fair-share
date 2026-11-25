@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":application"))
 
+    implementation("org.springframework.boot:spring-boot")
     implementation("org.springframework:spring-beans")
     implementation("org.springframework:spring-core")
 
@@ -20,14 +21,15 @@ dependencies {
     implementation("tools.jackson.core:jackson-core")
     implementation("tools.jackson.core:jackson-databind")
 
+    implementation("jakarta.validation:jakarta.validation-api")
+
+    implementation("org.xerial:sqlite-jdbc")
+
     testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
     testImplementation("jakarta.validation:jakarta.validation-api")
-
-    testImplementation("org.xerial:sqlite-jdbc")
-
     testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }
