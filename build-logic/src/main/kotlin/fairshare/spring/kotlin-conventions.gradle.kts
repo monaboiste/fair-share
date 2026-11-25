@@ -10,6 +10,8 @@ plugins {
 }
 
 dependencies {
-    implementation(platform(libs.library("spring-boot-bom")))
     implementation(libs.library("kotlin-reflect"))
+
+    implementation(platform(libs.library("spring-boot-bom")))
+    implementation("org.springframework:spring-context")
 }
