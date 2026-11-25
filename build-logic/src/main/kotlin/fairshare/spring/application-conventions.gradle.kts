@@ -10,8 +10,8 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.library("spring-boot-starter"))
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot")
+    implementation("org.springframework.boot:spring-boot-autoconfigure")
 }
 
 springBoot {
