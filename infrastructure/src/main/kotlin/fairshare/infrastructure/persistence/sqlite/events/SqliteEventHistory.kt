@@ -37,8 +37,11 @@ internal fun readEventStream(streamId: StreamId, rows: ResultSet, codec: EventCo
 private fun readEvent(eventId: String, rows: ResultSet, codec: EventCodec): EventEnvelope {
     val uuid = UUID.fromString(eventId)
     require(uuid.toString() == eventId) { "Event ID is not a canonical UUID" }
+
     val version = rows.getInt("event_version")
-    require(version.toLong() == rows.getLong("event_version")) { "Event format version is out of range" }
+    require(version in 1L..Int.MAX_VALUE.toLong()) {
+        "Event format version is out of range"
+    }
     val encoded = EncodedEvent(
         type = rows.getString("event_type"),
         version = version,
