@@ -87,6 +87,10 @@ class MoneyTest : ExpectSpec() {
             product.amount.scale() shouldBe 3
         }
 
+        expect("multiplication rounds a negative half-minor-unit tie away from zero") {
+            money("-1.235", "BHD").multiply(BigDecimal("0.1"), RoundingMode.HALF_UP) shouldBe money("-0.124", "BHD")
+        }
+
         expect("dividing by default accepts an exact result") {
             money("1.20").divide(BigDecimal("0.500")) shouldBe money("2.40")
         }
@@ -108,6 +112,10 @@ class MoneyTest : ExpectSpec() {
 
         expect("division can round a negative quotient toward negative infinity") {
             money("-10").divide(BigDecimal("3"), RoundingMode.FLOOR) shouldBe money("-3.34")
+        }
+
+        expect("division rounds a negative half-minor-unit tie away from zero") {
+            money("-5", "JPY").divide(BigDecimal("2"), RoundingMode.HALF_UP) shouldBe money("-3", "JPY")
         }
 
         expect("division rejects zero even when rounding is allowed") {
