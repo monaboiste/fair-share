@@ -25,7 +25,7 @@ val databaseUrl = providers.gradleProperty("databasePath").orElse("").zip(overri
 }
 
 configure<LiquibaseExtension> {
-    activities.register("eventSchema") {
+    activities.register("main") {
         arguments = mapOf(
             "url" to databaseUrl,
             "searchPath" to layout.projectDirectory.dir("src/main/resources").asFile.absolutePath,
