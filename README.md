@@ -87,7 +87,8 @@ fi
 
 ### Run locally
 
-Use the same file as migration and the JDK specified in `.sdkmanrc`.
+Use the same file as migration and the JDK specified in `.sdkmanrc`. The SQLite JDBC URL should identify the file only.
+Do not pass connection settings, especially journal mode, as URL parameters.
 
 ```bash
 FAIRSHARE_PERSISTENCE_SQLITE_JDBCURL="jdbc:sqlite:$database" ./gradlew :bootstrap:bootRun
