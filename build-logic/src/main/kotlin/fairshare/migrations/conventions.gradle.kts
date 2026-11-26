@@ -10,10 +10,10 @@ plugins {
 }
 
 dependencies {
-    add("liquibaseRuntime", platform(libs.library("spring-boot-bom")))
-    add("liquibaseRuntime", libs.library("liquibase-core"))
-    add("liquibaseRuntime", libs.library("picocli"))
-    add("liquibaseRuntime", "org.xerial:sqlite-jdbc")
+    liquibaseRuntime(platform(libs.library("spring-boot-bom")))
+    liquibaseRuntime(libs.library("liquibase-core"))
+    liquibaseRuntime(libs.library("picocli"))
+    liquibaseRuntime("org.xerial:sqlite-jdbc")
 }
 
 val overridesUrl = providers.gradleProperty("liquibaseUrl").map { true }.orElse(false)
