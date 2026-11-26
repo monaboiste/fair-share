@@ -63,25 +63,12 @@ Omit `--module` to include all modules. Triage does not rerun Gradle.
 Stop all backend processes using the database. Using the JDK specified in `.sdkmanrc`, run:
 
 ```bash
-database="$HOME/.fair-share/events.db"
+database="./data/.fair-share/events.db"
 mkdir -p "$(dirname "$database")"
 ./gradlew :infrastructure:migrateDatabase -PdatabasePath="$database"
 ```
 
-`databasePath` must be an absolute path to a local SQLite file. Migration creates a missing file or provisions an
-existing empty file. Running it again preserves committed event history and the schema version. It refuses to adopt
-unmanaged event tables. Liquibase runs only for migration and tests, not at application startup.
-
-To use the provisioned file locally, set `fair-share.persistence.sqlite.jdbc-url` to the JDBC URL below. Use the encoded
-`file:` URI so characters like `?` are treated as part of the filename. Keep the database directory writable for
-SQLite's journal files.
-
-```bash
-python3 -c 'from pathlib import Path; import sys; print("jdbc:sqlite:" + Path(sys.argv[1]).as_uri())' "$database"
-```
-
-Run the migration task regression tests with `python3 infrastructure/src/test/python/migration_task_test.py`
-(Python with SQLite 3.37 or later, and the same JDK).
+`databasePath` must be an absolute path to a local SQLite file.
 
 ### Run locally
 
