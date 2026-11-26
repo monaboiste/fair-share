@@ -1,13 +1,21 @@
 # Description
 
-<!-- Present any related issues or PRs (if aplicable), -->
-<!-- use "Closes #<issue-number>" or "Related to #<pull-request-number>" keywords. -->
+<!-- Briefly describe the goal of this PR and provide context. -->
+<!-- Link related issues or PRs (if applicable): e.g., "Closes #<issue-number>" or "Related to #<pr-number>". -->
 
 ## Changes
-<!-- Please include a short summary of the changes in bullet-point format. -->
+
+<!-- Summarize the changes in bullet-point format: -->
 <!-- - What changed? -->
 <!-- - Why was it changed? -->
 
 ## Housekeeping (optional)
 
-<!-- Any cleanup, refactoring, or organizational changes -->
+<!-- Any cleanup, refactoring, dependency updates, or organizational changes. -->
+
+## Verification
+
+<!-- Describe how you verified the changes (tests, Gradle tasks, manual checks). Example: -->
+<!-- - Focused MoneyTest and CurrencyTest -->
+<!-- - ./gradlew verify -->
+<!-- - ./gradlew --continue qualityCheck coverageCheck -->
