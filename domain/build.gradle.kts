@@ -4,3 +4,8 @@ plugins {
 }
 
 group = "fairshare.domain"
+
+dependencies {
+    api(libs.joda.money)
+    testImplementation(libs.kotest.property)
+}
