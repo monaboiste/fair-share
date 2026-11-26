@@ -12,12 +12,14 @@ Liquibase out of the application runtime. Rolling schema upgrades are unsupporte
 
 ## Consequences
 
-- Both migration and application configuration require an explicit absolute database file path. Migration may create the
-  file; startup must not. The initial changeset preserves the existing event schema constraints and refuses unmanaged
-  event tables rather than adopting them.
+- Migration requires an absolute database file path and may create the file. Startup requires an explicit SQLite JDBC
+  URL pointing to the same existing file and must not create it. The URL identifies the file only. Do not pass
+  connection settings, especially journal mode, as URL parameters. The initial changeset preserves the existing event
+  schema constraints and refuses unmanaged event tables rather than adopting them.
 - Changesets update SQLite's `PRAGMA user_version` transactionally with schema changes, starting at `1`. This
-  application-owned marker is independent of release versions and Liquibase bookkeeping. Startup must verify an exact
-  version match and the presence of required event tables without changing the schema.
-- WAL is the default; `DELETE` is opt-in. Set or change journal mode explicitly while all backend processes are stopped,
-  not on connection acquisition. Preserve unpooled connections with `foreign_keys=ON`, `busy_timeout=5000`, and
-  `synchronous=FULL`, atomic conditional appends, success only after commit, and no automatic write retries.
+  application-owned marker is independent of release versions and Liquibase bookkeeping. Startup checks for an exact
+  version match without inspecting individual tables or changing the schema.
+- Provision WAL unless explicitly opting into `DELETE`. Set or change journal mode explicitly while all backend
+  processes are stopped, not on connection acquisition. Preserve unpooled connections with `foreign_keys=ON`,
+  `busy_timeout=5000`, and `synchronous=FULL`, atomic conditional appends, success only after commit, and no automatic
+  write retries.
