@@ -182,7 +182,7 @@ class MoneyTest : ExpectSpec() {
                 assertDivisionInvariants(currency, scale, -2, 3)
 
                 @OptIn(ExperimentalKotest::class)
-                val config = PropTestConfig(iterations = 1_000, seed = 42L)
+                val config = PropTestConfig(iterations = 1_000)
                 checkAll(config, Arb.int(-1_000_000..1_000_000), Arb.int(1..1_000)) { minorUnits, divisor ->
                     assertDivisionInvariants(currency, scale, minorUnits, divisor)
                 }
