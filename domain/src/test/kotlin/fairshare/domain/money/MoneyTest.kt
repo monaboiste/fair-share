@@ -130,23 +130,14 @@ class MoneyTest : ExpectSpec() {
                     "BHD floors to thousandths" to DivisionExample("BHD", "1", 3, "0.333", "0.001"),
                     "division by one leaves no remainder" to DivisionExample("PLN", "10", 1, "10", "0"),
                 ),
-            ) { (code, amount, count, quotient, remainder) ->
+            ) { (code, amount, count, expectedQuotient, expectedRemainder) ->
                 val original = money(amount, code)
-                val result = original.divideAndRemainder(count)
+                val (quotient, remainder) = original.divideAndRemainder(count)
 
-                result.toList() shouldBe listOf(money(quotient, code), money(remainder, code))
-                result[0].multiply(count.toBigDecimal()) + result[1] shouldBe original
+                quotient shouldBe money(expectedQuotient, code)
+                remainder shouldBe money(expectedRemainder, code)
+                quotient.multiply(count.toBigDecimal()) + remainder shouldBe original
             }
-        }
-
-        expect("each quotient and remainder array can be modified independently") {
-            val original = money("10")
-            val first = original.divideAndRemainder(3)
-            val second = original.divideAndRemainder(3)
-
-            first[0] = money("0")
-
-            second[0] shouldBe money("3.33")
         }
 
         context("division with remainder requires a positive count") {

@@ -61,7 +61,7 @@ public value class Money private constructor(private val value: JodaMoney) {
         Money(jodaValue(value.dividedBy(divisor, roundingMode)))
 
     /**
-     * Divides by a positive count and returns a fresh array containing the quotient and remainder, in that order.
+     * Divides by a positive count and returns the quotient and remainder, in that order.
      *
      * **Implementation requirements:** Both amounts retain this currency and its standard scale. The quotient
      * rounds toward negative infinity, including for negative amounts. The remainder is exactly this amount minus
@@ -69,12 +69,12 @@ public value class Money private constructor(private val value: JodaMoney) {
      *
      * @throws IllegalArgumentException if [divisor] is not strictly positive.
      */
-    public fun divideAndRemainder(divisor: Int): Array<Money> {
+    public fun divideAndRemainder(divisor: Int): Pair<Money, Money> {
         require(divisor > 0) { "Divisor must be strictly positive" }
         val count = BigDecimal(divisor)
         val quotient = divide(count, RoundingMode.FLOOR)
         val remainder = this - quotient.multiply(count)
-        return arrayOf(quotient, remainder)
+        return quotient to remainder
     }
 
     public companion object {
