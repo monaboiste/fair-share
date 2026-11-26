@@ -4,7 +4,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
+import org.springframework.jdbc.CannotGetJdbcConnectionException
 import org.sqlite.SQLiteConfig
+import java.io.File
+import java.sql.DriverManager
 import java.sql.Statement
 
 class SqliteConfigurationTest :
@@ -13,7 +16,7 @@ class SqliteConfigurationTest :
 
         synchronousModes.forEach { (synchronous, pragmaValue) ->
             expect("each SQLite connection uses WAL with foreign keys, a busy timeout and synchronous $synchronous") {
-                val databaseFile = tempdir().resolve("configured.db")
+                val databaseFile = tempdir().resolve("configured.db").apply { setSchemaVersion(1) }
                 val properties = SqliteProperties(
                     jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
                     busyTimeoutMillis = 1234,
@@ -36,7 +39,7 @@ class SqliteConfigurationTest :
         }
 
         expect("explicit DELETE switches a WAL database to rollback journaling on every connection") {
-            val databaseFile = tempdir().resolve("configured.db")
+            val databaseFile = tempdir().resolve("configured.db").apply { setSchemaVersion(1) }
             val properties = SqliteProperties(
                 jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
                 busyTimeoutMillis = 1234,
@@ -59,6 +62,21 @@ class SqliteConfigurationTest :
             }
         }
 
+        expect("opening the application data source does not create a missing database") {
+            val missing = tempdir().resolve("missing.db")
+
+            shouldThrow<CannotGetJdbcConnectionException> { openDataSource(missing) }
+
+            missing.exists() shouldBe false
+        }
+
+        expect("opening the application data source rejects an incompatible schema version") {
+            val databaseFile = tempdir().resolve("incompatible.db").apply { setSchemaVersion(2) }
+
+            shouldThrow<IllegalStateException> { openDataSource(databaseFile) }.message shouldBe
+                "Incompatible SQLite schema version: expected 1, found 2"
+        }
+
         val unsupportedJournalModes = listOf(
             SQLiteConfig.JournalMode.TRUNCATE,
             SQLiteConfig.JournalMode.PERSIST,
@@ -78,6 +96,16 @@ class SqliteConfigurationTest :
             }
         }
     })
+
+private fun openDataSource(file: File) = SqliteConfiguration().dataSource(
+    SqliteProperties("jdbc:sqlite:${file.absolutePath}", 5000, SQLiteConfig.SynchronousMode.FULL),
+)
+
+private fun File.setSchemaVersion(version: Int) {
+    DriverManager.getConnection("jdbc:sqlite:$absolutePath").use { connection ->
+        connection.createStatement().use { it.execute("PRAGMA user_version = $version") }
+    }
+}
 
 private fun Statement.readPragma(name: String): String = executeQuery("PRAGMA $name").use { rows ->
     rows.next() shouldBe true

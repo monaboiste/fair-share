@@ -66,9 +66,12 @@ Stop all backend processes using the database. Using the JDK specified in `.sdkm
 database="$(pwd)/.data/fair-share.db"
 mkdir -p "$(dirname "$database")"
 ./gradlew :infrastructure:migrateDatabase -PdatabasePath="$database"
+sqlite3 "$database" 'PRAGMA journal_mode=WAL;'
 ```
 
-`databasePath` must be an absolute path to a local SQLite file.
+`databasePath` must be an absolute path to a local SQLite file. Check that `sqlite3` prints `wal` before starting the
+matching application version. Startup requires an explicit SQLite JDBC URL and fails if the file is missing or its
+schema version is incompatible. It does not create or migrate the database.
 
 Each Git worktree has its own `.data/` directory. Run the migration above for a fresh database. To reuse event history
 from a schema-compatible worktree, use SQLite's `.backup` rather than sharing a live database or copying its `.db`
@@ -83,16 +86,17 @@ fi
 
 ### Run locally
 
-Use the JDK specified in `.sdkmanrc` and the Gradle wrapper.
+Use the same file as migration and the JDK specified in `.sdkmanrc`.
 
 ```bash
-./gradlew :bootstrap:bootRun
+FAIRSHARE_PERSISTENCE_SQLITE_JDBCURL="jdbc:sqlite:$database" ./gradlew :bootstrap:bootRun
 curl http://localhost:8080/example
 ```
 
 ### Run in Docker Compose
 
-Build the ordinary Spring Boot executable JAR, then start the application:
+Stop Compose before migrating or provisioning WAL for an existing deployment. Prepare the host file
+`$(pwd)/.data/fair-share.db` as shown above, then build the matching Spring Boot JAR and start the application:
 
 ```bash
 ./gradlew :bootstrap:bootJar

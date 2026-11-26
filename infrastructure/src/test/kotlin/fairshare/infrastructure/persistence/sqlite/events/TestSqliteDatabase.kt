@@ -3,6 +3,7 @@ package fairshare.infrastructure.persistence.sqlite.events
 import fairshare.infrastructure.persistence.sqlite.config.SqliteConfiguration
 import fairshare.infrastructure.persistence.sqlite.config.SqliteProperties
 import org.sqlite.SQLiteConfig
+import org.sqlite.SQLiteDataSource
 import java.io.File
 import javax.sql.DataSource
 
@@ -18,10 +19,11 @@ internal class TestSqliteDatabase(
         synchronous = SQLiteConfig.SynchronousMode.FULL,
         journalMode = journalMode,
     )
-    val dataSource: DataSource = newDataSource()
+    val dataSource: DataSource
 
     init {
-        initializeSchema()
+        SqliteEventSchema.initialize(SQLiteDataSource().apply { url = properties.jdbcUrl })
+        dataSource = newDataSource()
     }
 
     fun newDataSource(): DataSource = configuration.dataSource(properties)
