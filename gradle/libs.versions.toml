@@ -28,10 +28,6 @@ dependency-analysis = "3.19.2"
 # Versioning
 axion = "1.21.4"
 
-[plugins]
-liquibase = { id = "org.liquibase.gradle", version = "3.1.1" }
-
-
 [libraries]
 
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -39,6 +35,7 @@ kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", v
 slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 joda-money = { module = "org.joda:joda-money", version.ref = "joda-money" }
 liquibase-core = { module = "org.liquibase:liquibase-core", version.ref = "liquibase" }
+liquibase-gradle-plugin = { module = "org.liquibase.gradle:org.liquibase.gradle.gradle.plugin", version = "3.1.1" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }

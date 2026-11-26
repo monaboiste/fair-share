@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 2026-11-25-create-event-schema
-      author: fair-share
+      author: monaboiste
       dbms: sqlite
       runInTransaction: true
       preConditions:
