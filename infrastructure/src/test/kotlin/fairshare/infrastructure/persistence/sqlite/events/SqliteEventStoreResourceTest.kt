@@ -3,6 +3,7 @@ package fairshare.infrastructure.persistence.sqlite.events
 import fairshare.application.commands.ports.AppendResult
 import fairshare.domain.events.StreamId
 import fairshare.domain.events.StreamRevision
+import fairshare.infrastructure.persistence.sqlite.SqliteEventSchema
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ExpectSpec
 import io.kotest.engine.spec.tempdir

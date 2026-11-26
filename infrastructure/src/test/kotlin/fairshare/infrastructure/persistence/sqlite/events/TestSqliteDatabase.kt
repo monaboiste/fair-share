@@ -1,5 +1,6 @@
 package fairshare.infrastructure.persistence.sqlite.events
 
+import fairshare.infrastructure.persistence.sqlite.SqliteEventSchema
 import fairshare.infrastructure.persistence.sqlite.config.SqliteConfiguration
 import fairshare.infrastructure.persistence.sqlite.config.SqliteProperties
 import org.sqlite.SQLiteConfig
