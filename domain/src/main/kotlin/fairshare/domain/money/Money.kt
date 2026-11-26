@@ -3,6 +3,7 @@ package fairshare.domain.money
 import fairshare.domain.validation.InvalidInputException
 import fairshare.domain.validation.ValidationErrorCode
 import java.math.BigDecimal
+import java.math.RoundingMode
 import org.joda.money.Money as JodaMoney
 
 /** An immutable signed amount in one currency, expressed in its standard minor units. */
@@ -39,6 +40,42 @@ public value class Money private constructor(private val value: JodaMoney) {
 
     /** Returns the negated amount in the same currency. */
     public operator fun unaryMinus(): Money = Money(jodaValue(value.negated()))
+
+    /**
+     * Multiplies by [multiplier] without changing currency. The result uses the currency's standard scale and
+     * rounds using [roundingMode] only if needed. By default, rounding is not allowed; redundant zeros may be dropped.
+     *
+     * @throws ArithmeticException if rounding is needed but [roundingMode] is [RoundingMode.UNNECESSARY].
+     */
+    public fun multiply(multiplier: BigDecimal, roundingMode: RoundingMode = RoundingMode.UNNECESSARY): Money =
+        Money(jodaValue(value.multipliedBy(multiplier, roundingMode)))
+
+    /**
+     * Divides by [divisor] without changing currency. The result uses the currency's standard scale and
+     * rounds using [roundingMode] only if needed. By default, rounding is not allowed.
+     *
+     * @throws ArithmeticException if [divisor] is zero or rounding is needed but [roundingMode] is
+     * [RoundingMode.UNNECESSARY].
+     */
+    public fun divide(divisor: BigDecimal, roundingMode: RoundingMode = RoundingMode.UNNECESSARY): Money =
+        Money(jodaValue(value.dividedBy(divisor, roundingMode)))
+
+    /**
+     * Divides by a positive count and returns a fresh array containing the quotient and remainder, in that order.
+     *
+     * **Implementation requirements:** Both amounts retain this currency and its standard scale. The quotient
+     * rounds toward negative infinity, including for negative amounts. The remainder is exactly this amount minus
+     * the quotient times [divisor].
+     *
+     * @throws IllegalArgumentException if [divisor] is not strictly positive.
+     */
+    public fun divideAndRemainder(divisor: Int): Array<Money> {
+        require(divisor > 0) { "Divisor must be strictly positive" }
+        val count = BigDecimal(divisor)
+        val quotient = divide(count, RoundingMode.FLOOR)
+        val remainder = this - quotient.multiply(count)
+        return arrayOf(quotient, remainder)
+    }
 
     public companion object {
         /**

@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.math.RoundingMode
 
 class MoneyTest : ExpectSpec() {
     init {
@@ -71,6 +72,89 @@ class MoneyTest : ExpectSpec() {
             larger - larger shouldBe money("0")
         }
 
+        expect("multiplying by default accepts an exact result even with redundant trailing zeros") {
+            money("1.20").multiply(BigDecimal("0.500")) shouldBe money("0.60")
+        }
+
+        expect("multiplying by default rejects a fraction of a minor unit") {
+            shouldThrowExactly<ArithmeticException> { money("0.01").multiply(BigDecimal("0.5")) }
+        }
+
+        expect("multiplication can round a half-minor-unit tie up in BHD") {
+            val product = money("1.235", "BHD").multiply(BigDecimal("0.1"), RoundingMode.HALF_UP)
+
+            product shouldBe money("0.124", "BHD")
+            product.amount.scale() shouldBe 3
+        }
+
+        expect("dividing by default accepts an exact result") {
+            money("1.20").divide(BigDecimal("0.500")) shouldBe money("2.40")
+        }
+
+        expect("dividing by default rejects a non-terminating quotient") {
+            shouldThrowExactly<ArithmeticException> { money("10").divide(BigDecimal("3")) }
+        }
+
+        expect("dividing by default rejects an exact quotient smaller than one minor unit") {
+            shouldThrowExactly<ArithmeticException> { money("0.01").divide(BigDecimal("2")) }
+        }
+
+        expect("division can round a half-minor-unit tie up in JPY") {
+            val quotient = money("5", "JPY").divide(BigDecimal("2"), RoundingMode.HALF_UP)
+
+            quotient shouldBe money("3", "JPY")
+            quotient.amount.scale() shouldBe 0
+        }
+
+        expect("division can round a negative quotient toward negative infinity") {
+            money("-10").divide(BigDecimal("3"), RoundingMode.FLOOR) shouldBe money("-3.34")
+        }
+
+        expect("division rejects zero even when rounding is allowed") {
+            shouldThrowExactly<ArithmeticException> { money("1").divide(BigDecimal.ZERO, RoundingMode.HALF_UP) }
+        }
+
+        context("dividing by a positive count floors the quotient and conserves the original amount") {
+            withData(
+                mapOf(
+                    "PLN 10 divided into thirds leaves one grosz" to DivisionExample("PLN", "10", 3, "3.33", "0.01"),
+                    "one grosz divided into thirds leaves the whole amount" to DivisionExample(
+                        "PLN",
+                        "0.01",
+                        3,
+                        "0",
+                        "0.01",
+                    ),
+                    "negative PLN 10 floors to -3.34" to DivisionExample("PLN", "-10", 3, "-3.34", "0.02"),
+                    "JPY floors to whole yen" to DivisionExample("JPY", "5", 2, "2", "1"),
+                    "BHD floors to thousandths" to DivisionExample("BHD", "1", 3, "0.333", "0.001"),
+                    "division by one leaves no remainder" to DivisionExample("PLN", "10", 1, "10", "0"),
+                ),
+            ) { (code, amount, count, quotient, remainder) ->
+                val original = money(amount, code)
+                val result = original.divideAndRemainder(count)
+
+                result.toList() shouldBe listOf(money(quotient, code), money(remainder, code))
+                result[0].multiply(count.toBigDecimal()) + result[1] shouldBe original
+            }
+        }
+
+        expect("each quotient and remainder array can be modified independently") {
+            val original = money("10")
+            val first = original.divideAndRemainder(3)
+            val second = original.divideAndRemainder(3)
+
+            first[0] = money("0")
+
+            second[0] shouldBe money("3.33")
+        }
+
+        context("division with remainder requires a positive count") {
+            withData(mapOf("zero count" to 0, "negative count" to -1)) { count ->
+                shouldThrowExactly<IllegalArgumentException> { money("10").divideAndRemainder(count) }
+            }
+        }
+
         expect("negating an amount reverses its sign without changing currency") {
             val amount = money("1.234", "BHD")
 
@@ -107,5 +191,13 @@ class MoneyTest : ExpectSpec() {
 }
 
 private data class AmountExample(val code: String, val entered: String, val canonical: String)
+
+private data class DivisionExample(
+    val code: String,
+    val amount: String,
+    val count: Int,
+    val quotient: String,
+    val remainder: String,
+)
 
 private fun money(amount: String, code: String = "PLN"): Money = Money.of(Currency.of(code), BigDecimal(amount))
