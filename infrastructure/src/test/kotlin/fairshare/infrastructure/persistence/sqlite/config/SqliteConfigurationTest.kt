@@ -15,8 +15,10 @@ class SqliteConfigurationTest :
         val synchronousModes = mapOf(SQLiteConfig.SynchronousMode.FULL to "2", SQLiteConfig.SynchronousMode.OFF to "0")
 
         synchronousModes.forEach { (synchronous, pragmaValue) ->
-            expect("each SQLite connection uses WAL with foreign keys, a busy timeout and synchronous $synchronous") {
-                val databaseFile = tempdir().resolve("configured.db").apply { setSchemaVersion(1) }
+            expect("connections preserve WAL and apply foreign keys, busy timeout and synchronous $synchronous") {
+                val databaseFile = tempdir().resolve("configured.db").apply {
+                    prepareDatabase(version = 1, journalMode = SQLiteConfig.JournalMode.WAL)
+                }
                 val properties = SqliteProperties(
                     jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
                     busyTimeoutMillis = 1234,
@@ -38,21 +40,14 @@ class SqliteConfigurationTest :
             }
         }
 
-        expect("explicit DELETE switches a WAL database to rollback journaling on every connection") {
-            val databaseFile = tempdir().resolve("configured.db").apply { setSchemaVersion(1) }
+        expect("application connections preserve DELETE journaling") {
+            val databaseFile = tempdir().resolve("configured.db").apply { prepareDatabase(version = 1) }
             val properties = SqliteProperties(
                 jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
                 busyTimeoutMillis = 1234,
                 synchronous = SQLiteConfig.SynchronousMode.FULL,
             )
-            val configuration = SqliteConfiguration()
-            configuration.dataSource(properties).connection.use { connection ->
-                connection.createStatement().use { statement ->
-                    statement.readPragma("journal_mode") shouldBe "wal"
-                }
-            }
-
-            val dataSource = configuration.dataSource(properties.copy(journalMode = SQLiteConfig.JournalMode.DELETE))
+            val dataSource = SqliteConfiguration().dataSource(properties)
             repeat(2) {
                 dataSource.connection.use { connection ->
                     connection.createStatement().use { statement ->
@@ -70,29 +65,12 @@ class SqliteConfigurationTest :
             missing.exists() shouldBe false
         }
 
-        expect("opening the application data source rejects an incompatible schema version") {
-            val databaseFile = tempdir().resolve("incompatible.db").apply { setSchemaVersion(2) }
+        listOf(0, 2).forEach { version ->
+            expect("opening the application data source rejects schema version $version") {
+                val databaseFile = tempdir().resolve("incompatible.db").apply { prepareDatabase(version) }
 
-            shouldThrow<IllegalStateException> { openDataSource(databaseFile) }.message shouldBe
-                "Incompatible SQLite schema version: expected 1, found 2"
-        }
-
-        val unsupportedJournalModes = listOf(
-            SQLiteConfig.JournalMode.TRUNCATE,
-            SQLiteConfig.JournalMode.PERSIST,
-            SQLiteConfig.JournalMode.MEMORY,
-            SQLiteConfig.JournalMode.OFF,
-        )
-        unsupportedJournalModes.forEach { journalMode ->
-            expect("SQLite configuration rejects $journalMode journaling") {
-                shouldThrow<IllegalArgumentException> {
-                    SqliteProperties(
-                        jdbcUrl = "jdbc:sqlite:configured.db",
-                        busyTimeoutMillis = 1234,
-                        synchronous = SQLiteConfig.SynchronousMode.FULL,
-                        journalMode = journalMode,
-                    )
-                }
+                shouldThrow<IllegalStateException> { openDataSource(databaseFile) }.message shouldBe
+                    "Incompatible SQLite schema version: expected 1, found $version"
             }
         }
     })
@@ -101,9 +79,15 @@ private fun openDataSource(file: File) = SqliteConfiguration().dataSource(
     SqliteProperties("jdbc:sqlite:${file.absolutePath}", 5000, SQLiteConfig.SynchronousMode.FULL),
 )
 
-private fun File.setSchemaVersion(version: Int) {
+private fun File.prepareDatabase(
+    version: Int,
+    journalMode: SQLiteConfig.JournalMode = SQLiteConfig.JournalMode.DELETE,
+) {
     DriverManager.getConnection("jdbc:sqlite:$absolutePath").use { connection ->
-        connection.createStatement().use { it.execute("PRAGMA user_version = $version") }
+        connection.createStatement().use { statement ->
+            statement.execute("PRAGMA user_version = $version")
+            statement.execute("PRAGMA journal_mode = $journalMode")
+        }
     }
 }
 
