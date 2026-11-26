@@ -1,4 +1,4 @@
-package fairshare.migrations
+package fairshare.persistence
 
 import fairshare.buildlogic.library
 import fairshare.buildlogic.libs

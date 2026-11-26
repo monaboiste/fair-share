@@ -1,7 +1,7 @@
 import fairshare.buildlogic.implementation
 
 plugins {
-    id("fairshare.migrations.conventions")
+    id("fairshare.persistence.sqlite-migration-conventions")
     id("fairshare.observability.logging-conventions")
     id("fairshare.spring.library-conventions")
     id("fairshare.quality.conventions")
