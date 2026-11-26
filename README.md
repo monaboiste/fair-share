@@ -70,6 +70,17 @@ mkdir -p "$(dirname "$database")"
 
 `databasePath` must be an absolute path to a local SQLite file.
 
+Each Git worktree has its own `.data/` directory. Run the migration above for a fresh database. To reuse event history
+from a schema-compatible worktree, use SQLite's `.backup` rather than sharing a live database or copying its `.db`
+file in WAL mode. From the destination worktree root, before starting the backend:
+
+```bash
+mkdir -p .data
+if [ ! -e .data/fair-share.db ]; then
+    sqlite3 -readonly /absolute/path/to/source/.data/fair-share.db '.backup .data/fair-share.db'
+fi
+```
+
 ### Run locally
 
 Use the JDK specified in `.sdkmanrc` and the Gradle wrapper.
@@ -89,8 +100,8 @@ docker compose up --build -d
 curl http://localhost:8080/example
 ```
 
-The application listens on port 8080. SQLite is embedded in the application; its data directory is mounted as a named
-Docker volume. No separate database container is needed.
+The application listens on port 8080. Compose bind-mounts the worktree's `.data/` directory at `/data`.
+No separate database container is needed.
 
 ### Run acceptance tests on demand
 
@@ -110,4 +121,4 @@ Stop the Compose environment when finished:
 docker compose down
 ```
 
-The named data volume is retained.
+The worktree's `.data/` directory is retained.
