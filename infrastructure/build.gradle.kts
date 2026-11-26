@@ -1,11 +1,11 @@
 import fairshare.buildlogic.implementation
 
 plugins {
-    `java-test-fixtures`
     id("fairshare.persistence.sqlite-migration-conventions")
     id("fairshare.observability.logging-conventions")
     id("fairshare.spring.library-conventions")
     id("fairshare.quality.conventions")
+    id("fairshare.testing.fixture-conventions")
 }
 
 group = "fairshare.infrastructure"
@@ -39,7 +39,6 @@ dependencies {
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
-    testFixturesImplementation(platform(libs.spring.boot.bom))
     testFixturesImplementation("org.xerial:sqlite-jdbc")
     testFixturesImplementation(libs.liquibase.core)
 
