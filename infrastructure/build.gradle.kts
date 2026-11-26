@@ -1,6 +1,7 @@
 import fairshare.buildlogic.implementation
 
 plugins {
+    id("fairshare.persistence.sqlite-migration-conventions")
     id("fairshare.observability.logging-conventions")
     id("fairshare.spring.library-conventions")
     id("fairshare.quality.conventions")
@@ -37,5 +38,6 @@ dependencies {
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
+    testImplementation(libs.liquibase.core)
     testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }

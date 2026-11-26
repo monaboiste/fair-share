@@ -43,8 +43,7 @@ mode, the writable database directory must accommodate the adjacent `-wal` and `
 
 The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`. Bootstrap configures
 the SQLite data source and persistence templates but does not wire the event store, initialize its schema, or provide
-a production codec before real event types exist. The idempotent schema initializer is test-only; Liquibase will be
-introduced separately.
+a production codec before real event types exist.
 The first feature with real events must supply a codec with explicit type and version mappings, independent of the
 REST mapper. A codec must reject unsupported formats and malformed payloads with `IllegalArgumentException` so replay
 identifies them as invalid history.
@@ -58,6 +57,29 @@ python3 .github/scripts/quality_pr_summary.py mutation-triage --module :infrastr
 ```
 
 Omit `--module` to include all modules. Triage does not rerun Gradle.
+
+### Provision the SQLite event database
+
+Stop all backend processes using the database. Using the JDK specified in `.sdkmanrc`, run:
+
+```bash
+database="$(pwd)/.data/fair-share.db"
+mkdir -p "$(dirname "$database")"
+./gradlew :infrastructure:migrateDatabase -PdatabasePath="$database"
+```
+
+`databasePath` must be an absolute path to a local SQLite file.
+
+Each Git worktree has its own `.data/` directory. Run the migration above for a fresh database. To reuse event history
+from a schema-compatible worktree, use SQLite's `.backup` rather than sharing a live database or copying its `.db`
+file in WAL mode. From the destination worktree root, before starting the backend:
+
+```bash
+mkdir -p .data
+if [ ! -e .data/fair-share.db ]; then
+    sqlite3 -readonly /absolute/path/to/source/.data/fair-share.db '.backup .data/fair-share.db'
+fi
+```
 
 ### Run locally
 
@@ -78,8 +100,8 @@ docker compose up --build -d
 curl http://localhost:8080/example
 ```
 
-The application listens on port 8080. SQLite is embedded in the application; its data directory is mounted as a named
-Docker volume. No separate database container is needed.
+The application listens on port 8080. Compose bind-mounts the worktree's `.data/` directory at `/data`.
+No separate database container is needed.
 
 ### Run acceptance tests on demand
 
@@ -99,4 +121,4 @@ Stop the Compose environment when finished:
 docker compose down
 ```
 
-The named data volume is retained.
+The worktree's `.data/` directory is retained.

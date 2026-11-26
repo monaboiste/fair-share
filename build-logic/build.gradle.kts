@@ -17,6 +17,9 @@ dependencies {
 
     implementation(libs.axion.gradle.plugin)
 
+    implementation(libs.liquibase.gradle.plugin)
+    implementation(libs.liquibase.core)
+
     implementation(libs.spring.boot.gradle.plugin)
     implementation(libs.kotlin.spring.gradle.plugin)
 }
