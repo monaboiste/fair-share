@@ -5,7 +5,8 @@ java = "25"
 kotlin = "2.4.20"
 spring-boot = "4.1.1"
 joda-money = "2.0.3"
-liquibase = "5.0.3"
+liquibase = "3.1.1"
+liquibase-core = "5.0.3"
 picocli = "4.7.7"
 
 # Logging
@@ -34,8 +35,8 @@ kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", v
 
 slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 joda-money = { module = "org.joda:joda-money", version.ref = "joda-money" }
-liquibase-core = { module = "org.liquibase:liquibase-core", version.ref = "liquibase" }
-liquibase-gradle-plugin = { module = "org.liquibase.gradle:org.liquibase.gradle.gradle.plugin", version = "3.1.1" }
+liquibase-core = { module = "org.liquibase:liquibase-core", version.ref = "liquibase-core" }
+liquibase-gradle-plugin = { module = "org.liquibase.gradle:org.liquibase.gradle.gradle.plugin", version.ref = "liquibase" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
