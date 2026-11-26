@@ -8,6 +8,11 @@ plugins {
 }
 
 kover {
+    currentProject {
+        sources {
+            excludedSourceSets.add("testFixtures")
+        }
+    }
     reports {
         total {
             verify {
