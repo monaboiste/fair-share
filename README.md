@@ -63,7 +63,7 @@ Omit `--module` to include all modules. Triage does not rerun Gradle.
 Stop all backend processes using the database. Using the JDK specified in `.sdkmanrc`, run:
 
 ```bash
-database="$(pwd)/.data/.fair-share/events.db"
+database="$(pwd)/.data/fair-share.db"
 mkdir -p "$(dirname "$database")"
 ./gradlew :infrastructure:migrateDatabase -PdatabasePath="$database"
 ```
