@@ -16,13 +16,30 @@ dependencies {
     liquibaseRuntime("org.xerial:sqlite-jdbc")
 }
 
-val overridesUrl = providers.gradleProperty("liquibaseUrl").map { true }.orElse(false)
-val databaseUrl = providers.gradleProperty("databasePath").orElse("").zip(overridesUrl) { configuredPath, override ->
-    require(!override) { "Use -PdatabasePath instead of -PliquibaseUrl" }
-    val path = Path.of(configuredPath)
-    require(path.isAbsolute) { "Set -PdatabasePath to an absolute SQLite database file path" }
-    "jdbc:sqlite:${path.toUri().toASCIIString()}"
-}
+val protectedArguments = setOf(
+    "liquibaseUrl",
+    "liquibaseChangelogFile",
+    "liquibaseSearchPath",
+)
+
+val overriddenArguments = providers
+    .gradlePropertiesPrefixedBy("liquibase")
+    .map { it.keys.intersect(protectedArguments) }
+
+val databaseUrl = providers.gradleProperty("databasePath")
+    .orElse("")
+    .zip(overriddenArguments) { configuredPath, overrides ->
+        require(overrides.isEmpty()) {
+            "Overriding migration arguments is not allowed: ${overrides.sorted().joinToString()}"
+        }
+
+        val path = Path.of(configuredPath)
+        require(path.isAbsolute) {
+            "Set -PdatabasePath to an absolute SQLite database file path"
+        }
+
+        "jdbc:sqlite:${path.toUri().toASCIIString()}"
+    }
 
 configure<LiquibaseExtension> {
     activities.register("main") {
