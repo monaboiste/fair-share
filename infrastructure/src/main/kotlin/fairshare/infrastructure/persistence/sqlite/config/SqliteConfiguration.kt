@@ -30,7 +30,7 @@ internal class SqliteConfiguration {
             url = properties.jdbcUrl
         }
         val version = JdbcTemplate(dataSource).queryForObject("PRAGMA user_version", Int::class.javaObjectType)
-        check(EXPECTED_SCHEMA_VERSION.equals(version)) {
+        check(EXPECTED_SCHEMA_VERSION == version) {
             "Incompatible SQLite schema version: expected $EXPECTED_SCHEMA_VERSION, found $version"
         }
         return dataSource
