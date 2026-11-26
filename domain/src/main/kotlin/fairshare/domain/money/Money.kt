@@ -84,17 +84,17 @@ public value class Money private constructor(private val value: JodaMoney) {
          *
          * @throws InvalidInputException if the input scale exceeds the currency's standard scale.
          */
-        public fun of(currency: Currency, amount: BigDecimal): Money = try {
-            Money(jodaValue(JodaMoney.of(currency.unit, amount)))
-        } catch (cause: ArithmeticException) {
+        public fun of(currency: Currency, amount: BigDecimal): Money {
             val scale = currency.unit.decimalPlaces
-            if (amount.scale() <= scale) throw cause
 
-            throw InvalidInputException(
-                ValidationErrorCode.EXCESS_PRECISION,
-                "Amount scale ${amount.scale()} exceeds the scale $scale for ${currency.code}",
-                cause,
-            )
+            if (amount.scale() > scale) {
+                throw InvalidInputException(
+                    ValidationErrorCode.EXCESS_PRECISION,
+                    "Amount scale ${amount.scale()} exceeds the scale $scale for ${currency.code}",
+                )
+            }
+
+            return Money(jodaValue(JodaMoney.of(currency.unit, amount)))
         }
     }
 }
