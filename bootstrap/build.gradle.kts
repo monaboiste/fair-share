@@ -12,6 +12,7 @@ dependencies {
     runtimeOnly("org.springframework.boot:spring-boot-starter-webmvc")
     runtimeOnly("org.springframework.boot:spring-boot-starter-validation")
 
+    testImplementation(testFixtures(project(":infrastructure")))
     testImplementation("org.springframework:spring-jdbc")
     testImplementation("org.springframework:spring-test")
     testImplementation("org.springframework:spring-tx")
