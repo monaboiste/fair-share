@@ -1,7 +1,8 @@
 package fairshare.infrastructure.persistence
 
+import fairshare.infrastructure.persistence.sqlite.SqliteEventSchema
+import org.sqlite.SQLiteDataSource
 import java.nio.file.Files
-import java.sql.DriverManager
 
 /** Provides a temporary database for persistence wiring tests. Close it after the test to remove its files. */
 class PersistenceTestDatabase : AutoCloseable {
@@ -12,9 +13,7 @@ class PersistenceTestDatabase : AutoCloseable {
 
     init {
         val jdbcUrl = "jdbc:sqlite:${directory.resolve("context.db").toUri().toASCIIString()}"
-        DriverManager.getConnection(jdbcUrl).use { connection ->
-            connection.createStatement().use { it.execute("PRAGMA user_version = 1") }
-        }
+        SqliteEventSchema.initialize(SQLiteDataSource().apply { url = jdbcUrl })
         properties = mapOf("fair-share.persistence.sqlite.jdbc-url" to jdbcUrl)
     }
 

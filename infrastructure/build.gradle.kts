@@ -39,8 +39,9 @@ dependencies {
     testImplementation("tools.jackson.module:jackson-module-kotlin")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
-    testFixturesRuntimeOnly("org.xerial:sqlite-jdbc")
+    testFixturesImplementation(platform(libs.spring.boot.bom))
+    testFixturesImplementation("org.xerial:sqlite-jdbc")
+    testFixturesImplementation(libs.liquibase.core)
 
-    testImplementation(libs.liquibase.core)
     testRuntimeOnly("org.springframework.boot:spring-boot-starter-validation")
 }
