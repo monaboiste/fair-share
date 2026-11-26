@@ -29,6 +29,13 @@ dependency-analysis = "3.19.2"
 # Versioning
 axion = "1.21.4"
 
+[plugins]
+# Intentionally empty. Version catalog plugin aliases cannot be used in the `plugins {}` block
+# of precompiled script plugins. External plugins must instead be added to `build-logic`
+# as implementation dependencies and then applied by plugin ID.
+# https://docs.gradle.org/current/userguide/custom_plugins.html#applying_external_plugins_in_precompiled_script_plugins
+
+
 [libraries]
 
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
