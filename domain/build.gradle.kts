@@ -4,3 +4,7 @@ plugins {
 }
 
 group = "fairshare.domain"
+
+dependencies {
+    api(libs.joda.money)
+}
