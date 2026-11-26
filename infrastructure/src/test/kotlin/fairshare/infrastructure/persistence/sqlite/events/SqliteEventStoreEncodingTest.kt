@@ -66,7 +66,7 @@ class SqliteEventStoreEncodingTest :
             }
         }
 
-        expect("the largest supported format version round-trips without narrowing loss") {
+        expect("the largest supported format version round-trips and the next version is rejected before decoding") {
             val database = TestSqliteDatabase(tempdir().resolve("events.db"))
             val created = pending(TestCreated("original"))
             val delegate = TestEventCodec()
@@ -84,6 +84,9 @@ class SqliteEventStoreEncodingTest :
             store.append(streamId, StreamRevision.INITIAL, listOf(created)) shouldBe
                 AppendResult.Committed(StreamRevision(1))
             store.load(streamId).shouldNotBeNull().events shouldBe listOf(created.envelope(streamId, 1, 1))
+
+            database.executeSql("PRAGMA ignore_check_constraints = ON", "UPDATE event SET event_version = 2147483648")
+            shouldThrow<InvalidEventHistoryException> { store.load(streamId) }
         }
 
         expect("append encodes its batch snapshot in order exactly once before opening a connection") {

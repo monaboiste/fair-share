@@ -3,7 +3,6 @@ package fairshare.infrastructure.persistence.sqlite.config
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Lazy
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
@@ -23,7 +22,6 @@ internal class SqliteConfiguration {
     fun dataSource(properties: SqliteProperties): DataSource {
         val config = SQLiteConfig()
         config.resetOpenMode(SQLiteOpenMode.CREATE)
-        config.setJournalMode(properties.journalMode)
         config.enforceForeignKeys(true)
         config.setBusyTimeout(properties.busyTimeoutMillis)
         config.setSynchronous(properties.synchronous)
@@ -32,7 +30,7 @@ internal class SqliteConfiguration {
             url = properties.jdbcUrl
         }
         val version = JdbcTemplate(dataSource).queryForObject("PRAGMA user_version", Int::class.javaObjectType)
-        check(EXPECTED_SCHEMA_VERSION == version) {
+        check(EXPECTED_SCHEMA_VERSION.equals(version)) {
             "Incompatible SQLite schema version: expected $EXPECTED_SCHEMA_VERSION, found $version"
         }
         return dataSource

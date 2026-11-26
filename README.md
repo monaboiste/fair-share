@@ -38,8 +38,8 @@ restoring it after a failed rollback could commit partial writes. Rollback failu
 write or commit failure.
 
 The supported deployment uses local, file-backed SQLite with `synchronous=FULL` by default.
-`fair-share.persistence.sqlite.journal-mode` defaults to `WAL`; `DELETE` is the only supported alternative. In WAL
-mode, the writable database directory must accommodate the adjacent `-wal` and `-shm` files.
+Provision `WAL` before starting the application. In WAL mode, the writable database directory must accommodate the
+adjacent `-wal` and `-shm` files. Application connections do not set journal mode.
 
 The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`. Bootstrap configures
 the SQLite data source and persistence templates but does not wire the event store, initialize its schema, or provide
@@ -71,7 +71,8 @@ sqlite3 "$database" 'PRAGMA journal_mode=WAL;'
 
 `databasePath` must be an absolute path to a local SQLite file. Check that `sqlite3` prints `wal` before starting the
 matching application version. Startup requires an explicit SQLite JDBC URL and fails if the file is missing or its
-schema version is incompatible. It does not create or migrate the database.
+schema version is incompatible. It does not create or migrate the database. To opt into rollback journaling, use
+`PRAGMA journal_mode=DELETE;` instead while all processes using the database are stopped.
 
 Each Git worktree has its own `.data/` directory. Run the migration above for a fresh database. To reuse event history
 from a schema-compatible worktree, use SQLite's `.backup` rather than sharing a live database or copying its `.db`

@@ -18,12 +18,12 @@ internal class TestSqliteDatabase(
         jdbcUrl = "jdbc:sqlite:${databaseFile.absolutePath}",
         busyTimeoutMillis = busyTimeoutMillis,
         synchronous = SQLiteConfig.SynchronousMode.FULL,
-        journalMode = journalMode,
     )
     val dataSource: DataSource
 
     init {
-        SqliteEventSchema.initialize(SQLiteDataSource().apply { url = properties.jdbcUrl })
+        val migrationConfig = SQLiteConfig().apply { setJournalMode(journalMode) }
+        SqliteEventSchema.initialize(SQLiteDataSource(migrationConfig).apply { url = properties.jdbcUrl })
         dataSource = newDataSource()
     }
 
