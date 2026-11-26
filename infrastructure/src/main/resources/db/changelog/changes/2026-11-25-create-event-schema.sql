@@ -1,3 +1,10 @@
+--liquibase formatted sql
+
+--changeset monaboiste:2026-11-25-create-event-schema dbms:sqlite runInTransaction:true
+--preconditions onFail:HALT onError:HALT
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name COLLATE NOCASE = 'event_stream'
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name COLLATE NOCASE = 'event'
+
 CREATE TABLE event_stream (
     stream_id TEXT NOT NULL PRIMARY KEY,
     revision INTEGER NOT NULL CHECK (revision > 0),
