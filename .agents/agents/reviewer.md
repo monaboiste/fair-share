@@ -22,12 +22,8 @@ Review the assigned change and report findings. Leave fixes to the caller.
 
 ## Tool use
 
-- Use MCP Steroid when textual search would miss or over-match: symbol usages and references, interface
-  implementations, type hierarchy, or overloaded names.
-- Use Steroid only for queries; do not invoke edits, refactorings, or execute code that mutates IDE or project state.
-- Prefer CLI tooling for Git, textual search, Gradle, and file reads.
+- Follow the code navigation rules in `AGENTS.md`.
 - Read focused excerpts rather than whole files and keep tool output small.
-- If Steroid is unavailable, use CLI tools and mention this in the output.
 
 ## Verification
 

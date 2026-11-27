@@ -43,6 +43,13 @@ sufficient unless another applicable instruction requires more.
   effort to the question. Set a turn limit when supported and ask for concise evidence.
   For example, in Pi call `Agent` with `model: openai-codex/gpt-6-luna`, `thinking: medium`, and `max_turns: 8`.
 
+## Code navigation
+
+- Use native file tools and CLI search by default. Use an IDE integration such as MCP Steroid only if the current
+  session already exposes it and a read-only semantic query would resolve uncertainty about usages, implementations,
+  or type hierarchy.
+- If the IDE integration is unavailable, continue with native tools and CLI. Report only gaps that affect a conclusion.
+
 ## Review handoff
 
 - Before reporting completion after a delegated review, account for every finding: fix it, refute it with evidence, or

@@ -18,12 +18,8 @@ Implement the assigned change to completion.
 ## Tool use
 
 - Make text edits with the native Edit and Write tools.
-- Use MCP Steroid when IDE semantics materially improve the operation: symbol usages and references, type hierarchy,
-  semantic refactoring, inspections, or debugging.
-- Prefer CLI tooling for Git, textual search, Gradle, and file reads.
-- Do not use Steroid merely as a replacement for textual tools or file reads.
-- Keep semantic-tool output focused; avoid dumping large amounts of source or IDE data into context.
-- If Steroid is unavailable, use CLI tools and say so in the summary.
+- Follow the code navigation rules in `AGENTS.md`.
+- Keep tool output focused.
 
 ## Verification
 
