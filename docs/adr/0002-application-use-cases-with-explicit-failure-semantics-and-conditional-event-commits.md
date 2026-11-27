@@ -14,9 +14,28 @@ commit outcomes are distinct, and neither triggers automatic recovery. HTTP tran
 Use a strictly positive application-owned `GroupRevision`, separate from the event-store `StreamRevision` and its
 `INITIAL` sentinel. An existing-Group write reconstructs state and obtains its revision from one stream snapshot before
 checking the precondition, accepting replay cost so stale requests cannot mask invalid history. Apply the accepted
-nonempty batch before a single conditional append. On confirmed commit, return the resulting local state with the
-revision reported by the port. Do not reload: a later writer could otherwise change what this operation returns.
+nonempty batch and map the candidate state before starting the write transaction. The conditional append checks the
+expected revision again. Return the local result with the persistence-assigned revision only after confirmed commit.
+Do not reload: a later writer could otherwise change what this operation returns.
 
-Decision and conventions: [#29](https://github.com/monaboiste/fair-share/issues/29). Query strategy remains in
-[#32](https://github.com/monaboiste/fair-share/issues/32); HTTP preconditions and empty-batch behavior remain in
-[#33](https://github.com/monaboiste/fair-share/issues/33).
+## Transaction boundary
+
+Application uses `spring-tx` directly as a deliberate exception to framework independence. The Group write path
+uses a constructor-injected `TransactionTemplate`, without `@Transactional`, component annotations, scanning, or a
+custom transaction abstraction. Domain remains framework-independent. Infrastructure configures the
+`PlatformTransactionManager` and transaction-participating persistence adapters; bootstrap wires them.
+
+Reject ambient transactions at command entry. Require the write callback to own a new physical transaction, not join or
+suspend a caller's transaction. The conditional append is the first database operation. `AppendEvents` participates
+in the active writable transaction instead of opening or committing one; `Appended(StreamRevision)` means the batch
+was written in that transaction, not that it is durable. Save the Group view in the same transaction and against the
+same data source, then return success only after the template completes. On revision mismatch skip the view write,
+roll back, and report the existing application failure only after successful rollback. An append or view-save failure
+rolls back both writes. Preserve the original failure diagnostics if rollback also fails. Infrastructure classifies
+uncertain commit for the entire transaction; do not report success or automatically retry.
+
+Decision: [Application use case organization and error model](https://github.com/monaboiste/fair-share/issues/29),
+amended by [Query consistency and read model strategy](https://github.com/monaboiste/fair-share/issues/32).
+See [ADR 0004](0004-synchronous-group-views-with-offline-rebuild.md) for view maintenance and queries.
+HTTP preconditions and empty-batch behavior remain in
+[HTTP adapter conventions and Group revisions](https://github.com/monaboiste/fair-share/issues/33).

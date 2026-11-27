@@ -8,7 +8,9 @@ deployments are unsupported.
 Liquibase owns the schema, with one changelog in `infrastructure` shared by the Gradle migration task and persistence
 integration tests. Run migrations explicitly with all backend processes stopped, then start the matching application
 version. Keeping DDL out of startup avoids concurrent application instances changing their shared database and keeps
-Liquibase out of the application runtime. Rolling schema upgrades are unsupported.
+Liquibase out of the application runtime. Rolling schema upgrades are unsupported. A migration that invalidates
+materialized Group views also requires the explicit rebuild in
+[ADR 0004](0004-synchronous-group-views-with-offline-rebuild.md) before normal startup.
 
 ## Consequences
 
@@ -22,4 +24,4 @@ Liquibase out of the application runtime. Rolling schema upgrades are unsupporte
 - Provision WAL unless explicitly opting into `DELETE`. Set or change journal mode explicitly while all backend
   processes are stopped, not on connection acquisition. Preserve unpooled connections with `foreign_keys=ON`,
   `busy_timeout=5000`, and `synchronous=FULL`, atomic conditional appends, success only after commit, and no automatic
-  write retries.
+  write retries. Once Group views are introduced, the physical commit includes the event append and view write.

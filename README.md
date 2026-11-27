@@ -21,10 +21,12 @@ The backend is organized into five Gradle modules:
 | `bootstrap`        | Spring Boot startup, wiring and external configuration    |
 | `acceptance-tests` | Black-box HTTP tests of an externally running application |
 
-Keep the domain and application independent of Spring and persistence. Commands and queries have separate packages.
-Event payloads and their domain metadata live under `fairshare.domain.events`. Load and append ports are on the command
-side because they reconstruct and commit state for commands. Query ports represent individual capabilities, rather than
-a generic repository interface.
+Keep domain framework-independent and keep persistence and HTTP details out of the core. Application commands and
+queries have separate packages. The first Group slice deliberately allows `spring-tx` in application for explicit
+`TransactionTemplate` use. Commands reconstruct Group state from events and maintain a derived view in the same
+transaction as the event append. `GetGroup` reads through its own query port without replay. See
+[the Group views ADR](docs/adr/0004-synchronous-group-views-with-offline-rebuild.md) for the planned write, query and
+rebuild contracts. The current pre-Group event store is described below.
 
 The SQLite event store uses Spring's named JDBC and transaction templates. It encodes each nonempty batch before
 starting a transaction, rejects ambient transactions, and reports success only after physical commit. Revisions count

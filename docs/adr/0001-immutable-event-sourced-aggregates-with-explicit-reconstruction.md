@@ -13,7 +13,10 @@ factory accepts `GroupId` and specifically `GroupCreated`, not a command or arbi
 by evolving domain events. State is deeply immutable: evolving must not alter earlier states, including nested
 collections. Choose defensive copies or persistent immutable collections when adding Participants.
 
-Application owns Group-specific reconstruction. A missing stream means Group not found. For a loaded stream, verify its
+Application owns Group-specific reconstruction on the command side, also reused by the offline rebuild.
+`GetGroup` reads the derived view without reconstruction, as specified in
+[ADR 0004](0004-synchronous-group-views-with-offline-rebuild.md). For an existing-Group command, a missing stream means
+Group not found. For a loaded stream, verify its
 ID against the requested `GroupId` mapping and use that verified identity rather than store it again in event payloads.
 Rely on `EventStream` for structural validation. Require `GroupCreated` first, then pass only Group event payloads to
 evolution in sequence order. Reject foreign events, invalid creation, and impossible transitions at their recorded

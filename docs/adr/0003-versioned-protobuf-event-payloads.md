@@ -31,19 +31,21 @@ read are unsupported.
 
 ## Persistence and failure boundary
 
-Keep the existing `EventCodec` operations and core ports. `EncodedEvent` owns bytes independently of Protobuf types:
-copy mutable inputs and exposed bytes, and use content equality and hashing if retaining value semantics. Bind and read
-the payload as binary in JDBC, without Base64. Encode the full batch before starting a transaction. Decode failures use
-`IllegalArgumentException`; SQLite reports `InvalidEventHistoryException` without partial replay, preserving the cause
-and recording stream ID, sequence, event ID, and type/version where available. Keep raw payloads out of diagnostics and
-return only the existing generic internal error to HTTP clients.
+Keep the existing `EventCodec` operations. `EncodedEvent` owns bytes independently of Protobuf types: copy mutable
+inputs and exposed bytes, and use content equality and hashing if retaining value semantics. Bind and read the payload
+as binary in JDBC, without Base64. Encode the full batch before executing append SQL. The append participates in the
+application's write transaction as specified in
+[ADR 0002](0002-application-use-cases-with-explicit-failure-semantics-and-conditional-event-commits.md). Decode failures
+use `IllegalArgumentException`; SQLite reports `InvalidEventHistoryException` without partial replay, preserving the
+cause and recording stream ID, sequence, event ID, and type/version where available. Keep raw payloads out of
+diagnostics and return only the existing generic internal error to HTTP clients.
 
 Keep the original Liquibase changeset unchanged. Add an explicit, offline, transactional migration from SQLite schema
 version `1` to `2`. Require both event tables to be empty; otherwise halt without changing the event schema or data.
 Change `event.payload` from `TEXT NOT NULL` to `BLOB NOT NULL`, preserving all other constraints and `STRICT` semantics.
-Set `PRAGMA user_version = 2` in the same transaction and require version `2` at startup. Reapplying migrations at
-version `2` is a no-op that preserves data. No legacy payload conversion. SQLite schema and event payload versions
-evolve independently.
+Set `PRAGMA user_version = 2` in the same transaction. Reapplying the payload migration is a no-op that preserves data.
+No legacy payload conversion. SQLite schema and event payload versions evolve independently. Startup and Group view
+rebuild require the exact schema version of the running application, including any subsequent view migrations.
 
 ## Build and compatibility checks
 
