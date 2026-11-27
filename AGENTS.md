@@ -32,8 +32,16 @@ sufficient unless another applicable instruction requires more.
 
 ## Delegation
 
-- Fix localized test failures inline when the failing spec and intended behavior are clear. Delegate substantial work or
-  investigations that can proceed independently.
+- Own the task end to end. Inspect known paths and symbols, make localized changes, and fix clear test failures inline.
+- Delegate only a bounded investigation whose result you will use, a self-contained implementation slice, or an
+  independent review when requested or warranted by material risk. Keep parallel scopes distinct. Verify returned
+  findings and diffs yourself.
+- State the question or expected behavior, the scope, the allowed operations, and the deliverable. For changes, include
+  acceptance criteria and name the Gradle owner. For review, include the exact diff and any checks already run.
+- Use direct subagent calls for routine delegation. Reserve orchestrated workflows for explicit requests.
+- For read-only research without a model pinned to the role, explicitly choose a lower-cost model and match reasoning
+  effort to the question. Set a turn limit when supported and ask for concise evidence.
+  For example, in Pi call `Agent` with `model: openai-codex/gpt-6-luna`, `thinking: medium`, and `max_turns: 8`.
 
 ## Review handoff
 

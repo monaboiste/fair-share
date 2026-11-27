@@ -1,8 +1,9 @@
 ---
 name: reviewer
 description: >
-  Reviews a completed Kotlin change for correctness, regressions, contract violations, and test gaps, and returns
-  severity-ranked findings. Use after substantial implementation work is complete.
+  Independently review a specified Kotlin diff for correctness, regressions, and test gaps when asked
+  or when the change carries material risk, such as persistence, concurrency, or a public contract.
+  Return evidence-backed, severity-ranked findings.
 model: opus
 effort: high
 skills:

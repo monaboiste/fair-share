@@ -1,10 +1,8 @@
 ---
 name: scout
 description: >
-  Produces a structured implementation brief for a substantial planned Kotlin change by mapping
-  its code path, tests, semantic blast radius, conventions, risks, and open questions.
-  Use when another agent needs an implementation-ready brief; not for simple file discovery,
-  symbol lookup, or codebase questions.
+  Map the code path, tests, and risks for a Kotlin change that crosses modules or contracts, when the
+  caller will use an implementation brief. Use Explore for locating an unknown area; look up known paths inline.
 model: openai-codex/gpt-6-luna
 thinking: high
 ---

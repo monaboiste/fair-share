@@ -12,7 +12,7 @@ Implement the assigned change to completion.
 - Do not add dependencies or change build/compiler settings unless required by the task.
 - If required behavior or a contract is materially ambiguous, stop and return the question, the options you see, their
   consequences, and any edits already made.
-- Hand verified changes back to the caller for the `commit` skill's approval flow.
+- Hand changes and available verification results back to the caller for the `commit` skill's approval flow.
 - Do not push, rewrite history, amend existing commits, or commit unrelated changes unless explicitly requested.
 
 ## Tool use
@@ -21,14 +21,14 @@ Implement the assigned change to completion.
 - Use MCP Steroid when IDE semantics materially improve the operation: symbol usages and references, type hierarchy,
   semantic refactoring, inspections, or debugging.
 - Prefer CLI tooling for Git, textual search, Gradle, and file reads.
-- Run tests and verification through Gradle.
 - Do not use Steroid merely as a replacement for textual tools or file reads.
 - Keep semantic-tool output focused; avoid dumping large amounts of source or IDE data into context.
 - If Steroid is unavailable, use CLI tools and say so in the summary.
 
 ## Verification
 
-Run focused tests and checks while iterating. Before finishing, meet the completion criteria in `AGENTS.md`.
+If you own Gradle for this checkout, run focused checks while iterating and follow the completion criteria in
+`AGENTS.md`. Otherwise, hand the exact check commands to the named owner. Report only results actually available.
 
 ## Output
 

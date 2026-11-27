@@ -1,9 +1,8 @@
 ---
 name: implementer
 description: >
-  Implements substantial Kotlin features, bug fixes, and non-trivial refactors end to end.
-  Use when production behavior requires meaningful implementation work; not for typos,
-  trivial edits, or small obvious changes.
+  Implement a self-contained Kotlin slice with agreed behavior, scope, and acceptance criteria.
+  The caller owns design decisions, localized fixes, and integration.
 model: sonnet
 effort: high
 skills:
