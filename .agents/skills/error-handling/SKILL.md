@@ -37,7 +37,7 @@ Use `error.<category>.<kebab-case-code>` for project-owned error identifiers and
 | ---------- | -------------------------------------------------------------------------- |
 | Validation | `error.validation.required-field`, `error.validation.unsupported-currency` |
 | Business   | `error.business.currency-blocked`, `error.business.revision-mismatch`      |
-| Internal   | `error.internal.unknown`           |
+| Internal   | `error.internal.unknown`                                                   |
 
 Reuse existing codes; centralize each identifier in its owning layer. Prefer enums with explicit stable string values
 where useful. Never derive wire values from enum names or exception class names. Do not duplicate domain codes in a REST
@@ -47,10 +47,10 @@ Use the same identifier as the `errors[].code` value and the `MessageSource` key
 failures, resolve the public detail using a namespaced key and let `type` identify the problem to clients. Do not add a
 top-level `code` to the response.
 
-Keep public messages in `infrastructure/src/main/resources/messages.properties` (English initially). Use safe arguments and a
-safe default if a message is missing. Exception messages are diagnostic only; never copy them into public responses. Do
-not translate machine-readable codes, problem URIs or JSON pointers. Preserve Spring's own message resolution
-conventions for built-in exceptions where applicable.
+Keep public messages in `infrastructure/src/main/resources/messages.properties` (English initially). Use safe arguments
+and a safe default if a message is missing. Exception messages are diagnostic only; never copy them into public
+responses. Do not translate machine-readable codes, problem URIs or JSON pointers. Preserve Spring's own message
+resolution conventions for built-in exceptions where applicable.
 
 ## REST translation
 
@@ -84,9 +84,10 @@ status by themselves: validation errors can be 400 or 422; business errors can b
 operation contract and preserve standard MVC statuses for other protocol failures.
 
 Log unexpected failures with useful context using SLF4J. Return a safe public message; never expose exception messages,
-stack traces, SQL, or rejected secrets. Use only `error.internal.unknown` for public 500 details. Return no field errors, top-level code or cause-specific
-detail. After any 500 for a write, the client must refresh and inspect state before considering resubmission; do not
-automatically retry. Preserve the diagnostic distinction in server-side logs. Do not catch `Throwable` or swallow fatal errors.
+stack traces, SQL, or rejected secrets. Use only `error.internal.unknown` for public 500 details. Return no field
+errors, top-level code or cause-specific detail. After any 500 for a write, the client must refresh and inspect state
+before considering resubmission; do not automatically retry. Preserve the diagnostic distinction in server-side logs. Do
+not catch `Throwable` or swallow fatal errors.
 
 Avoid custom request readers, manual Validator calls, feature-specific interceptors, error mapping registries, generic
 factories and redundant wrappers. Add helpers only when repetition warrants them. Do not introduce speculative error
