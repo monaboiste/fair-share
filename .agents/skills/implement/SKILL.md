@@ -31,8 +31,9 @@ scope.
 
 Use the `tdd` skill for production code changes. Deliver one behavioral increment at a time. Resolve local
 implementation details within established architectural decisions. If a material specification gap emerges, surface it
-before implementing the affected behavior. **Done:** Every acceptance criterion is implemented or explicitly reported as
-blocked.
+before implementing the affected behavior.
+
+**Done:** Every acceptance criterion is implemented or explicitly reported as blocked.
 
 ## 4. Verify
 
