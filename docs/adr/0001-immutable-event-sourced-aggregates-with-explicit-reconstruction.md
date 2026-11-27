@@ -29,9 +29,8 @@ Use a domain `Decision<E, Rejection>` rather than a general-purpose `Result`. `R
 rejection; `Accepted` carries only an ordered, immutable event batch. Allow zero, one, or many events in the contract.
 Snapshot mutable inputs and require immutable payloads. An empty acceptance makes no claim about appends or revisions.
 Concrete outcomes, multi-event use cases, failure types, and commit orchestration belong to
-[Application use case organization and error model](https://github.com/monaboiste/fair-share/issues/29). Same-currency
-event emission and its commit semantics remain open in
-[HTTP adapter conventions and Group revisions](https://github.com/monaboiste/fair-share/issues/33); domain owns
-emission, application owns commits and revisions, and HTTP owns their wire representation.
+[Application use case organization and error model](https://github.com/monaboiste/fair-share/issues/29). Setting the
+same Settlement currency is an accepted empty decision, even if changing the currency would be prohibited. See
+[ADR 0005](0005-group-revision-etags-and-no-op-writes.md) for the resulting revision and HTTP semantics.
 
 Decision: [Event-sourced aggregate design](https://github.com/monaboiste/fair-share/issues/28).

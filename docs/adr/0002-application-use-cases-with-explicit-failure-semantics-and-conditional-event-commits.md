@@ -16,7 +16,9 @@ Use a strictly positive application-owned `GroupRevision`, separate from the eve
 checking the precondition, accepting replay cost so stale requests cannot mask invalid history. Apply the accepted
 nonempty batch and map the candidate state before starting the write transaction. The conditional append checks the
 expected revision again. Return the local result with the persistence-assigned revision only after confirmed commit.
-Do not reload: a later writer could otherwise change what this operation returns.
+Do not reload: a later writer could otherwise change what this operation returns. For an accepted empty decision,
+return the verified loaded snapshot and its revision without starting a write transaction, as specified in
+[ADR 0005](0005-group-revision-etags-and-no-op-writes.md).
 
 ## Transaction boundary
 
@@ -36,6 +38,5 @@ uncertain commit for the entire transaction; do not report success or automatica
 
 Decision: [Application use case organization and error model](https://github.com/monaboiste/fair-share/issues/29),
 amended by [Query consistency and read model strategy](https://github.com/monaboiste/fair-share/issues/32).
-See [ADR 0004](0004-synchronous-group-views-with-offline-rebuild.md) for view maintenance and queries.
-HTTP preconditions and empty-batch behavior remain in
-[HTTP adapter conventions and Group revisions](https://github.com/monaboiste/fair-share/issues/33).
+See [ADR 0004](0004-synchronous-group-views-with-offline-rebuild.md) for view maintenance and queries and
+[ADR 0005](0005-group-revision-etags-and-no-op-writes.md) for HTTP preconditions.
