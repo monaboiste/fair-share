@@ -5,6 +5,10 @@ flavor = "gfm"
 enabled = true
 line-length = 120
 reflow = true
+reflow-mode = "normalize"
+code-blocks = false
+code-spans = false
+tables = false
 
 [MD060]
 enabled = true
@@ -12,3 +16,4 @@ style = "aligned"
 
 [per-file-ignores]
 ".agents/skills/**/*.md" = ["MD033", "MD041"]
+

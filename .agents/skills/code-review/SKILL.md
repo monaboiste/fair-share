@@ -18,8 +18,8 @@ Review for defects and behavioral risk, not personal style. Do not modify code u
 3. Review the diff, then inspect the **semantic blast radius** beyond it when behavior, types, or contracts change:
    callers, usages, implementations, persistence/events, serialization, and tests.
 4. Prioritize correctness, regressions, invariants, API contracts, concurrency/data consistency, error handling, and
-   tests before maintainability concerns. Apply the project's relevant language, framework, and testing conventions
-   when evaluating the change.
+   tests before maintainability concerns. Apply the project's relevant language, framework, and testing conventions when
+   evaluating the change.
 5. Verify every finding against the actual code. Run the project-required verification, plus focused tests or checks
    when they can confirm or refute a finding.
 6. Report findings ordered by severity. If there are no material findings, say so explicitly.

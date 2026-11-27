@@ -13,17 +13,17 @@ factory accepts `GroupId` and specifically `GroupCreated`, not a command or arbi
 by evolving domain events. State is deeply immutable: evolving must not alter earlier states, including nested
 collections. Choose defensive copies or persistent immutable collections when adding Participants.
 
-Application owns Group-specific reconstruction on the command side, also reused by the offline rebuild.
-`GetGroup` reads the derived view without reconstruction, as specified in
+Application owns Group-specific reconstruction on the command side, also reused by the offline rebuild. `GetGroup` reads
+the derived view without reconstruction, as specified in
 [ADR 0004](0004-synchronous-group-views-with-offline-rebuild.md). For an existing-Group command, a missing stream means
-Group not found. For a loaded stream, verify its
-ID against the requested `GroupId` mapping and use that verified identity rather than store it again in event payloads.
-Rely on `EventStream` for structural validation. Require `GroupCreated` first, then pass only Group event payloads to
-evolution in sequence order. Reject foreign events, invalid creation, and impossible transitions at their recorded
-positions without returning partial state, invoking current Decide methods, or running Pricing or recalculating
-financial facts. Report consistency failures with stream identity, offending sequence, event ID, and original cause
-where applicable; keep diagnostics out of public responses. Application supplies event IDs and recording timestamps for
-`PendingEvent`; persistence assigns sequence and committed revision. Replay creates no metadata.
+Group not found. For a loaded stream, verify its ID against the requested `GroupId` mapping and use that verified
+identity rather than store it again in event payloads. Rely on `EventStream` for structural validation. Require
+`GroupCreated` first, then pass only Group event payloads to evolution in sequence order. Reject foreign events, invalid
+creation, and impossible transitions at their recorded positions without returning partial state, invoking current
+Decide methods, or running Pricing or recalculating financial facts. Report consistency failures with stream identity,
+offending sequence, event ID, and original cause where applicable; keep diagnostics out of public responses. Application
+supplies event IDs and recording timestamps for `PendingEvent`; persistence assigns sequence and committed revision.
+Replay creates no metadata.
 
 Use a domain `Decision<E, Rejection>` rather than a general-purpose `Result`. `Rejected` carries a typed expected
 rejection; `Accepted` carries only an ordered, immutable event batch. Allow zero, one, or many events in the contract.

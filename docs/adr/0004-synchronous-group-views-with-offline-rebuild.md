@@ -19,8 +19,8 @@ Group event commit and a recovery procedure for derived data.
 - `AppendEvents` assigns the revision. `SaveGroupView` replaces the full view with that revision before commit.
   `CreateGroup`, `ChangeSettlementCurrency`, and `GetGroup` return the shared application-owned `GroupResult`, pairing a
   `GroupView` with a positive `GroupRevision`. Committed command results use local state and the assigned revision,
-  without a reload. No-ops skip both writes and use the verified loaded revision. REST maps the result to the body
-  and ETag. See [ADR 0005](0005-group-revision-etags-and-no-op-writes.md) for no-op and HTTP semantics.
+  without a reload. No-ops skip both writes and use the verified loaded revision. REST maps the result to the body and
+  ETag. See [ADR 0005](0005-group-revision-etags-and-no-op-writes.md) for no-op and HTTP semantics.
 - SQLite reads the view and checks stream-header existence and revision in the same SQL statement. Neither present means
   not found; one present or different revisions means internal consistency failure. Reject ambient transactions for
   normal query loads so an earlier snapshot cannot be reused. A read racing a commit sees one complete old or new state;

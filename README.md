@@ -32,23 +32,22 @@ The SQLite event store uses Spring's named JDBC and transaction templates. It en
 starting a transaction, rejects ambient transactions, and reports success only after physical commit. Revisions count
 batches, with zero reserved for an expected missing stream; sequences count individual events within a stream. A
 revision mismatch or pre-commit failure rolls back the batch. A failed commit raises `UnknownCommitOutcomeException`
-even if rollback succeeds. The store never retries an append automatically. Loads read metadata and ordered events
-in one database snapshot, return `null` only for missing streams, and reject invalid history.
+even if rollback succeeds. The store never retries an append automatically. Loads read metadata and ordered events in
+one database snapshot, return `null` only for missing streams, and reject invalid history.
 
 The SQLite transaction manager requires unpooled physical connections. It closes them without restoring auto-commit:
-restoring it after a failed rollback could commit partial writes. Rollback failures are suppressed on the original
-write or commit failure.
+restoring it after a failed rollback could commit partial writes. Rollback failures are suppressed on the original write
+or commit failure.
 
-The supported deployment uses local, file-backed SQLite with `synchronous=FULL` by default.
-Provision `WAL` before starting the application. In WAL mode, the writable database directory must accommodate the
-adjacent `-wal` and `-shm` files. Application connections do not set journal mode.
+The supported deployment uses local, file-backed SQLite with `synchronous=FULL` by default. Provision `WAL` before
+starting the application. In WAL mode, the writable database directory must accommodate the adjacent `-wal` and `-shm`
+files. Application connections do not set journal mode.
 
 The example endpoint is a temporary REST-only example: `GET /example` returns `{"message":"test"}`. Bootstrap configures
-the SQLite data source and persistence templates but does not wire the event store, initialize its schema, or provide
-a production codec before real event types exist.
-The first feature with real events must supply a codec with explicit type and version mappings, independent of the
-REST mapper. A codec must reject unsupported formats and malformed payloads with `IllegalArgumentException` so replay
-identifies them as invalid history.
+the SQLite data source and persistence templates but does not wire the event store, initialize its schema, or provide a
+production codec before real event types exist. The first feature with real events must supply a codec with explicit
+type and version mappings, independent of the REST mapper. A codec must reject unsupported formats and malformed
+payloads with `IllegalArgumentException` so replay identifies them as invalid history.
 
 ### Triage mutation failures
 
@@ -77,8 +76,8 @@ schema version is incompatible. It does not create or migrate the database. To o
 `PRAGMA journal_mode=DELETE;` instead while all processes using the database are stopped.
 
 Each Git worktree has its own `.data/` directory. Run the migration above for a fresh database. To reuse event history
-from a schema-compatible worktree, use SQLite's `.backup` rather than sharing a live database or copying its `.db`
-file in WAL mode. From the destination worktree root, before starting the backend:
+from a schema-compatible worktree, use SQLite's `.backup` rather than sharing a live database or copying its `.db` file
+in WAL mode. From the destination worktree root, before starting the backend:
 
 ```bash
 mkdir -p .data
@@ -108,8 +107,8 @@ docker compose up --build -d
 curl http://localhost:8080/example
 ```
 
-The application listens on port 8080. Compose bind-mounts the worktree's `.data/` directory at `/data`.
-No separate database container is needed.
+The application listens on port 8080. Compose bind-mounts the worktree's `.data/` directory at `/data`. No separate
+database container is needed.
 
 ### Run acceptance tests on demand
 
@@ -119,9 +118,9 @@ Start the application first (locally or with Docker Compose), then run:
 ./gradlew :acceptance-tests:test -Pacceptance
 ```
 
-Set `FAIR_SHARE_BASE_URL` to test a different running instance. The tests do not start or stop the application,
-build an image, or access its database. They are disabled in ordinary Gradle test and quality runs unless
-`-Pacceptance` is explicitly supplied.
+Set `FAIR_SHARE_BASE_URL` to test a different running instance. The tests do not start or stop the application, build an
+image, or access its database. They are disabled in ordinary Gradle test and quality runs unless `-Pacceptance` is
+explicitly supplied.
 
 Stop the Compose environment when finished:
 

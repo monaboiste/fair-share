@@ -40,14 +40,14 @@ sufficient unless another applicable instruction requires more.
   acceptance criteria and name the Gradle owner. For review, include the exact diff and any checks already run.
 - Use direct subagent calls for routine delegation. Reserve orchestrated workflows for explicit requests.
 - For read-only research without a model pinned to the role, explicitly choose a lower-cost model and match reasoning
-  effort to the question. Set a turn limit when supported and ask for concise evidence.
-  For example, in Pi call `Agent` with `model: openai-codex/gpt-6-luna`, `thinking: medium`, and `max_turns: 8`.
+  effort to the question. Set a turn limit when supported and ask for concise evidence. For example, in Pi call `Agent`
+  with `model: openai-codex/gpt-6-luna`, `thinking: medium`, and `max_turns: 8`.
 
 ## Code navigation
 
 - Use native file tools and CLI search by default. Use an IDE integration such as MCP Steroid only if the current
-  session already exposes it and a read-only semantic query would resolve uncertainty about usages, implementations,
-  or type hierarchy.
+  session already exposes it and a read-only semantic query would resolve uncertainty about usages, implementations, or
+  type hierarchy.
 - If the IDE integration is unavailable, continue with native tools and CLI. Report only gaps that affect a conclusion.
 
 ## Review handoff
@@ -69,11 +69,11 @@ sufficient unless another applicable instruction requires more.
 - Declare every dependency the code uses directly; do not rely on transitively available dependencies.
 - Before adding or promoting a dependency, check the existing conventions in `build-logic/` and
   `gradle/libs.versions.toml`.
-- Keep production Spring Boot starters in `bootstrap`. Library modules should depend on the specific libraries
-  and Spring modules they use. Test starters may be declared in the modules that need them.
+- Keep production Spring Boot starters in `bootstrap`. Library modules should depend on the specific libraries and
+  Spring modules they use. Test starters may be declared in the modules that need them.
 - Prefer `runtimeOnly` for dependencies required at runtime but not used directly by source code.
-- Use dependency analysis bundles for cohesive sets of artifacts, such as Spring Boot starters and framework
-  internals. Keep exclusions narrow and justified.
+- Use dependency analysis bundles for cohesive sets of artifacts, such as Spring Boot starters and framework internals.
+  Keep exclusions narrow and justified.
 
 ## Issue tracker
 

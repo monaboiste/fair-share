@@ -17,8 +17,8 @@ necessary, agree on it and update the relevant issue first.
 - REST: use typed request DTOs, the shared Spring Boot Jackson mapper, and `@Valid` with Jakarta Validation. Reject
   malformed JSON, unknown fields, missing required fields, forbidden nulls and wrong types. Let deserialization fail on
   the first error; do not build a custom parser to aggregate errors. Where absent and explicit null require distinct
-  pointers, use a nullable DTO field defaulting to null with `@NotNull` and `@JsonSetter(nulls = Nulls.FAIL)`;
-  Jackson rejects explicit null and Bean Validation detects absence. Keep the domain value non-null.
+  pointers, use a nullable DTO field defaulting to null with `@NotNull` and `@JsonSetter(nulls = Nulls.FAIL)`; Jackson
+  rejects explicit null and Bean Validation detects absence. Keep the domain value non-null.
 - Domain: enforce invariants even outside HTTP. Use a shared `InvalidInputException` with a typed error code and a
   diagnostic message for expected invalid input. Do not create one exception class per value object or rule.
 - Application: distinguish addressed-resource absence, current-state conflicts and stale revisions. Introduce a small

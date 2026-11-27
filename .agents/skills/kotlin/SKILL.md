@@ -36,11 +36,11 @@ data class Participant(val id: ParticipantId, val name: String) {
 
 ## Nullability and failures
 
-- Make nullability express actual absence. Use safe calls, early returns, and Elvis expressions instead of `!!`.
-  Supply a fallback only when the domain defines one; missing required data should remain a visible failure.
+- Make nullability express actual absence. Use safe calls, early returns, and Elvis expressions instead of `!!`. Supply
+  a fallback only when the domain defines one; missing required data should remain a visible failure.
 - Normalize Java platform types at the boundary into explicit nullable or non-nullable Kotlin types.
-- Use nullable results for simple absence and sealed outcomes when callers must distinguish domain failures.
-  Use `require` for programmer-supplied preconditions and `check` for internal state invariants.
+- Use nullable results for simple absence and sealed outcomes when callers must distinguish domain failures. Use
+  `require` for programmer-supplied preconditions and `check` for internal state invariants.
 - Do not use `Result` as a substitute for a domain error model. Avoid `runCatching` where cancellation or selective
   exception handling matters: it catches every `Throwable`.
 - Catch specific failures only where recovery or boundary translation is meaningful. Preserve the cause when wrapping
@@ -68,17 +68,17 @@ fun RemovalOutcome.message(): String = when (this) {
   control flow clearer. Give public API return types explicitly.
 - Use named arguments where adjacent values or booleans would obscure intent. Prefer a domain type over a cluster of
   flags when states have distinct meaning.
-- Keep extensions domain-specific and as local as possible. Prefer composition; use interface delegation (`by`)
-  when forwarding an existing contract.
-- Use scope functions for one clear purpose: `let` transforms a value, `apply` configures an object, `also` adds a
-  side effect. Prefer direct safe-call chains or local variables over nested scope functions and ambiguous receivers.
+- Keep extensions domain-specific and as local as possible. Prefer composition; use interface delegation (`by`) when
+  forwarding an existing contract.
+- Use scope functions for one clear purpose: `let` transforms a value, `apply` configures an object, `also` adds a side
+  effect. Prefer direct safe-call chains or local variables over nested scope functions and ambiguous receivers.
 
 ## Collections
 
-- Choose the operation that states intent: `map`, `mapNotNull`, `filter`, `any`, `firstOrNull`, `groupBy`.
-  Use a straightforward loop when a chain obscures stateful logic.
-- Start with ordinary collection operations. Use sequences for meaningful short-circuiting or large pipelines;
-  they add overhead and are not automatically faster.
+- Choose the operation that states intent: `map`, `mapNotNull`, `filter`, `any`, `firstOrNull`, `groupBy`. Use a
+  straightforward loop when a chain obscures stateful logic.
+- Start with ordinary collection operations. Use sequences for meaningful short-circuiting or large pipelines; they add
+  overhead and are not automatically faster.
 - `associateBy` overwrites duplicate keys. Validate uniqueness when losing an entry would violate the domain.
 
 ```kotlin
