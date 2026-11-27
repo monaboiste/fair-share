@@ -1,11 +1,6 @@
 [global]
 flavor = "gfm"
 
-exclude = [
-    "docs/agents/*.md",
-    ".agents/skills/**/*.md"
-]
-
 [MD013]
 enabled = true
 line-length = 120
